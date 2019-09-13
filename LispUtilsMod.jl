@@ -1,4 +1,4 @@
-module ListUtilsMod
+module LispUtilsMod
 
 export lisp_eval
 

@@ -4,7 +4,7 @@ using RunMod
 
 export Gene
 
-struct Gene
+mutable struct Gene
     run::Run
     genome_index::Int64
     initial_output_rate::Float64

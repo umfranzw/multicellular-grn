@@ -29,7 +29,7 @@ for i in 0:length(ProteinFcns) - 1
     ProteinFcnDict[bits] = ProteinFcns[i + 1]
 end
     
-struct Protein
+mutable struct Protein
     Run::Run
     seq::BitArray{1}
 end
