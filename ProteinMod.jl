@@ -30,8 +30,9 @@ for i in 0:length(ProteinFcns) - 1
 end
     
 mutable struct Protein
-    Run::Run
+    run::Run
     seq::BitArray{1}
+    concs::Array{Float64, 1}
 end
 
 function get_scope(protein::Protein)

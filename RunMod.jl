@@ -4,7 +4,7 @@ import TOML
 import Random
 
 export Run,
-    get_config_channel
+    get_config_channel, get_first_run
 
 const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
 
@@ -105,6 +105,12 @@ end
 
 function get_config_channel()
     Channel(next_run)
+end
+
+#useful for testing in the REPL
+function get_first_run()
+    channel = get_config_channel()
+    take!(channel)
 end
 
 end
