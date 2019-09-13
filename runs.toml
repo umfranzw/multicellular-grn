@@ -1,0 +1,60 @@
+[[runs]]
+######
+# GA #
+######
+pop_size = 100
+ea_steps = 2
+mut_prob = 0.4
+num_genes = 8
+num_tf_bits = 4
+num_bind_sites = 2
+#GA will terminate when best fitness drops below this value
+fitness_term_threshold = 0.0
+
+######################
+# Regulatory Simulation #
+######################
+reg_steps = 50
+min_protein_conc = 0.04
+max_protein_conc = 1.0
+max_output_rate = 1.0
+output_rate_step = 0.1
+#note: max program size is num_genes / genes_per_cell
+genes_per_cell = 2
+
+decay_rate = 0.05
+num_initial_tfs = 5
+max_proteins = 20
+max_mut_delta = 0.5
+max_mut_bits = 8
+
+binding_seq_play = 2
+
+###############################
+# Genotype -> Phenotype Mapping #
+###############################
+# note: bounds are inclusive
+growth_start = 10
+growth_end = 30
+growth_threshold = 0.25
+diff_threshold = 0.25
+
+code_start = 31
+code_end = 50
+
+initial_cell_energy = 5.0
+
+##########################
+#Random Number Generation #
+##########################
+fix_rng_seed = false
+rng_seed = 1207586232
+
+##########
+# Logging #
+##########
+#info|debug|none
+log_level = "debug"
+#this is in json objects
+log_buff_size = 1000000
+log_dir = "/home/wayne/Documents/school/thesis/multicellular-grn/data/"
