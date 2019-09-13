@@ -1,7 +1,12 @@
+module RunMod
+
 import TOML
 import Random
 
-const CONFIG_PATH = "/home/wayne/Documents/school/thesis/julia/runs.toml"
+export Run,
+    get_config_channel
+
+const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
 
 struct Run
     pop_size::Int64
@@ -100,4 +105,6 @@ end
 
 function get_config_channel()
     Channel(next_run)
+end
+
 end

@@ -1,4 +1,11 @@
-include("run.jl")
+module ProteinMod
+
+using RunMod
+using BitUtilsMod
+
+export ProteinScope, ProteinEffect, ProteinTarget,
+    Protein,
+    get_scope, get_effect, get_fcn
 
 @enum ProteinScope::Bool IntraCell=false InterCell=true
 @enum ProteinEffect::Bool Inhibit=false Activate=true
@@ -14,8 +21,14 @@ ProteinFcns = [
     ProteinFcn("b", "b"),
     ProteinFcn("c", "c")
 ]
-ProteinFcnDict = Dict{BitArray{1}, ProteinFcn}(zip(map(BitArray, 0:length(ProteinFcns) - 1), ProteinFcns))
+fcn_bits = Int64(ceil(log2(length(ProteinFcns))))
+ProteinFcnDict = Dict{BitArray{1}, ProteinFcn}()
 
+for i in 0:length(ProteinFcns) - 1
+    bits = BitArray(i, min_bits=fcn_bits)
+    ProteinFcnDict[bits] = ProteinFcns[i + 1]
+end
+    
 struct Protein
     Run::Run
     seq::BitArray{1}
@@ -30,6 +43,7 @@ function get_effect(protein::Protein)
 end
 
 function get_fcn(protein::Protein)
-    ProteinFcnDict[protein.seq[3:7]]
+    ProteinFcnDict[protein.seq[3:3 + fcn_bits - 1]]
 end
 
+end

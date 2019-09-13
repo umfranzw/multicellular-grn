@@ -1,5 +1,10 @@
+module BitUtilsMod
+
 import Base.~, Base.⊻, Base.|, Base.&
 import Base.Int64
+
+export hamming_dist, count_common_bits, (~), (⊻), (|), (&),
+       Int64, BitArray
 
 hamming_dist(x::BitArray, y::BitArray) = sum(map(xor, x, y))
 count_common_bits(x::BitArray, y::BitArray) = sum(map(==, x, y))
@@ -19,13 +24,18 @@ function Int64(bits::BitArray)
     result
 end
 
-function BitArray(n::Int64)
+function BitArray(n::Int64; min_bits::Int64=1)
     result = BitArray{1}()
     while n != 0
         push!(result, n % 2)
         n >>= 1 #integer division
     end
 
+    while length(result) < min_bits
+        push!(result, 0) #pad with zeros
+    end
+
     reverse!(result)
 end
 
+end

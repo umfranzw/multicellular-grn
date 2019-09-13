@@ -1,3 +1,7 @@
+module ListUtilsMod
+
+export lisp_eval
+
 function lisp_eval(code::String)
     stdout_buf = IOBuffer()
     stderr_buf = IOBuffer()
@@ -8,4 +12,6 @@ function lisp_eval(code::String)
     stderr_str = rstrip(String(take!(stderr_buf)))
 
     (stdout=stdout_str, stderr=stderr_str)
+end
+
 end
