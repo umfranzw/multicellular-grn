@@ -2,10 +2,12 @@ module ProteinMod
 
 using RunMod
 using BitUtilsMod
+import RandUtilsMod
 
 export ProteinScope, ProteinEffect, ProteinTarget,
     Protein,
-    get_scope, get_effect, get_fcn
+    get_scope, get_effect, get_fcn, rand_init,
+    num_bits
 
 @enum ProteinScope::Bool IntraCell=false InterCell=true
 @enum ProteinEffect::Bool Inhibit=false Activate=true
@@ -21,11 +23,11 @@ ProteinFcns = [
     ProteinFcn("b", "b"),
     ProteinFcn("c", "c")
 ]
-fcn_bits = Int64(ceil(log2(length(ProteinFcns))))
+const num_bits = Int64(ceil(log2(length(ProteinFcns))))
 ProteinFcnDict = Dict{BitArray{1}, ProteinFcn}()
 
 for i in 0:length(ProteinFcns) - 1
-    bits = BitArray(i, min_bits=fcn_bits)
+    bits = BitArray(i, min_bits=num_bits)
     ProteinFcnDict[bits] = ProteinFcns[i + 1]
 end
     
@@ -33,6 +35,14 @@ mutable struct Protein
     run::Run
     seq::BitArray{1}
     concs::Array{Float64, 1}
+end
+
+function rand_init(run::Run)
+    Protein(
+        run,
+        RandUtilsMod.rand_bits(run, num_bits),
+        RandUtilsMod.rand_floats(run, run.num_genes)
+    )
 end
 
 function get_scope(protein::Protein)
@@ -44,7 +54,7 @@ function get_effect(protein::Protein)
 end
 
 function get_fcn(protein::Protein)
-    ProteinFcnDict[protein.seq[3:3 + fcn_bits - 1]]
+    ProteinFcnDict[protein.seq[3:3 + num_bits - 1]]
 end
 
 end

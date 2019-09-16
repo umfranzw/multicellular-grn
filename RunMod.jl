@@ -13,7 +13,6 @@ struct Run
     ea_steps::Int64
     mut_prob::Float64
     num_genes::Int64
-    num_tf_bits::Int64
     num_bind_sites::Int64
     fitness_term_threshold::Float64
 
@@ -55,7 +54,6 @@ struct Run
             run["ea_steps"],
             run["mut_prob"],
             run["num_genes"],
-            run["num_tf_bits"],
             run["num_bind_sites"],
             run["fitness_term_threshold"],
             

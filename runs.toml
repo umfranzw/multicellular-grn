@@ -6,7 +6,6 @@ pop_size = 100
 ea_steps = 2
 mut_prob = 0.4
 num_genes = 8
-num_tf_bits = 4
 num_bind_sites = 2
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
