@@ -34,14 +34,20 @@ end
 mutable struct Protein
     run::Run
     seq::BitArray{1}
+    src_gene_index::Int64
     concs::Array{Float64, 1}
+
+    function Protein(run::Run, seq::BitArray{1}, src_gene_index::Int64, concs::Array{Float64, 1}=zeros(Float64, run.num_genes))
+        new(run, seq, src_gene_index, concs)
+    end
 end
 
-function rand_init(run::Run)
+function rand_init(run::Run, src_gene_index::Int64)
     Protein(
         run,
         RandUtilsMod.rand_bits(run, num_bits),
-        RandUtilsMod.rand_floats(run, run.num_genes)
+        src_gene_index,
+        zeros(Float64, run.num_genes)
     )
 end
 

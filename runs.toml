@@ -9,37 +9,28 @@ num_genes = 8
 num_bind_sites = 2
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
+bind_threshold = 0.1
 
 ######################
 # Regulatory Simulation #
 ######################
 reg_steps = 50
-min_protein_conc = 0.04
-max_protein_conc = 1.0
-max_output_rate = 1.0
-output_rate_step = 0.1
-#note: max program size is num_genes / genes_per_cell
-genes_per_cell = 2
+min_protein_threshold = 0.04
 
 decay_rate = 0.05
-num_initial_tfs = 5
+#note: if the number of unique proteins is less than num_initial_proteins, it will be used instead
+num_initial_proteins = 4
 max_proteins = 20
-max_mut_delta = 0.5
-max_mut_bits = 8
-
-binding_seq_play = 2
+max_mut_float_change = 0.5
+max_mut_bits_change = 8
+binding_seq_play = 0
 
 ###############################
 # Genotype -> Phenotype Mapping #
 ###############################
 # note: bounds are inclusive
-growth_start = 10
-growth_end = 30
-growth_threshold = 0.25
-diff_threshold = 0.25
-
-code_start = 31
-code_end = 50
+dev_start_iter = 10
+cell_div_conc_threshold = 0.25
 
 initial_cell_energy = 5.0
 
@@ -48,12 +39,3 @@ initial_cell_energy = 5.0
 ##########################
 fix_rng_seed = false
 rng_seed = 1207586232
-
-##########
-# Logging #
-##########
-#info|debug|none
-log_level = "debug"
-#this is in json objects
-log_buff_size = 1000000
-log_dir = "/home/wayne/Documents/school/thesis/multicellular-grn/data/"
