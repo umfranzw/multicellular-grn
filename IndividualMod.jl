@@ -24,6 +24,7 @@ end
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
     store = ProteinStore(run)
+    initial_cell = Cell(run, genes)
     
     initial_proteins = Array{Protein, 1}()
     seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
@@ -32,10 +33,10 @@ function rand_init(run::Run)
         concs = [RandUtilsMod.rand_floats(run, run.num_genes)]
         protein = Protein(run, bits, concs)
         push!(initial_proteins, protein)
-    end
 
-    
-    initial_cell = Cell(run, genes, initial_proteins, store)
+        #also push it in to the store so the first cell has access to it
+        ProteinStoreMod.insert_protein(store, protein, initial_cell)
+    end
     
     Individual(run, genes, [initial_cell], initial_proteins, store)
 end

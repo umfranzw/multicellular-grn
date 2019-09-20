@@ -1,6 +1,7 @@
 module ProteinStoreMod
 
 using ProteinMod
+using CellMod
 using RunMod
 
 export ProteinStore,
@@ -9,18 +10,21 @@ export ProteinStore,
 mutable struct ProteinStore
     run::Run
     proteins::Dict{ProteinMod.Scope, Dict{BitArray{1}, Protein}}
-
+    src_cells::Dict{BitArray{1}, Set{Cell}}
+    
     function ProteinStore(run::Run)
         proteins = Dict{ProteinMod.Scope, Dict{BitArray{1}, Protein}}()
+        src_cells = Dict{BitArray{1}, Set{Cell}}()
+        
         for scope in instances(ProteinMod.Scope)
             proteins[scope] = Dict{BitArray{1}, Protein}()
         end
         
-        new(run, proteins)
+        new(run, proteins, src_cells)
     end
 end
 
-function insert_protein(ps::ProteinStore, protein::Protein)
+function insert_protein(ps::ProteinStore, protein::Protein, src_cell::Union{Cell, Nothing})
     sub_dict = ps.proteins[ProteinMod.get_scope(protein)]
     if protein.seq in keys(sub_dict)
         #add new protein concs to existing ones
@@ -30,6 +34,19 @@ function insert_protein(ps::ProteinStore, protein::Protein)
     else
         sub_dict[protein.seq] = protein
     end
+
+    if src_cell != nothing
+        if protein.seq ∉ keys(ps.src_cells)
+            ps.src_cells[protein.seq] = Set{Cell}()
+        end
+        
+        #note: no need to check if it's already present since this is a Set
+        push!(ps.src_cells[protein.seq], src_cell)
+    end
+end
+
+function has_src_cell(ps::ProteinStore, protein::Protein, src_cell::Cell)
+    protein.seq in keys(ps.src_cells) && src_cell in ps.src_cells[protein.seq]
 end
 
 function get_protein(ps::ProteinStore, seq::BitArray{1})
