@@ -4,63 +4,61 @@ using RunMod
 using BitUtilsMod
 import RandUtilsMod
 
-export ProteinScope, ProteinEffect, ProteinTarget,
+export Scope, Effect, Target,
     Protein,
     get_scope, get_effect, get_fcn, rand_init,
     num_bits
 
-@enum ProteinScope::Bool IntraCell=false InterCell=true
-@enum ProteinEffect::Bool Inhibit=false Activate=true
-@enum ProteinTarget::Bool Internal=false Output=true
+@enum Scope::Bool IntraCell=false InterCell=true
+@enum Effect::Bool Inhibit=false Activate=true
+@enum Target::Bool Internal=false Output=true
 
 struct ProteinFcn
     name::String
     lisp_code::String
 end
 
-ProteinFcns = [
-    ProteinFcn("a", "a"),
-    ProteinFcn("b", "b"),
-    ProteinFcn("c", "c")
+fcns = [
+    ProteinFcn("a", ""),
+    ProteinFcn("b", ""),
+    ProteinFcn("c", "")
 ]
-const num_bits = Int64(ceil(log2(length(ProteinFcns))))
-ProteinFcnDict = Dict{BitArray{1}, ProteinFcn}()
+const num_fcn_bits = Int64(ceil(log2(length(fcns))))
+const num_info_bits = 3 #scope, effect, target
+const num_bits = num_fcn_bits + num_info_bits
 
-for i in 0:length(ProteinFcns) - 1
+fcn_dict = Dict{BitArray{1}, ProteinFcn}()
+
+for i in 0:length(fcns) - 1
     bits = BitArray(i, min_bits=num_bits)
-    ProteinFcnDict[bits] = ProteinFcns[i + 1]
+    fcn_dict[bits] = fcns[i + 1]
 end
     
 mutable struct Protein
     run::Run
     seq::BitArray{1}
-    src_gene_index::Int64
-    concs::Array{Float64, 1}
-
-    function Protein(run::Run, seq::BitArray{1}, src_gene_index::Int64, concs::Array{Float64, 1}=zeros(Float64, run.num_genes))
-        new(run, seq, src_gene_index, concs)
-    end
+    concs::Array{Array{Float64, 1}, 1}
 end
 
-function rand_init(run::Run, src_gene_index::Int64)
+#note: does not randomly initialize concs (only seq)
+function rand_init(run::Run, num_cells::Int64)
     Protein(
         run,
         RandUtilsMod.rand_bits(run, num_bits),
-        src_gene_index,
-        zeros(Float64, run.num_genes)
+        map(i -> zeros(Float64, run.num_genes), 1:num_cells)
     )
 end
 
 function get_scope(protein::Protein)
-    ProteinScope(protein.seq[1])
+    Scope(protein.seq[1])
 end
 
 function get_effect(protein::Protein)
-    ProteinEffect(protein.seq[2])
+    Effect(protein.seq[2])
 end
 
 function get_fcn(protein::Protein)
-    ProteinFcnDict[protein.seq[3:3 + num_bits - 1]]
+    fcn_dict[protein.seq[3:end]]
 end
 
 end

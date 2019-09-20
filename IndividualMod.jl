@@ -4,6 +4,7 @@ using RunMod
 using GeneMod
 using ProteinMod
 using CellMod
+using ProteinStoreMod
 
 import Random
 import RandUtilsMod
@@ -16,23 +17,26 @@ struct Individual
     genes::Array{Gene, 1}
     cells::Array{Cell, 1}
     initial_cell_proteins::Array{Protein, 1}
+    protein_store::ProteinStore
 end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
+    store = ProteinStore(run)
+    
     initial_proteins = Array{Protein, 1}()
-
     seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
     for val in seq_vals[1:min(length(seq_vals), run.num_initial_proteins)]
         bits = BitArray(val)
-        concs = RandUtilsMod.rand_floats(run, run.num_genes)
-        protein = Protein(run, bits, -1, concs) #src_gene_index is -1 here to indicate that this is an initial protein (ie. it was not produced by a gene)
+        concs = [RandUtilsMod.rand_floats(run, run.num_genes)]
+        protein = Protein(run, bits, concs)
         push!(initial_proteins, protein)
     end
+
     
-    initial_cell = Cell(run, genes, initial_proteins)
+    initial_cell = Cell(run, genes, initial_proteins, store)
     
-    Individual(run, genes, [initial_cell], initial_proteins)
+    Individual(run, genes, [initial_cell], initial_proteins, store)
 end
 
 function run_binding(indiv::Individual)

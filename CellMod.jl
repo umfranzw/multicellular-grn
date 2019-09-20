@@ -4,27 +4,23 @@ using ProteinMod
 using RunMod
 using GeneStateMod
 using GeneMod
+using ProteinStoreMod
 
 export Cell
 
 mutable struct Cell
     run::Run
-    proteins::Dict{ProteinScope, Dict{BitArray, Protein}}
     gene_states::Array{GeneState, 1}
+    store::ProteinStore
 
-    function Cell(run::Run, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1})
-        proteins = Dict{ProteinScope, Dict{BitArray, Protein}}()
-        proteins[ProteinMod.IntraCell] = Dict{BitArray, Protein}()
-        proteins[ProteinMod.InterCell] = Dict{BitArray, Protein}()
-        
+    function Cell(run::Run, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1}, store::ProteinStore)
         for protein in initial_proteins
-            scope = ProteinMod.get_scope(protein)
-            proteins[scope][protein.seq] = protein
+            ProteinStoreMod.insert_protein(store, protein)
         end
 
         gene_states = map(g -> GeneState(run, g), genes)
 
-        new(run, proteins, gene_states)
+        new(run, gene_states, store)
     end
 end
 
