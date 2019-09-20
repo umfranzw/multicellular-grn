@@ -9,14 +9,11 @@ export Gene,
     ProdLogic,
     rand_init
 
-@enum ProdLogic::Bool ProdLogicAnd=false ProdLogicOr=true
-
 mutable struct Gene
     run::Run
     genome_index::Int64
     bind_sites::Array{BitArray{1}, 1}
     prod_sites::Array{BitArray{1}, 1}
-    prod_logic::ProdLogic
 end
 
 function rand_init(run::Run, genome_index::Int64)
@@ -31,8 +28,7 @@ function rand_init(run::Run, genome_index::Int64)
         run,
         genome_index,
         bind_sites,
-        prod_sites,
-        RandUtilsMod.rand_enum_val(run, ProdLogic)
+        prod_sites
     )
 end
 
