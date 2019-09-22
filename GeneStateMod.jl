@@ -1,6 +1,6 @@
 module GeneStateMod
 
-@enum SiteType::Bool BindSite=false ProdSite=true
+@enum SiteType::Int64 RegSite BindSite ProdSite
 
 using GeneMod
 using ProteinMod
@@ -12,6 +12,7 @@ mutable struct GeneState
     run::Run
     gene::Gene
     output_rate::Float64
+    reg_site_binding::Union{Protein, Nothing}
     bind_site_bindings::Array{Union{Protein, Nothing}, 1}
     prod_site_bindings::Array{Union{Protein, Nothing}, 1}
 
@@ -21,6 +22,7 @@ mutable struct GeneState
             run,
             gene,
             0.0,
+            nothing,
             fill(nothing, run.num_bind_sites),
             fill(nothing, run.num_bind_sites)
         )
@@ -28,7 +30,9 @@ mutable struct GeneState
 end
 
 function bind(gs::GeneState, protein::Protein, site_type::SiteType, site_index::Int64)
-    if site_type == BindSite
+    if site_type == RegSite
+        gs.reg_site_binding = protein
+    elseif site_type == BindSite
         gs.bind_site_bindings[site_index] = protein
     else
         gs.prod_site_bindings[site_index] = protein
@@ -36,7 +40,9 @@ function bind(gs::GeneState, protein::Protein, site_type::SiteType, site_index::
 end
 
 function unbind(gs::GeneState, site_type::SiteType, site_index::Int64)
-    if site_type == BindSite
+    if site_type == RegSite
+        gs.reg_site_binding = nothing
+    elseif site_type == BindSite
         gs.bind_site_bindings[site_index] = nothing
     else
         gs.prod_site_bindings[site_index] = nothing

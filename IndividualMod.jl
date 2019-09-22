@@ -29,13 +29,13 @@ function rand_init(run::Run)
     initial_proteins = Array{Protein, 1}()
     seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
     for val in seq_vals[1:min(length(seq_vals), run.num_initial_proteins)]
-        bits = BitArray(val)
+        seq = BitArray(val)
         concs = [RandUtilsMod.rand_floats(run, run.num_genes)]
-        protein = Protein(run, bits, concs)
+        protein = Protein(run, seq, concs)
         push!(initial_proteins, protein)
 
         #also push it in to the store so the first cell has access to it
-        ProteinStoreMod.insert_protein(store, protein, initial_cell)
+        ProteinStoreMod.insert_protein(store, protein, nothing)
     end
     
     Individual(run, genes, [initial_cell], initial_proteins, store)
@@ -59,6 +59,9 @@ function is_protein_bind_eligible(protein::Protein, cell_index::Int64, gene_inde
 end
 
 function run_binding(indiv::Individual, cell_index::Int64)
+    #run binding to regulatory sites
+    run_binding(indiv, cell_index, [indiv.genes.reg_site], GeneStateMod.RegSite)
+    
     #run binding to bind sites
     run_binding(indiv, cell_index, indiv.genes.bind_sites, GeneStateMod.BindSite)
     
@@ -68,7 +71,7 @@ end
 
 function run_binding(indiv::Individual, cell_index::Int64, site_seqs::Array{BitArray{1}, 1}, site_type::GeneStateMod.SiteType)
     for gene_index in 1:indiv.run.num_genes
-        for site_index in 1:indiv.run.num_bind_sites
+        for site_index in 1:length(site_seqs)
             eligible_proteins = filter(
                 p -> is_protein_bind_eligible(protein, cell_index, gene_index, site_seqs[bind_index]),
                 values(ProteinStore.get_proteins_by_target(indiv.protein_store, ProteinMod.Internal))
