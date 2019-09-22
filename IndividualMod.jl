@@ -52,6 +52,29 @@ function run_produce(indiv::Individual)
     end
 end
 
+function run_regulate(indiv::Individual)
+    for i in 1:length(indiv.cells)
+        run_regulate_for_cell(indiv, i)
+    end
+end
+
+function run_regulate_for_cell(indiv::Individual, cell_index::Int64)
+    cell = indiv.cells[cell_index]
+    for gene_index in 1:indiv.run.num_genes
+        gene_state = cell.gene_states[gene_index]
+
+        bound_protein = gene_state.reg_site_binding
+        if bound_protein != nothing
+            affinity = ProteinModget_bind_affinity(bound_protein)
+            if affinity == ProteinMod.RegUp
+                gene_state.prod_rate = min(gene_state.prod_rate + indiv.run.prod_rate_incr, 1.0)
+            elseif affinity == ProteinMod.RegDown
+                gene_state.prod_rate = max(gene_state.prod_rate - indiv.run.prod_rate_incr, 0.0)
+            end
+        end
+    end
+end
+
 function run_produce_for_cell(indiv::Individual, cell_index::Int64)
     cell = indiv.cells[cell_index]
     for gene_index in 1:indiv.run.num_genes

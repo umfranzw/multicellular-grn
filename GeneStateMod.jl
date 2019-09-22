@@ -11,7 +11,7 @@ export GeneState, SiteType
 mutable struct GeneState
     run::Run
     gene::Gene
-    output_rate::Float64
+    prod_rate::Float64
     reg_site_binding::Union{Protein, Nothing}
     bind_site_bindings::Array{Union{Protein, Nothing}, 1}
     prod_site_bindings::Array{Union{Protein, Nothing}, 1}

@@ -10,6 +10,7 @@ num_bind_sites = 2
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
 bind_threshold = 0.1
+prod_rate_incr = 0.1
 
 ######################
 # Regulatory Simulation #

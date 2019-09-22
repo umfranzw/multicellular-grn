@@ -17,6 +17,7 @@ struct Run
     num_bind_sites::Int64
     fitness_term_threshold::Float64
     bind_threshold::Float64
+    prod_rate_incr::Float64
 
     reg_steps::Int64
     min_protein_threshold::Float64
@@ -47,6 +48,7 @@ struct Run
             run["num_bind_sites"],
             run["fitness_term_threshold"],
             run["bind_threshold"],
+            run["prod_rate_incr"],
             
             run["reg_steps"],
             run["min_protein_threshold"],
