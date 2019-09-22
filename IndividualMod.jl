@@ -43,7 +43,7 @@ end
 
 function run_binding(indiv::Individual)
     for i in 1:length(indiv.cells)
-        run_binding(indiv, i)
+        run_binding_for_cell(indiv, i)
     end
 end
 
@@ -58,18 +58,18 @@ function is_protein_bind_eligible(protein::Protein, cell_index::Int64, gene_inde
     above_thresh && enough_bit_similarity# && self_bind_cond
 end
 
-function run_binding(indiv::Individual, cell_index::Int64)
-    #run binding to regulatory sites
-    run_binding(indiv, cell_index, [indiv.genes.reg_site], GeneStateMod.RegSite)
+function run_binding_for_cell(indiv::Individual, cell_index::Int64)
+    #regulatory sites
+    run_binding_for_sites(indiv, cell_index, [indiv.genes.reg_site], GeneStateMod.RegSite)
     
-    #run binding to bind sites
-    run_binding(indiv, cell_index, indiv.genes.bind_sites, GeneStateMod.BindSite)
+    #bind sites
+    run_binding_for_sites(indiv, cell_index, indiv.genes.bind_sites, GeneStateMod.BindSite)
     
-    #run binding to prod sites
-    run_binding(indiv, cell_index, indiv.genes.prod_sites, GeneStateMod.ProdSite)
+    #prod sites
+    run_binding_for_sites(indiv, cell_index, indiv.genes.prod_sites, GeneStateMod.ProdSite)
 end
 
-function run_binding(indiv::Individual, cell_index::Int64, site_seqs::Array{BitArray{1}, 1}, site_type::GeneStateMod.SiteType)
+function run_binding_for_sites(indiv::Individual, cell_index::Int64, site_seqs::Array{BitArray{1}, 1}, site_type::GeneStateMod.SiteType)
     for gene_index in 1:indiv.run.num_genes
         for site_index in 1:length(site_seqs)
             eligible_proteins = filter(
