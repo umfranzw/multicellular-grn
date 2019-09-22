@@ -30,8 +30,7 @@ function rand_init(run::Run)
     seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
     for val in seq_vals[1:min(length(seq_vals), run.num_initial_proteins)]
         seq = BitArray(val)
-        concs = [RandUtilsMod.rand_floats(run, run.num_genes)]
-        protein = Protein(run, seq, concs)
+        protein = Protein(run, seq, 1, true)
         push!(initial_proteins, protein)
 
         #also push it in to the store so the first cell has access to it
@@ -44,6 +43,43 @@ end
 function run_binding(indiv::Individual)
     for i in 1:length(indiv.cells)
         run_binding_for_cell(indiv, i)
+    end
+end
+
+function run_produce(indiv::Individual)
+    for i in 1:length(indiv.cells)
+        run_produce_for_cell(indiv, i)
+    end
+end
+
+function run_produce_for_cell(indiv::Individual, cell_index::Int64)
+    cell = indiv.cells[cell_index]
+    for gene_index in 1:indiv.run.num_genes
+        gene_state = cell.gene_states[gene_index]
+        gene = indiv.genes[gene_index]
+        
+        for site_index in 1:indiv.run.num_bind_sites
+            #check if anything's bound to this site
+            bound_protein = gene_state.bind_site_bindings[site_index]
+            if bound_protein != nothing
+                product_seq = gene.bind_sites[site_index]
+                
+                #if product is not yet in store, create it
+                product_protein = ProteinStoreMod.get_protein(indiv.protein_store, product_seq)
+                if product_protein == nothing
+                    product_protein = ProteinMod.Protein(run, product_seq, length(indiv.cells), false)
+                    ProteinStoreMod.insert_protein(indiv.protein_store, product_protein, cell)
+
+                #otherwise, make sure this cell is a src
+                else
+                    #note: don't need to worry about inserting duplicates here, since these are stored in a set
+                    ProteinStoreMod.add_src_cell(indiv.protein_store, cell)
+                end
+
+                #increment conc above this gene (diffusion will spread it out later)
+                product_protein.concs[cell_index][gene_index] = min(produce_protein.concs[cell_index][gene_index] + gene_state.output_rate, 1.0)
+            end
+        end
     end
 end
 

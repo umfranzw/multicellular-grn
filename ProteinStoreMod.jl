@@ -49,6 +49,14 @@ function has_src_cell(ps::ProteinStore, protein::Protein, src_cell::Cell)
     protein.seq in keys(ps.src_cells) && src_cell in ps.src_cells[protein.seq]
 end
 
+function add_src_cell(ps::ProteinStore, protein, src_cell::Cell)
+    if protein.seq in keys(ps.src_cells)
+        push!(ps.src_cells[protein.seq], src_cell)
+    else
+        error("Error (ProteinStoreMod): add_src_cell() called with non-existent protein.")
+    end
+end
+
 function get_protein(ps::ProteinStore, seq::BitArray{1})
     sub_dict = ps.proteins[ProteinMod.get_scope(seq)]
     if seq in keys(sub_dict)

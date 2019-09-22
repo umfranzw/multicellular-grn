@@ -43,23 +43,20 @@ mutable struct Protein
     run::Run
     seq::BitArray{1}
     concs::Array{Array{Float64, 1}, 1}
-end
 
-#note: does not randomly initialize concs (only seq)
-function rand_init(run::Run, zero_concs::Bool, num_cells::Int64)
-    seq = RandUtilsMod.rand_bits(run, num_bits)
-    
-    if zero_concs
-        concs = map(i -> zeros(Float64, run.num_genes), 1:num_cells)
-    else
-        concs = map(i -> RandUtilsMod.rand_floats(run, run.num_genes), 1:num_cells)
+    function Protein(run::Run, seq::BitArray{1}, num_cells::Int64, rand_concs::Bool)
+        if rand_concs
+            concs = map(i -> RandUtilsMod.rand_floats(run, run.num_genes), 1:num_cells)
+        else
+            concs = map(i -> zeros(Float64, run.num_genes), 1:num_cells)
+        end
+        
+        new(
+            run,
+            seq,
+            concs
+        )
     end
-    
-    Protein(
-        run,
-        seq,
-        concs
-    )
 end
 
 function get_scope(protein::Protein)
