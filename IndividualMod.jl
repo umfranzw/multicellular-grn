@@ -82,9 +82,10 @@ function run_produce_for_cell(indiv::Individual, cell_index::Int64)
         gene = indiv.genes[gene_index]
         
         for site_index in 1:indiv.run.num_bind_sites
-            #check if anything's bound to this site
+            #check if something's bound to the bind site and nothing's bound to the prod site
             bound_protein = gene_state.bind_site_bindings[site_index]
-            if bound_protein != nothing
+            inhibit_protein = gene_state.prod_site_bindings[site_index]
+            if bound_protein != nothing && inhibit_protein == nothing
                 product_seq = gene.bind_sites[site_index]
                 
                 #if product is not yet in store, create it
