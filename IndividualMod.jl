@@ -47,15 +47,15 @@ function run_binding(indiv::Individual)
     end
 end
 
-function is_protein_bind_eligible(protein::Protein, cell_index::Int64, gene_index::Int64, site_seq::BitArray{1})
+function is_protein_bind_eligible(indiv::Individual, protein::Protein, cell_index::Int64, gene_index::Int64, site_seq::BitArray{1})
     above_thresh = protein.concs[cell_index][gene_index] >= indiv.run.bind_threshold
     num_diff_bits = ProteinMod.num_bits - BitUtilsMod.count_common_bits(protein.seq, site_seq)
     enough_bit_similarity = num_diff_bits <= run.binding_seq_play
 
     #we need to make sure that inter-cell proteins don't bind to genes in the cell that produced them (don't "self-bind")
-    #self_bind_cond = (ProteinMod.get_scope(protein) == ProteinMod.IntraCell || (cell_index ∉ protein.src_cells))
+    self_binding = ProteinMod.get_scope(protein) == ProteinMod.InterCell && ProteinStore.has_src_cell(indiv.store, protein, indiv.cells[cell_index]) #true if self-binding
 
-    above_thresh && enough_bit_similarity# && self_bind_cond
+    above_thresh && enough_bit_similarity && !self_binding
 end
 
 function run_binding_for_cell(indiv::Individual, cell_index::Int64)
@@ -73,7 +73,7 @@ function run_binding_for_sites(indiv::Individual, cell_index::Int64, site_seqs::
     for gene_index in 1:indiv.run.num_genes
         for site_index in 1:length(site_seqs)
             eligible_proteins = filter(
-                p -> is_protein_bind_eligible(protein, cell_index, gene_index, site_seqs[bind_index]),
+                p -> is_protein_bind_eligible(indiv, protein, cell_index, gene_index, site_seqs[bind_index]),
                 values(ProteinStore.get_proteins_by_target(indiv.protein_store, ProteinMod.Internal))
             )
 
