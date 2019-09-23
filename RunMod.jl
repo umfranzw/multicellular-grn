@@ -6,8 +6,8 @@ import Random
 export Run,
     get_config_channel, get_first_run
 
-#const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
-const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
+const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
+#const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
 
 struct Run
     pop_size::Int64
@@ -28,6 +28,10 @@ struct Run
     max_mut_float_change::Float64
     max_mut_bits_change::Int64
     binding_seq_play::Int64
+
+    diff_alpha::Float64
+    diff_h::Float64
+    diff_dt::Float64
 
     dev_start_iter::Int64
     cell_div_conc_threshold::Float64
@@ -59,6 +63,10 @@ struct Run
             run["max_mut_float_change"],
             run["max_mut_bits_change"],
             run["binding_seq_play"],
+
+            run["diff_alpha"],
+            run["diff_h"],
+            run["diff_dt"],
             
             run["dev_start_iter"],
             run["cell_div_conc_threshold"],

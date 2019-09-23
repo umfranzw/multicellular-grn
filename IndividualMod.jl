@@ -59,7 +59,8 @@ function run_regulate(indiv::Individual)
 end
 
 function run_diffuse(indiv::Individual)
-    #indiv.protein_store
+    DiffusionMod.diffuse_intra_cell_proteins(indiv)
+    DiffusionMod.diffuse_inter_cell_proteins(indiv)
 end
 
 function run_regulate_for_cell(indiv::Individual, cell_index::Int64)

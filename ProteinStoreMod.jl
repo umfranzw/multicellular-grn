@@ -45,6 +45,14 @@ function insert_protein(ps::ProteinStore, protein::Protein, src_cell::Union{Cell
     end
 end
 
+function get_src_cells(ps::ProteinStore, protein::Protein)
+    if protein.seq in keys(ps.src_cells)
+        return ps.src_cells[protein.seq]
+    else
+        return Set{Cell}()
+    end
+end
+
 function has_src_cell(ps::ProteinStore, protein::Protein, src_cell::Cell)
     protein.seq in keys(ps.src_cells) && src_cell in ps.src_cells[protein.seq]
 end
