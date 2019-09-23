@@ -11,7 +11,7 @@ import Random
 import RandUtilsMod
 
 export Individual,
-    rand_init, run_binding
+    rand_init, run_bind
 
 struct Individual
     run::Run
@@ -40,9 +40,9 @@ function rand_init(run::Run)
     Individual(run, genes, [initial_cell], initial_proteins, store)
 end
 
-function run_binding(indiv::Individual)
+function run_bind(indiv::Individual)
     for i in 1:length(indiv.cells)
-        run_binding_for_cell(indiv, i)
+        run_bind_for_cell(indiv, i)
     end
 end
 
@@ -56,6 +56,10 @@ function run_regulate(indiv::Individual)
     for i in 1:length(indiv.cells)
         run_regulate_for_cell(indiv, i)
     end
+end
+
+function run_diffuse(indiv::Individual)
+    #indiv.protein_store
 end
 
 function run_regulate_for_cell(indiv::Individual, cell_index::Int64)
@@ -118,7 +122,7 @@ function is_protein_bind_eligible(indiv::Individual, protein::Protein, cell_inde
     above_thresh && enough_bit_similarity && !self_binding
 end
 
-function run_binding_for_cell(indiv::Individual, cell_index::Int64)
+function run_bind_for_cell(indiv::Individual, cell_index::Int64)
     #regulatory sites
     run_binding_for_sites(indiv, cell_index, [indiv.genes.reg_site], GeneStateMod.RegSite)
     
@@ -129,7 +133,7 @@ function run_binding_for_cell(indiv::Individual, cell_index::Int64)
     run_binding_for_sites(indiv, cell_index, indiv.genes.prod_sites, GeneStateMod.ProdSite)
 end
 
-function run_binding_for_sites(indiv::Individual, cell_index::Int64, site_seqs::Array{BitArray{1}, 1}, site_type::GeneStateMod.SiteType)
+function run_bind_for_sites(indiv::Individual, cell_index::Int64, site_seqs::Array{BitArray{1}, 1}, site_type::GeneStateMod.SiteType)
     for gene_index in 1:indiv.run.num_genes
         for site_index in 1:length(site_seqs)
             eligible_proteins = filter(
