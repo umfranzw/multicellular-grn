@@ -26,6 +26,7 @@ fcns = [
     ProteinFcn("b", ""),
     ProteinFcn("c", ""),
     ProteinFcn("d", "")
+    #note: cell division should be implemented here, as an output protein!
 ]
 
 const num_fcn_bits = Int64(ceil(log2(length(fcns))))

@@ -40,6 +40,18 @@ function rand_init(run::Run)
     Individual(run, genes, [initial_cell], initial_proteins, store)
 end
 
+function divide_cell(indiv::Individual, src_index::Int64, dest_index::Int64)
+    src_cell = indiv.cells[src_index]
+    dest_cell = Cell(indiv.run, indiv.genes)
+
+    ProteinStoreMod.insert_cell(indiv.protein_store, dest_index)
+    insert!(indiv.cell, dest_index)
+
+    #need to divide up the proteins
+    #need to use cell_energy run param
+    #need to figure out how & when this method is called
+end
+
 function run_bind(indiv::Individual)
     for i in 1:length(indiv.cells)
         run_bind_for_cell(indiv, i)
