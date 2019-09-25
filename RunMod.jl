@@ -6,8 +6,8 @@ import Random
 export Run,
     get_config_channel, get_first_run
 
-const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
-#const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
+#const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
+const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
 
 struct Run
     pop_size::Int64
@@ -16,7 +16,10 @@ struct Run
     num_genes::Int64
     num_bind_sites::Int64
     fitness_term_threshold::Float64
-    bind_threshold::Float64
+    reg_bind_threshold::Float64
+    growth_bind_threshold::Float64
+    bind_bind_threshold::Float64
+    prod_bind_threshold::Float64
     prod_rate_incr::Float64
 
     reg_steps::Int64
@@ -51,7 +54,10 @@ struct Run
             run["num_genes"],
             run["num_bind_sites"],
             run["fitness_term_threshold"],
-            run["bind_threshold"],
+            run["reg_bind_threshold"],
+            run["growth_bind_threshold"],
+            run["bind_bind_threshold"],
+            run["prod_bind_threshold"],
             run["prod_rate_incr"],
             
             run["reg_steps"],

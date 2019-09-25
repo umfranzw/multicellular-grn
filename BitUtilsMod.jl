@@ -38,4 +38,8 @@ function BitArray(n::Int64; min_bits::Int64=1)
     reverse!(result)
 end
 
+function bits_required(num_vals::Int64)
+    Int64(ceil(log2(num_vals)))
+end
+
 end

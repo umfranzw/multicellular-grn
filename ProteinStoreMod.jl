@@ -75,7 +75,7 @@ function get_protein(ps::ProteinStore, seq::BitArray{1})
 end
 
 function get_proteins_by_scope(ps::ProteinStore, scope::ProteinMod.Scope)
-    ps.proteins[scope]
+    values(ps.proteins[scope])
 end
 
 function get_proteins_by_target(ps::ProteinStore, target::ProteinMod.Target)
