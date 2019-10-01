@@ -59,13 +59,13 @@ end
 mutable struct Protein
     run::Run
     seq::BitArray{1}
-    concs::Array{Array{Float64, 1}, 1}
+    concs::Array{Float64, 1}
 
-    function Protein(run::Run, seq::BitArray{1}, num_cells::Int64, rand_concs::Bool)
+    function Protein(run::Run, seq::BitArray{1}, rand_concs::Bool)
         if rand_concs
-            concs = map(i -> RandUtilsMod.rand_floats(run, run.num_genes), 1:num_cells)
+            concs = RandUtilsMod.rand_floats(run, run.num_genes)
         else
-            concs = map(i -> zeros(Float64, run.num_genes), 1:num_cells)
+            concs = zeros(Float64, run.num_genes)
         end
         
         new(
@@ -75,7 +75,7 @@ mutable struct Protein
         )
     end
 
-    function Protein(run::Run, seq::BitArray{1}, concs::Array{Array{Float64, 1}, 1})
+    function Protein(run::Run, seq::BitArray{1}, concs::Array{Float64, 1})
         new(run, seq, concs)
     end
 end

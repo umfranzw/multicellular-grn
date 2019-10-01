@@ -6,6 +6,7 @@ using GeneStateMod
 using ProteinMod
 using CellMod
 using ProteinStoreMod
+using SymMod
 
 import Random
 import RandUtilsMod
@@ -18,13 +19,11 @@ struct Individual
     genes::Array{Gene, 1}
     cells::Array{Cell, 1}
     initial_cell_proteins::Array{Protein, 1}
-    protein_store::ProteinStore
 end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    store = ProteinStore(run)
-    initial_cell = Cell(run, genes)
+    initial_cell = Cell(run, genes, nothing, :x)
     
     initial_proteins = Array{Protein, 1}()
     seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
@@ -35,47 +34,47 @@ function rand_init(run::Run)
 
         #also push it in to the store so the first cell has access to it
         #note: we push a copy so the indiv's array stays intact as the simulation modifies proteins
-        ProteinStoreMod.insert_protein(store, ProteinMod.copy(protein), nothing)
+        ProteinStoreMod.insert_protein(initial_cell.proteins, ProteinMod.copy(protein), false)
     end
     
     Individual(run, genes, [initial_cell], initial_proteins, store)
 end
 
-function divide_cell(indiv::Individual, src_cell::Cell, dest_index::Int64)
-    dest_cell = Cell(indiv.run, indiv.genes)
+# function divide_cell(indiv::Individual, src_cell::Cell, dest_index::Int64)
+#     dest_cell = Cell(indiv.run, indiv.genes)
 
-    ProteinStoreMod.insert_cell(indiv.protein_store, dest_index)
-    insert!(indiv.cell, dest_index)
+#     ProteinStoreMod.insert_cell(indiv.protein_store, dest_index)
+#     insert!(indiv.cell, dest_index)
 
-    #insert the initial proteins for the new cell
-    #src cell donates half its intra-cell proteins' concentrations to the dest cell
-    intra_proteins = ProteinStoreMod.get_proteins_by_scope(indiv.protein_store, ProteinMod.IntraCell)
+#     #insert the initial proteins for the new cell
+#     #src cell donates half its intra-cell proteins' concentrations to the dest cell
+#     intra_proteins = ProteinStoreMod.get_proteins_by_scope(indiv.protein_store, ProteinMod.IntraCell)
 
-    for protein in intra_proteins
-        protein.concs[src_cell] /= 2
-        protein.concs[dest_cell] = copy(protein.concs[src_cell])
-    end
+#     for protein in intra_proteins
+#         protein.concs[src_cell] /= 2
+#         protein.concs[dest_cell] = copy(protein.concs[src_cell])
+#     end
 
-    src_cell.energy /= 2
-end
+#     src_cell.energy /= 2
+# end
 
-function run_growth(indiv::Individual)
-    #as we insert, the list will grow - we need to compensate for this
-    cells = copy(indiv.cells) #we will loop through this copy so that we don't run into cells inserted on a previous iter
-    index_offset = 0 #offset for cells already inserted
+# function run_growth(indiv::Individual)
+#     #as we insert, the list will grow - we need to compensate for this
+#     cells = copy(indiv.cells) #we will loop through this copy so that we don't run into cells inserted on a previous iter
+#     index_offset = 0 #offset for cells already inserted
 
-    for i in 1:length(cells)
-        prob, dir = calc_cell_divide_prob(cells[i])
-        if RandUtils.rand_float(indiv.run) < prob
-            if dir == ProteinMod.GrowUp
-                divide_cell(indiv, cells[i], max(i + index_offset - 1, 1))
-            elseif dir == ProteinMod.GrowDown
-                divide_cell(indiv, cells[i], min(i + index_offset + 1, length(indiv.cells)))
-            end
-            index_offset += 1
-        end
-    end
-end
+#     for i in 1:length(cells)
+#         prob, dir = calc_cell_divide_prob(cells[i])
+#         if RandUtils.rand_float(indiv.run) < prob
+#             if dir == ProteinMod.GrowUp
+#                 divide_cell(indiv, cells[i], max(i + index_offset - 1, 1))
+#             elseif dir == ProteinMod.GrowDown
+#                 divide_cell(indiv, cells[i], min(i + index_offset + 1, length(indiv.cells)))
+#             end
+#             index_offset += 1
+#         end
+#     end
+# end
 
 function run_bind(indiv::Individual)
     for i in 1:length(indiv.cells)
