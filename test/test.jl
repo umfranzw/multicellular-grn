@@ -1,5 +1,5 @@
 import RunMod
-import IndividualMod
+using ProteinMod
 
 run = RunMod.get_first_run()
-indiv = IndividualMod.rand_init(run)
+p = Protein(run, true, ProteinMod.Reg, ProteinMod.Intra, ProteinMod.RateUp, ProteinMod.A)

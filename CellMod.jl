@@ -5,6 +5,9 @@ using GeneStateMod
 using GeneMod
 using ProteinStoreMod
 using SymMod: Sym
+using Printf
+
+import Base.show
 
 export Cell
 
@@ -28,6 +31,18 @@ mutable struct Cell
     function Cell(run::Run, gene_states::Array{GeneState, 1}, parent::Union{Cell, Nothing}, sym::Union{Sym, Nothing})
         new(run, gene_states, ProteinStore(), run.initial_cell_energy, Array{Cell, 1}(), parent, sym)
     end
+end
+
+function show(io::IO, cell::Cell)
+    parent_present = cell.parent == nothing ? "none" : "present"
+    sym_desc = cell.sym == nothing ? "(nothing)" : cell.sym
+    @printf(
+        io,
+        "Cell(parent: %s, children: %d, sym: %s)",
+        parent_present,
+        length(cell.children),
+        sym_desc
+    )
 end
 
 end

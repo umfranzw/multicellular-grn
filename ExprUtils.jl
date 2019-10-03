@@ -2,32 +2,21 @@ module ExprUtils
 
 import Espresso
 
-struct ExprRef
-    ex::Expr
-    level::Int64
-end
-
-struct SymRef
-    parent::Union{ExprRef, Nothing}
-    index::Int64
-end
-
-function find_all_vars(item::Expr, names::Array{Symbol, 1}, level::Int64)
+function find_all_vars(ex::Expr, names::Array{Symbol, 1})
     vars = Array{Union{SymRef, ExprRef}, 1}()
 
     for name in names
-        result = Espresso.findex(name, item)
+        result = Espresso.findex(name, ex)
 
         for i in 1:length(result)
             cur = result[i]
             if cur isa Expr
-                push!(vars, ExprRef(item, level))
-                for arg in item.args[2:end]
-                    push!(items, find_all_vars(arg, names, level + 1)...)
+                push!(vars, cur)
+                for arg in cur.args[2:end]
+                    push!(items, find_all_vars(arg, names)...)
                 end
             else
-                ref = SymRef(ExprRef(ex, level), i)
-                push!(items, ref)
+                push!(items, ex)
             end
         end
     end

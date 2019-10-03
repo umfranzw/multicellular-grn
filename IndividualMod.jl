@@ -23,17 +23,21 @@ end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    initial_cell = Cell(run, genes, nothing, :x)
+    initial_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
     
     initial_proteins = Array{Protein, 1}()
-    seq_vals = Random.shuffle(0:2 ^ ProteinMod.num_bits - 1)
-    for val in seq_vals[1:min(length(seq_vals), run.num_initial_proteins)]
-        seq = BitArray(val)
-        protein = Protein(run, seq, 1, true)
+    
+    for i in 1:run.num_initial_proteins
+        type = RandUtilsMod.rand_enum_val(ProteinMod.ProteinType)
+        target = RandUtilsMod.rand_enum_val(ProteinMod.ProteinTarget)
+        reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
+        growth_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinGrowthAction)
+        
+        protein = Protein(run, true, type, target, reg_action, growth_action)
         push!(initial_proteins, protein)
 
         #also push it in to the store so the first cell has access to it
-        #note: we push a copy so the indiv's array stays intact as the simulation modifies proteins
+        #note: we push a copy so the indiv's array stays intact as the simulation modifies protein's concs
         ProteinStoreMod.insert_protein(initial_cell.proteins, ProteinMod.copy(protein), false)
     end
     

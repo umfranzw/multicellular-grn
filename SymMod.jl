@@ -1,5 +1,12 @@
 module SymMod
 
-const Sym = Union{Symbol, Int64}
+export Sym, SymType
+
+@enum SymType::Int64 FcnCall FcnVal DataVar IntConst
+
+struct Sym
+    val::Any
+    type::SymType
+end
 
 end
