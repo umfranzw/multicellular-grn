@@ -6,8 +6,11 @@ import Random
 export Run,
     get_config_channel, get_first_run
 
-#const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
-const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
+if gethostname() == "ibis"
+    const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
+else
+    const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
+end
 
 struct Run
     pop_size::Int64

@@ -33,12 +33,15 @@ function rand_init(run::Run)
         reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
         growth_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinGrowthAction)
         
-        protein = Protein(run, true, type, target, reg_action, growth_action)
-        push!(initial_proteins, protein)
-
-        #also push it in to the store so the first cell has access to it
-        #note: we push a copy so the indiv's array stays intact as the simulation modifies protein's concs
-        ProteinStoreMod.insert_protein(initial_cell.proteins, ProteinMod.copy(protein), false)
+        protein = Protein(run, ProteinProps(type, target, reg_action, growth_action), true)
+        
+        #make sure the initial proteins are all unique
+        #note: this logic means some cells in the population may have fewer initial proteins than others...
+        if !ProteinStoreMod.contains(protein)
+            push!(initial_proteins, protein)
+            #note: we push a copy so the indiv's array stays intact as the simulation modifies protein's concs
+            ProteinStoreMod.insert(initial_cell.proteins, ProteinMod.copy(protein), false)
+        end
     end
     
     Individual(run, genes, [initial_cell], initial_proteins, store)

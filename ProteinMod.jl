@@ -7,11 +7,11 @@ import Random
 import MiscUtilsMod
 import Base.copy
 
-export Protein
+export Protein, ProteinProps
 
-@enum ProteinType::UInt8 Reg=0 Growth=1 Inhibit=2
+@enum ProteinType::UInt8 Reg=0 Growth=1
 @enum ProteinTarget::UInt8 Intra=0 Inter=1
-@enum ProteinRegAction::UInt8 RateUp=0 RateDown=1
+@enum ProteinRegAction::UInt8 Activate=1 Inhibit=2
 #note: these must match the values in the growth_actions array
 @enum ProteinGrowthAction::UInt8 A B C D
 
@@ -28,48 +28,55 @@ const growth_actions = Array{GrowthAction, 1}([
 ])
 
 const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
-const type_digits = MiscUtilsMod.digits_needed(num_types)
-const num_targets = MiscUtilsMod.num_enum_vals(ProteinTarget)
-const target_digits = MiscUtilsMod.digits_needed(num_targets)
-const num_reg_actions = MiscUtilsMod.num_enum_vals(ProteinRegAction)
-const reg_action_digits = MiscUtilsMod.digits_needed(num_reg_actions)
-const num_growth_actions = MiscUtilsMod.num_enum_vals(ProteinGrowthAction)
-const growth_action_digits = MiscUtilsMod.digits_needed(num_growth_actions)
+# const type_digits = MiscUtilsMod.digits_needed(num_types)
+# const type_fs = Formatting.FormatSpec("#0$(type_digits)d")
 
-mutable struct Protein
-    run::Run
+const num_targets = MiscUtilsMod.num_enum_vals(ProteinTarget)
+# const target_digits = MiscUtilsMod.digits_needed(num_targets)
+# const target_fs = Formatting.FormatSpec("#0$(target_digits)d")
+
+const num_reg_actions = MiscUtilsMod.num_enum_vals(ProteinRegAction)
+# const reg_action_digits = MiscUtilsMod.digits_needed(num_reg_actions)
+# const reg_action_fs = Formatting.FormatSpec("#0$(reg_action_digits)d")
+
+const num_growth_actions = MiscUtilsMod.num_enum_vals(ProteinGrowthAction)
+# const growth_action_digits = MiscUtilsMod.digits_needed(num_growth_actions)
+# const growth_action_fs = Formatting.FormatSpec("#0$(growth_action_digits)d")
+
+struct ProteinProps
     type::ProteinType
-    concs::Array{Float64, 1}
     target::ProteinTarget
     reg_action::ProteinRegAction
     growth_action::ProteinGrowthAction #index of action in growth_actions array
+end
 
-    function Protein(run::Run, rand_concs::Bool, type::ProteinType=Reg, target::ProteinTarget=Intra, reg_action::ProteinRegAction=RateUp, growth_action::ProteinGrowthAction=A)
+mutable struct Protein
+    run::Run
+    props::ProteinProps
+    concs::Array{Float64, 1}
+
+    function Protein(run::Run, props::ProteinProps, rand_concs::Bool)
         if rand_concs
             concs = RandUtilsMod.rand_floats(run, run.num_genes)
         else
             concs = zeros(Float64, run.num_genes)
         end
         
-        new(run, type, concs, target, reg_action, growth_action)
+        new(run, props, concs)
     end
 
-    function Protein(run::Run, concs::Array{Float64, 1}, type::ProteinType=Reg, target::ProteinTarget=Intra, reg_action::ProteinRegAction=RateUp, growth_action::ProteinGrowthAction=A)
-        new(run, type, concs, target, reg_actions, growth_action)
+    function Protein(run::Run,  props::ProteinProps, concs::Array{Float64, 1})
+        new(run, props, concs)
     end
 end
 
 function copy(protein::Protein)
     #only the concs need to be deep copied
-    Protein(protein.run, copy(protein.concs), protein.type, protein.target, protein.reg_action, protein.growth_action)
+    Protein(protein.run, protein.props, copy(protein.concs))
 end
 
 function get_growth_action(protein::Protein)
-    get_growth_action(protein.growth_action)
-end
-
-function get_growth_action(action::ProteinGrowthAction)
-    growth_actions[Int64(action)]
+    growth_actions[Int64(protein.props.growth_action)]
 end
 
 end

@@ -11,63 +11,41 @@ export GeneState, SiteType
 mutable struct GeneState
     run::Run
     gene::Gene
-    prod_rate::Float64
-    reg_site_binding::Union{Protein, Nothing}
-    growth_site_binding::Union{Protein, Nothing}
-    bind_site_bindings::Array{Union{Protein, Nothing}, 1}
+    reg_site_bindings::Array{Union{Protein, Nothing}, 1}
     prod_site_bindings::Array{Union{Protein, Nothing}, 1}
 
     function GeneState(run::Run, gene::Gene)
-        bind_site_bindings = []
         new(
             run,
             gene,
-            0.0,
-            nothing,
-            nothing,
-            fill(nothing, run.num_bind_sites),
-            fill(nothing, run.num_bind_sites)
+            repeat([nothing], length(instances(GeneMod.RegSites)))
+            repeat([nothing], length(instances(GeneMod.ProdSites)))
         )
     end
 end
 
-function bind(gs::GeneState, protein::Protein, site_type::SiteType, site_index::Int64)
-    if site_type == RegSite
-        gs.reg_site_binding = protein
+function bind(gs::GeneState, protein::Protein, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
+    modify_binding(gs, site, protein)
+end
 
-    elseif site_type == GrowthSite
-        gs.growth_site_binding = protein
+function unbind(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
+    modify_binding(gs, site, nothing)
+end
 
-    elseif site_type == BindSite
-        gs.bind_site_bindings[site_index] = protein
-
-    elseif site_type == ProdSite
-        gs.prod_site_bindings[site_index] = protein
+function modify_binding(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites}, val::Union{Protein, Nothing})
+    index = Int64(site)
+    if site isa ProteinMod.RegSites
+        reg_site_bindings[index] = val
+    else
+        prod_site_bindings[index] = val
     end
 end
 
-function unbind(gs::GeneState, site_type::SiteType, site_index::Int64)
-    if site_type == RegSite
-        gs.reg_site_binding = nothing
-
-    elseif site_type == GrowthSite
-        gs.growth_site_binding = nothing
-
-    elseif site_type == BindSite
-        gs.bind_site_bindings[site_index] = nothing
-
-    elseif site_type == ProdSite
-        gs.prod_site_bindings[site_index] = nothing
-    end
-end
-
-function get_active_prod_seqs(gs::GeneState)
-    seqs = []
-    for i in 1:gs.run.num_bind_sites
-        if gs.bind_site_bindings[i] != nothing && gs.prod_site_bindings == nothing
-            append!(seqs, gs.gene.prod_sites[i])
-        end
-    end
+function get_active_prod_props(gs::GeneState)
+    props = []
+    #TODO
+    #combine influences of both intra sites and use them to activate the production site
+    #do same for inter sites
     
     seqs
 end
