@@ -8,6 +8,7 @@ using CellMod
 using ProteinStoreMod
 using SymMod
 using DiffusionMod
+using CellTreeMod
 
 import Random
 import RandUtilsMod
@@ -18,7 +19,7 @@ export Individual,
 struct Individual
     run::Run
     genes::Array{Gene, 1}
-    cells::Array{Cell, 1}
+    initial_cell::Cell
     initial_cell_proteins::Array{Protein, 1}
 end
 
@@ -45,7 +46,7 @@ function rand_init(run::Run)
         end
     end
     
-    Individual(run, genes, [initial_cell], initial_proteins, store)
+    Individual(run, genes, initial_cell, initial_proteins, store)
 end
 
 # function divide_cell(indiv::Individual, src_cell::Cell, dest_index::Int64)
@@ -85,15 +86,11 @@ end
 # end
 
 function run_bind(indiv::Individual)
-    for i in 1:length(indiv.cells)
-        run_bind_for_cell(indiv, i)
-    end
+    CellTreeMod.traverse(indiv.initial_cell, cell -> run_bind_for_cell(indiv, cell))
 end
 
 function run_produce(indiv::Individual)
-    for i in 1:length(indiv.cells)
-        run_produce_for_cell(indiv, i)
-    end
+    CellTreeMod.traverse(indiv.initial_cell, cell -> run_produce_for_cell(indiv, cell))
 end
 
 function run_diffuse(indiv::Individual)
@@ -101,8 +98,7 @@ function run_diffuse(indiv::Individual)
     DiffusionMod.diffuse_inter_cell_proteins(indiv)
 end
 
-function run_produce_for_cell(indiv::Individual, cell_index::Int64)
-    cell = indiv.cells[cell_index]
+function run_produce_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:indiv.run.num_genes
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
@@ -133,8 +129,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     protein.concs[gene_index] = min(protein.concs[gene_index] + rate, 1.0)
 end
 
-function run_bind_for_cell(indiv::Individual, cell_index::Int64)
-    cell = indiv.cells[cell_index]
+function run_bind_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:indiv.run.num_genes
         gene = indiv.genes[gene_index]
         
@@ -150,7 +145,7 @@ function run_bind_for_cell(indiv::Individual, cell_index::Int64)
                 
             #for site types GeneMod.InterIntra and GeneMod.InterInter
             else
-                proteins = get_bind_eligable_proteins_for_inter_site(cell.protein_store, cell_index, gene_index, site, indiv.run.reg_bind_threshold)
+                proteins = get_bind_eligable_proteins_for_inter_site(cell.protein_store, gene_index, site, indiv.run.reg_bind_threshold)
             end
             
             #run the binding
