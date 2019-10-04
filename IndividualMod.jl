@@ -7,6 +7,7 @@ using ProteinMod
 using CellMod
 using ProteinStoreMod
 using SymMod
+using DiffusionMod
 
 import Random
 import RandUtilsMod
@@ -95,38 +96,9 @@ function run_produce(indiv::Individual)
     end
 end
 
-function run_regulate(indiv::Individual)
-    for i in 1:length(indiv.cells)
-        run_regulate_for_cell(indiv, i)
-    end
-end
-
 function run_diffuse(indiv::Individual)
     DiffusionMod.diffuse_intra_cell_proteins(indiv)
     DiffusionMod.diffuse_inter_cell_proteins(indiv)
-end
-
-#no longer necessary
-function run_regulate_for_cell(indiv::Individual, cell_index::Int64)
-    cell = indiv.cells[cell_index]
-    for gene_index in 1:indiv.run.num_genes
-        gene_state = cell.gene_states[gene_index]
-        
-        
-        
-        
-        if bound_protein != nothing
-            affinity = ProteinMod.get_bind_affinity(bound_protein)
-            if affinity == ProteinMod.Reg
-                reg_action = ProteinMod.get_reg_action(bound_protein)
-                if reg_action == ProteinMod.RateUp
-                    gene_state.prod_rate = min(gene_state.prod_rate + indiv.run.prod_rate_incr, 1.0)
-                elseif reg_action == ProteinMod.RateDown
-                    gene_state.prod_rate = max(gene_state.prod_rate - indiv.run.prod_rate_incr, 0.0)
-                end
-            end
-        end
-    end
 end
 
 function run_produce_for_cell(indiv::Individual, cell_index::Int64)
