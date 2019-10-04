@@ -28,20 +28,9 @@ const growth_actions = Array{GrowthAction, 1}([
 ])
 
 const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
-# const type_digits = MiscUtilsMod.digits_needed(num_types)
-# const type_fs = Formatting.FormatSpec("#0$(type_digits)d")
-
 const num_targets = MiscUtilsMod.num_enum_vals(ProteinTarget)
-# const target_digits = MiscUtilsMod.digits_needed(num_targets)
-# const target_fs = Formatting.FormatSpec("#0$(target_digits)d")
-
 const num_reg_actions = MiscUtilsMod.num_enum_vals(ProteinRegAction)
-# const reg_action_digits = MiscUtilsMod.digits_needed(num_reg_actions)
-# const reg_action_fs = Formatting.FormatSpec("#0$(reg_action_digits)d")
-
 const num_growth_actions = MiscUtilsMod.num_enum_vals(ProteinGrowthAction)
-# const growth_action_digits = MiscUtilsMod.digits_needed(num_growth_actions)
-# const growth_action_fs = Formatting.FormatSpec("#0$(growth_action_digits)d")
 
 struct ProteinProps
     type::ProteinType

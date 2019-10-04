@@ -1,7 +1,5 @@
 module GeneStateMod
 
-@enum SiteType::Int64 RegSite GrowthSite BindSite ProdSite
-
 using GeneMod
 using ProteinMod
 using RunMod
@@ -34,20 +32,45 @@ end
 
 function modify_binding(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites}, val::Union{Protein, Nothing})
     index = Int64(site)
-    if site isa ProteinMod.RegSites
+    if site isa GeneMod.RegSites
         reg_site_bindings[index] = val
     else
         prod_site_bindings[index] = val
     end
 end
 
-function get_active_prod_props(gs::GeneState)
-    props = []
-    #TODO
-    #combine influences of both intra sites and use them to activate the production site
-    #do same for inter sites
+function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
+    index = Int64(site)
+    if site isa GeneMod.RegSites
+        return reg_site_bindings[index]
+    else
+        return prod_site_bindings[index]
+    end
+end
+
+function get_reg_weight(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
+    weight = 0.0
+    for site in reg_sites
+        protein = get_binding_state(gs, site)
+        if protein != nothing && protein.props.reg_action != ProteinMod.Inhibit
+            weight += protein.concs[gs.gene.genome_index]
+        end
+    end
     
-    seqs
+    weight / length(reg_sites) #take the average
+end
+
+function get_prod_weights(gs::GeneState, prod_site::GeneMod.ProdSites)
+    #calculate the influence of each pair of reg sites on the prod site they regulate
+    #this is a value in [0.0, 1.0]
+    
+    #For intra production site
+    intra_weight = get_reg_weight(gs, [GeneMod.IntraIntra, GeneMod.InterIntra])
+    
+    #for inter production site
+    inter_weight = get_reg_weight(gs, [GeneMod.IntraInter, GeneMod.InterInter])
+
+    (intra=intra_weight, inter=inter_weight)
 end
 
 end

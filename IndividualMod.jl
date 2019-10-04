@@ -159,47 +159,62 @@ function run_produce_for_cell(indiv::Individual, cell_index::Int64)
 end
 
 function run_bind_for_cell(indiv::Individual, cell_index::Int64)
+    cell = indiv.cells[cell_index]
     for gene_index in 1:indiv.run.num_genes
-        #regulatory site
-        run_binding_for_site(indiv, cell_index, gene_index, indiv.genes[gene_index].reg_site, GeneStateMod.RegSite, indiv.run.reg_bind_threshold)
-
-        #growth site
-        run_binding_for_site(indiv, cell_index, gene_index, indiv.genes[gene_index].growth_site, GeneStateMod.GrowthSite, indiv.run.growth_bind_threshold)
+        gene = indiv.genes[gene_index]
         
-        for site_index in 1:length(site_seqs)
-            #bind sites
-            run_binding_for_site(indiv, cell_index, gene_index, indiv.genes[gene_index].bind_sites[site_index], GeneStateMod.BindSite, indiv.run.bind_bind_threshold)
+        #run binding for each of the regulatory sites
+        for site_index in 1:length(gene.reg_sites)
+            site = gene.reg_sites[site_index]
+            site_type = GeneMod.RegSites(site_index)
+
+            #Get eligable proteins
+            #for site types GeneMod.IntraIntra and GeneMod.IntraInter
+            if site.target == ProteinMod.Intra
+                eligable_proteins = get_bind_eligable_proteins_for_intra_site(cell.protein_store, gene_index, site, indiv.run.reg_bind_threshold)
+                
+            #for site types GeneMod.InterIntra and GeneMod.InterInter
+            else
+                proteins = get_bind_eligable_proteins_for_inter_site(cell.protein_store, cell_index, gene_index, site, indiv.run.reg_bind_threshold)
+            end
             
-            #prod sites
-            run_binding_for_site(indiv, cell_index, gene_index, indiv.genes[gene_index].prod_sites[site_index], GeneStateMod.ProdSite, indiv.run.prod_bind_threshold)
+            #do binding
+            run_bind_for_site(cell.gene_states[gene_index], site_type, eligable_proteins)
         end
     end
-    
 end
 
-function run_bind_for_site(indiv::Individual, cell_index::Int64, gene_index::Int64, site_seq::BitArray{1}, site_type::GeneStateMod.SiteType, bind_threshold::Float64)
-    #build a list of the proteins that can bind to the specified site
-    eligigble_proteins = Array{Protein, 1}()
-    internal_proteins = values(ProteinStore.get_proteins_by_target(indiv.protein_store, ProteinMod.Internal))
-    for protein in internal_proteins
-        above_thresh = protein.concs[cell_index][gene_index] >= bind_threshold
-        num_diff_bits = ProteinMod.num_bits - BitUtilsMod.count_common_bits(protein.seq, site_seq)
-        enough_bit_similarity = num_diff_bits <= run.binding_seq_play
+function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
+    proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Intra))
 
+    filter(p -> p.concs[gene_index] >= bind_threshold && p.props == site, proteins)
+end
+
+function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
+    inter_cell_proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Inter))
+    eligable_proteins = Array{Protein, 1}()
+
+    for protein in inter_cell_proteins
         #we need to make sure that inter-cell proteins don't bind to genes in the cell that produced them (don't "self-bind")
-        is_self_binding = ProteinMod.get_scope(protein) == ProteinMod.InterCell && ProteinStore.has_src_cell(indiv.store, protein, indiv.cells[cell_index])
+        is_self_binding = ProteinStore.is_owned_intercell_protein(ps, protein)
+        above_thresh = protein.concs[gene_index] >= bind_threshold
+        seq_matches = protein.props == site
 
-        if above_thresh && enough_bit_similarity && !is_self_binding
+        if !is_self_binding && above_thresh && seq_matches
             push!(eligable_proteins, protein)
         end
     end
 
+    eligable_proteins
+end
+
+function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, GeneMod.ProdSites}, eligable_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
-        conc_sum = foldl((s, p) -> s + p.concs[cell_index][gene_index], eligible_proteins; init=0.0)
+        conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
         next_bound = 0.0
         wheel = []
         for protein in eligible_proteins
-            next_bound = protein.concs[cell_index][gene_index] / conc_sum
+            next_bound = protein.concs[gene_index] / conc_sum
             push!(wheel, next_bound)
         end
 
@@ -213,10 +228,10 @@ function run_bind_for_site(indiv::Individual, cell_index::Int64, gene_index::Int
 
         sel_protein = eligible_proteins[sel_index]
 
-        GeneState.bind(gene_state, sel_protein, site_type, site_index)
+        GeneState.bind(gene_state, sel_protein, site_type)
 
     else
-        GeneState.unbind(gene_state, site_type, site_index)
+        GeneState.unbind(gene_state, site_type)
     end
 end
 

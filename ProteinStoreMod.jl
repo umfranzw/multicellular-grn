@@ -9,7 +9,7 @@ export ProteinStore,
 mutable struct ProteinStore
     run::Run
     proteins::Dict{ProteinMod.ProteinTarget, Dict{ProteinProps, Protein}}
-    owned_intercell_proteins::Set{ProteinProps}
+    owned_intercell_proteins::Set{ProteinProps} #set of inter-cell proteins that the cell that owns this store has produced
     
     function ProteinStore(run::Run)
         proteins = Dict{ProteinMod.Scope, Dict{ProteinProps, Protein}}()
@@ -34,6 +34,7 @@ function contains(ps::ProteinStore, protein::Protein)
     found
 end
 
+#owned should be set to true if the cell that's inserting the protein produced it
 function insert(ps::ProteinStore, protein::Protein, owned::Bool)
     sub_dict = ps.proteins[protein.props.target]
     if protein.props in keys(sub_dict)
