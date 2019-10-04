@@ -48,7 +48,7 @@ function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.
     end
 end
 
-function get_reg_weight(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
+function calc_rate_for_sites(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
     weight = 0.0
     for site in reg_sites
         protein = get_binding_state(gs, site)
@@ -60,17 +60,17 @@ function get_reg_weight(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
     weight / length(reg_sites) #take the average
 end
 
-function get_prod_weights(gs::GeneState, prod_site::GeneMod.ProdSites)
+function get_prod_rates(gs::GeneState)
     #calculate the influence of each pair of reg sites on the prod site they regulate
     #this is a value in [0.0, 1.0]
     
     #For intra production site
-    intra_weight = get_reg_weight(gs, [GeneMod.IntraIntra, GeneMod.InterIntra])
+    intra_rate = calc_rate_for_sites(gs, [GeneMod.IntraIntra, GeneMod.InterIntra])
     
     #for inter production site
-    inter_weight = get_reg_weight(gs, [GeneMod.IntraInter, GeneMod.InterInter])
+    inter_rate = calc_rate_for_sites(gs, [GeneMod.IntraInter, GeneMod.InterInter])
 
-    (intra=intra_weight, inter=inter_weight)
+    (intra=intra_rate, inter=inter_rate)
 end
 
 end

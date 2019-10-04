@@ -56,10 +56,10 @@ function is_owned_intercell_protein(ps::ProteinStore, protein::Protein)
     protein.props in ps.owned_intercell_proteins
 end
 
-function get(ps::ProteinStore, seq::BitArray{1})
-    sub_dict = ps.proteins[ProteinMod.props.target]
-    if protein.props in keys(sub_dict)
-        return sub_dict[protein.props]
+function get(ps::ProteinStore, props::ProteinProps)
+    sub_dict = ps.proteins[props.target]
+    if props in keys(sub_dict)
+        return sub_dict[props]
     else
         return nothing
     end

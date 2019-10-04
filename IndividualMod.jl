@@ -106,12 +106,15 @@ function run_diffuse(indiv::Individual)
     DiffusionMod.diffuse_inter_cell_proteins(indiv)
 end
 
+#no longer necessary
 function run_regulate_for_cell(indiv::Individual, cell_index::Int64)
     cell = indiv.cells[cell_index]
     for gene_index in 1:indiv.run.num_genes
         gene_state = cell.gene_states[gene_index]
-
-        bound_protein = gene_state.reg_site_binding
+        
+        
+        
+        
         if bound_protein != nothing
             affinity = ProteinMod.get_bind_affinity(bound_protein)
             if affinity == ProteinMod.Reg
@@ -131,31 +134,31 @@ function run_produce_for_cell(indiv::Individual, cell_index::Int64)
     for gene_index in 1:indiv.run.num_genes
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
-        
-        for site_index in 1:indiv.run.num_bind_sites
-            #check if something's bound to the bind site and nothing's bound to the prod site
-            bound_protein = gene_state.bind_site_bindings[site_index]
-            inhibit_protein = gene_state.prod_site_bindings[site_index]
-            if bound_protein != nothing && inhibit_protein == nothing
-                product_seq = gene.bind_sites[site_index]
-                
-                #if product is not yet in store, create it
-                product_protein = ProteinStoreMod.get_protein(indiv.protein_store, product_seq)
-                if product_protein == nothing
-                    product_protein = ProteinMod.Protein(run, product_seq, length(indiv.cells), false)
-                    ProteinStoreMod.insert_protein(indiv.protein_store, product_protein, cell)
+        rates = GeneStateMod.get_prod_weights(gs)
 
-                #otherwise, make sure this cell is a src
-                else
-                    #note: don't need to worry about inserting duplicates here, since these are stored in a set
-                    ProteinStoreMod.add_src_cell(indiv.protein_store, cell)
-                end
-
-                #increment conc above this gene (diffusion will spread it out later)
-                product_protein.concs[cell_index][gene_index] = min(produce_protein.concs[cell_index][gene_index] + gene_state.output_rate, 1.0)
-            end
-        end
+        #For intra prod site
+        run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
+        #For inter prod site
+        run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
     end
+end
+
+function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.ProdSites, rate::Float64)
+    #get the props for the protein that will be produced
+    props = gene.prod_sites[site_type]
+    #check if protein already exists in this cell's store
+    protein = ProteinStoreMod.get(cell.protein_store, props)
+    #if not, create and insert it
+    if protein == nothing
+        #note: protein will be initialized with conc values of zero
+        protein = Protein(run, props, false)
+        ProteinStoreMod.insert(cell.protein_store, protein, true)
+    end
+    
+    #increment the conc using the rate
+    #note: this will only increment the conc directly over the gene
+    #the diffusion will spread this out later
+    protein.concs[gene_index] = min(protein.concs[gene_index] + rate, 1.0)
 end
 
 function run_bind_for_cell(indiv::Individual, cell_index::Int64)
