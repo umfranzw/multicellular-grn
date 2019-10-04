@@ -178,7 +178,7 @@ function run_bind_for_cell(indiv::Individual, cell_index::Int64)
                 proteins = get_bind_eligable_proteins_for_inter_site(cell.protein_store, cell_index, gene_index, site, indiv.run.reg_bind_threshold)
             end
             
-            #do binding
+            #run the binding
             run_bind_for_site(cell.gene_states[gene_index], site_type, eligable_proteins)
         end
     end
@@ -187,18 +187,32 @@ end
 function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
     proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Intra))
 
-    filter(p -> p.concs[gene_index] >= bind_threshold && p.props == site, proteins)
+    #for props:
+    #- need to ensure that protein's type matches site type (Reg)
+    #- protein's target will match site target (Intra) due the the filtering from the call above
+    #- protein's reg action doesn't need to match (could be Activate or Inhibit)
+    #- protein's growth action is irrelevant (since this is a reg protein & reg site)
+    filter(p -> p.concs[gene_index] >= bind_threshold && p.props.type == site.type, proteins)
 end
 
-function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
+function get_bind_eligable_proteins_for_inter_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
     inter_cell_proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Inter))
     eligable_proteins = Array{Protein, 1}()
 
     for protein in inter_cell_proteins
-        #we need to make sure that inter-cell proteins don't bind to genes in the cell that produced them (don't "self-bind")
+        #we want to make sure that inter-cell proteins don't bind to genes in the cell that produced them (don't "self-bind")
+        #This call checks if the given store owns the given protein.
+        #note: it's possible that the store owns the protein, AND the protein was ALSO produced by another cell.
+        #Since we can't differentiate between the two cases, we still don't allow the protein to bind if both are true.
         is_self_binding = ProteinStore.is_owned_intercell_protein(ps, protein)
         above_thresh = protein.concs[gene_index] >= bind_threshold
-        seq_matches = protein.props == site
+
+        #for props:
+        #- need to ensure that protein's type matches site type (Reg)
+        #- protein's target will match site target (Inter) due the the filtering from the call above
+        #- protein's reg action doesn't need to match (could be Activate or Inhibit)
+        #- protein's growth action is irrelevant (since this is a reg protein & reg site)
+        seq_matches = protein.props.type == site.type
 
         if !is_self_binding && above_thresh && seq_matches
             push!(eligable_proteins, protein)
@@ -210,6 +224,7 @@ end
 
 function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, GeneMod.ProdSites}, eligable_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
+        #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
         next_bound = 0.0
         wheel = []
