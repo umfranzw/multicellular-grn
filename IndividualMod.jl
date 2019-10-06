@@ -21,6 +21,8 @@ struct Individual
     genes::Array{Gene, 1}
     initial_cell::Cell
     initial_cell_proteins::Array{Protein, 1}
+    #note: this is a value in [0.0, 1.0], where 0.0 is optimal
+    fitness::Float64
 end
 
 function rand_init(run::Run)
@@ -46,7 +48,7 @@ function rand_init(run::Run)
         end
     end
     
-    Individual(run, genes, initial_cell, initial_proteins, store)
+    Individual(run, genes, initial_cell, initial_proteins, store, 1.0)
 end
 
 function run_protein_app(indiv::Individual)
