@@ -114,6 +114,10 @@ end
 function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.protein_store)
     for protein in proteins
+        #decrease the concentration using decay_rate
+        protein.concs = max.(protein.concs - protein.concs * cell.run.decay_rate, zeros(length(protein.concs)))
+
+        #remove any proteins that have decayed below the allowable threshold
         if is_decayed(protein, cell.run.min_protein_conc)
             #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
             #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
