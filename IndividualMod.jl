@@ -33,9 +33,9 @@ function rand_init(run::Run)
         type = RandUtilsMod.rand_enum_val(ProteinMod.ProteinType)
         target = RandUtilsMod.rand_enum_val(ProteinMod.ProteinTarget)
         reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
-        growth_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinGrowthAction)
+        app_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinAppAction)
         
-        protein = Protein(run, ProteinProps(type, target, reg_action, growth_action), true)
+        protein = Protein(run, ProteinProps(type, target, reg_action, app_action), true)
         
         #make sure the initial proteins are all unique
         #note: this logic means some cells in the population may have fewer initial proteins than others...
@@ -49,41 +49,40 @@ function rand_init(run::Run)
     Individual(run, genes, initial_cell, initial_proteins, store)
 end
 
-# function divide_cell(indiv::Individual, src_cell::Cell, dest_index::Int64)
-#     dest_cell = Cell(indiv.run, indiv.genes)
+function run_protein_app(indiv::Individual)
+    #we want to visit cells in breadth-first order
+    #build an array of the cells (in bfs order) so that as the tree is modified,
+    #we don't get messed up by any modifications (eg. new nodes that get added)
+    bfs_list = Array{Cell}()
+    CellTree.bf_traverse(indiv.initial_cell, c -> push!(bfs_list, c))
 
-#     ProteinStoreMod.insert_cell(indiv.protein_store, dest_index)
-#     insert!(indiv.cell, dest_index)
+    for cell in bfs_list
+        run_app_for_cell(cell)
+    end
+end
 
-#     #insert the initial proteins for the new cell
-#     #src cell donates half its intra-cell proteins' concentrations to the dest cell
-#     intra_proteins = ProteinStoreMod.get_proteins_by_scope(indiv.protein_store, ProteinMod.IntraCell)
+function run_protein_app_for_cell(cell::Cell)
+    #get all proteins (from this cell) that are eligible for application
+    app_proteions = ProteinStoreMod.get_by_type(cell.protein_store, ProteinMod.App)
 
-#     for protein in intra_proteins
-#         protein.concs[src_cell] /= 2
-#         protein.concs[dest_cell] = copy(protein.concs[src_cell])
-#     end
+    #build a list of tuples of the form (protein, sum of concs), where each protein has a sum >= protein_app_threshold
+    pairs = Array{Tuple{Protein, Float64}}()
+    for protein in app_proteins
+        conc_sum = sum(protein.concs)
+        if conc_sum >= cell.run.protein_app_threshold
+            push!(pairs, (p, conc_sum))
+        end
+    end
+    #sort in descending order by sum - we'll apply they in this order
+    sort!(pairs; by=p -> p[2], rev=true)
 
-#     src_cell.energy /= 2
-# end
-
-# function run_growth(indiv::Individual)
-#     #as we insert, the list will grow - we need to compensate for this
-#     cells = copy(indiv.cells) #we will loop through this copy so that we don't run into cells inserted on a previous iter
-#     index_offset = 0 #offset for cells already inserted
-
-#     for i in 1:length(cells)
-#         prob, dir = calc_cell_divide_prob(cells[i])
-#         if RandUtils.rand_float(indiv.run) < prob
-#             if dir == ProteinMod.GrowUp
-#                 divide_cell(indiv, cells[i], max(i + index_offset - 1, 1))
-#             elseif dir == ProteinMod.GrowDown
-#                 divide_cell(indiv, cells[i], min(i + index_offset + 1, length(indiv.cells)))
-#             end
-#             index_offset += 1
-#         end
-#     end
-# end
+    #apply the proteins
+    for pair in pairs
+        protein = pair[1]
+        action = ProteinMod.get_app_action(protein)
+        action(cell, protein)
+    end
+end
 
 function run_bind(indiv::Individual)
     CellTreeMod.traverse(indiv.initial_cell, cell -> run_bind_for_cell(indiv, cell))
@@ -161,7 +160,7 @@ function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index:
     #- need to ensure that protein's type matches site type (Reg)
     #- protein's target will match site target (Intra) due the the filtering from the call above
     #- protein's reg action doesn't need to match (could be Activate or Inhibit)
-    #- protein's growth action is irrelevant (since this is a reg protein & reg site)
+    #- protein's app action is irrelevant (since this is a reg protein & reg site)
     filter(p -> p.concs[gene_index] >= bind_threshold && p.props.type == site.type, proteins)
 end
 
@@ -181,7 +180,7 @@ function get_bind_eligable_proteins_for_inter_site(ps::ProteinStore, gene_index:
         #- need to ensure that protein's type matches site type (Reg)
         #- protein's target will match site target (Inter) due the the filtering from the call above
         #- protein's reg action doesn't need to match (could be Activate or Inhibit)
-        #- protein's growth action is irrelevant (since this is a reg protein & reg site)
+        #- protein's app action is irrelevant (since this is a reg protein & reg site)
         seq_matches = protein.props.type == site.type
 
         if !is_self_binding && above_thresh && seq_matches

@@ -26,7 +26,7 @@ function rand_site(
     type::Union{ProteinMod.ProteinType, Nothing}=nothing,
     target::Union{ProteinMod.ProteinTarget, Nothing}=nothing,
     reg_action::Union{ProteinMod.ProteinRegAction, Nothing}=nothing
-    growth_action::Union{ProteinMod.ProteinGrowthAction, Nothing}=nothing
+    app_action::Union{ProteinMod.ProteinAppAction, Nothing}=nothing
 )
     if type == nothing
         type = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinType)
@@ -37,11 +37,11 @@ function rand_site(
     if reg_action == nothing
         reg_action = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinRegAction)
     end
-    if growth_action == nothing
-        growth_action = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinGrowthAction)
+    if app_action == nothing
+        app_action = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinAppAction)
     end
 
-    ProteinProps(type, target, reg_action, growth_action)
+    ProteinProps(type, target, reg_action, app_action)
 end
 
 function rand_init(run::Run, genome_index::Int64)

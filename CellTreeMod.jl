@@ -2,6 +2,7 @@ module CellTreeMod
 
 using CellMod
 using SymMod
+using DataStructures: Queue, enqueue!, dequeue!, isempty
 
 export traverse, find_empty, find
 
@@ -9,6 +10,20 @@ function traverse(node::Cell, f::Function)
     f(node)
     for child in node.children
         traverse(child, f)
+    end
+end
+
+function bf_traverse(node::Cell, f::Function)
+    q = Queue{Cell}()
+    enqueue!(node)
+
+    while !isempty(q)
+        cell = dequeue!(q)
+        f(cell)
+        
+        for child in cell.children
+            enqueue!(q, child)
+        end
     end
 end
 
