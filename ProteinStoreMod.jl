@@ -52,6 +52,17 @@ function insert(ps::ProteinStore, protein::Protein, owned::Bool)
     end
 end
 
+function remove(ps::ProteinStore, protein::Protein)
+    sub_dict = ps.proteins[protein.props.target]
+    if protein.props in keys(sub_dict)
+        delete!(sub_dict, protein.props)
+    end
+    
+    if protein.props.target == Inter && protein.props in ps.owned_intercell_proteins
+        delete!(ps.owned_intercell_proteins, protein.props)
+    end
+end
+
 function is_owned_intercell_protein(ps::ProteinStore, protein::Protein)
     protein.props in ps.owned_intercell_proteins
 end
@@ -77,6 +88,15 @@ function get_by_type(ps::ProteinStore, type::ProteinMod.ProteinType)
                 append!(proteins, protein)
             end
         end
+    end
+
+    proteins
+end
+
+function get_all(ps::ProteinStore)
+    proteins = Array{Protein, 1}()
+    for target in instances(ProteinMod.ProteinTarget)
+        push!(proteins, values(ps.proteins[target])...)
     end
 
     proteins

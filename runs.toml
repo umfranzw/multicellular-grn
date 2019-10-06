@@ -11,15 +11,15 @@ num_bind_sites = 2
 fitness_term_threshold = 0.0
 reg_bind_threshold = 0.1
 protein_app_threshold = 0.1
-bind_bind_threshold = 0.1
-prod_bind_threshold = 0.1
+reg_bind_threshold = 0.1
 prod_rate_incr = 0.1
 
 ######################
 # Regulatory Simulation #
 ######################
 reg_steps = 50
-min_protein_threshold = 0.04
+#note: this must be < reg_bind_threshold
+protein_deletion_threshold = 0.04
 
 decay_rate = 0.05
 #note: if the number of unique proteins is less than num_initial_proteins, it will be used instead

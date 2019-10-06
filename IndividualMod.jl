@@ -97,6 +97,32 @@ function run_diffuse(indiv::Individual)
     DiffusionMod.diffuse_inter_cell_proteins(indiv)
 end
 
+function run_decay(indiv::Individual)
+    CellTreeMod.traverse(indiv.initial_cell, cell -> run_decay_for_cell(cell))
+end
+
+function is_decayed(protein::Protein, thresh::Float64)
+    i = 1
+    while protein.concs[i] < thresh && i <= length(protein.concs)
+        i += 1
+    end
+
+    #if the loop index made it past the length of the protein, all the concs are below the threshold (i.e. the protein is decayed)
+    i > length(protein.concs)
+end
+
+function run_decay_for_cell(cell::Cell)
+    proteins = ProteinStoreMod.get_all(cell.protein_store)
+    for protein in proteins
+        if is_decayed(protein, cell.run.min_protein_conc)
+            #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
+            #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
+            #states to remove bindings
+            cell.protein_store.remove(protein)
+        end
+    end
+end
+
 function run_produce_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:indiv.run.num_genes
         gene_state = cell.gene_states[gene_index]
