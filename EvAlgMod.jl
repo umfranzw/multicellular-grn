@@ -5,16 +5,16 @@ using IndividualMod
 using MutateMod
 
 function ev_alg(run::Run)
-    pop = init_pop(run)
+    pop = map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
 
     for ea_step in 1:run.ea_steps
+        #run the genetic operator
         MutateMod.mutate(run, pop)
+        
+        #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop)
-        #TODO: reset cell trees and bindings before next ea_step
-        #also need to be able to re-init cell (since initial proteins may have changed)
-    end
-end
 
-function init_pop(run::Run)
-    map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
+        #reset the individuals before the next iteration
+        map(IndividualMod.reset, pop)
+    end
 end

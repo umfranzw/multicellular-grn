@@ -25,7 +25,7 @@ function rand_site(
     run::Run;
     type::Union{ProteinMod.ProteinType, Nothing}=nothing,
     target::Union{ProteinMod.ProteinTarget, Nothing}=nothing,
-    reg_action::Union{ProteinMod.ProteinRegAction, Nothing}=nothing
+    reg_action::Union{ProteinMod.ProteinRegAction, Nothing}=nothing,
     app_action::Union{ProteinMod.ProteinAppAction, Nothing}=nothing
 )
     if type == nothing

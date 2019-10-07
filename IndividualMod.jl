@@ -62,7 +62,9 @@ function reset(indiv::Individual)
     indiv.root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
     #re-insert (copies of) the initial proteins
     for protein in indiv.initial_proteins
-        ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
+        if !ProteinStoreMod.contains(root_cell.protein_store, protein)
+            ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
+        end
     end
 end
 

@@ -1,4 +1,4 @@
-]module RunMod
+module RunMod
 
 import TOML
 import Random
@@ -21,7 +21,6 @@ struct Run
     fitness_term_threshold::Float64
     reg_bind_threshold::Float64
     protein_app_threshold::Float64
-    reg_bind_threshold::Float64
     prod_rate_incr::Float64
 
     reg_steps::Int64
@@ -58,7 +57,6 @@ struct Run
             run["fitness_term_threshold"],
             run["reg_bind_threshold"],
             run["protein_app_threshold"],
-            run["reg_bind_threshold"],
             run["prod_rate_incr"],
             
             run["reg_steps"],

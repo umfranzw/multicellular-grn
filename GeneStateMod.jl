@@ -16,7 +16,7 @@ mutable struct GeneState
         new(
             run,
             gene,
-            repeat([nothing], length(instances(GeneMod.RegSites)))
+            repeat([nothing], length(instances(GeneMod.RegSites))),
             repeat([nothing], length(instances(GeneMod.ProdSites)))
         )
     end
