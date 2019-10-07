@@ -57,7 +57,7 @@ function calc_rate_for_sites(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1
         end
     end
     
-    weight / length(reg_sites) #take the average
+    weight / length(reg_sites) #take the average (this will be a value in [0.0, 1.0])
 end
 
 function get_prod_rates(gs::GeneState)

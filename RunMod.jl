@@ -30,7 +30,7 @@ struct Run
     decay_rate::Float64
     num_initial_proteins::Int64
     max_proteins::Int64
-    max_mut_float_change::Float64
+    max_conc_mut::Float64
     max_mut_bits_change::Int64
     binding_seq_play::Int64
 
@@ -67,7 +67,7 @@ struct Run
             run["decay_rate"],
             run["num_initial_proteins"],
             run["max_proteins"],
-            run["max_mut_float_change"],
+            run["max_conc_mut"],
             run["max_mut_bits_change"],
             run["binding_seq_play"],
 

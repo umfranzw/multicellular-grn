@@ -32,8 +32,8 @@ function rand_init(run::Run)
     initial_proteins = Array{Protein, 1}()
     
     for i in 1:run.num_initial_proteins
-        type = RandUtilsMod.rand_enum_val(ProteinMod.ProteinType)
-        target = RandUtilsMod.rand_enum_val(ProteinMod.ProteinTarget)
+        type = ProteinMod.Reg
+        target = ProteinMod.Intra
         reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
         app_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinAppAction)
         
