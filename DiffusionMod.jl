@@ -50,7 +50,7 @@ function get_1D(array::Array{Float64, 1}, col::Int64, len::Int64)
 end
 
 function diffuse_intra_cell_proteins(indiv::Individual)
-    CellTreeMod.traverse(indiv.initial_cell, cell -> diffuse_intra_cell_proteins(indiv, cell))
+    CellTreeMod.traverse(indiv.root_cell, cell -> diffuse_intra_cell_proteins(indiv, cell))
 end
 
 function diffuse_intra_cell_proteins(indiv::Individual, cell::Cell)
@@ -74,7 +74,7 @@ function diffuse_inter_cell_proteins(indiv::Individual)
     for protein in inter_cell_proteins
         results_dict = Dict{Cell, Array{Float64, 1}}()
         #this will recursively traverse the cell tree, putting the concs for the next timestep into results_dict
-        diffuse_inter_cell_proteins(indiv.initial_cell, protein.props, cols, results_dict)
+        diffuse_inter_cell_proteins(indiv.root_cell, protein.props, cols, results_dict)
 
         #update the current protein's concs in each cell in the tree
         CellTreeMod.traverse(cell, c -> update_concs(c, results_dict))

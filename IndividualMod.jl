@@ -19,7 +19,7 @@ export Individual,
 struct Individual
     run::Run
     genes::Array{Gene, 1}
-    initial_cell::Cell
+    root_cell::Cell
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
@@ -27,28 +27,43 @@ end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    initial_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
+    root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
     
     initial_proteins = Array{Protein, 1}()
     
     for i in 1:run.num_initial_proteins
+        #all initial proteins will be type Reg, and have target Intra
+        #this forces inter-cell communication and application proteins to be produced by a network
         type = ProteinMod.Reg
         target = ProteinMod.Intra
         reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
         app_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinAppAction)
         
         protein = Protein(run, ProteinProps(type, target, reg_action, app_action), true)
-        
-        #make sure the initial proteins are all unique
-        #note: this logic means some cells in the population may have fewer initial proteins than others...
-        if !ProteinStoreMod.contains(protein)
-            push!(initial_proteins, protein)
-            #note: we push a copy so the indiv's array stays intact as the simulation modifies protein's concs
-            ProteinStoreMod.insert(initial_cell.proteins, ProteinMod.copy(protein), false)
+        push!(initial_proteins, protein)
+
+        #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
+        #However, we need to ensure that we only insert unique proteins into the root cell's store.
+        #note: this logic means some individual's root cells may have fewer initial proteins than others...
+        if !ProteinStoreMod.contains(root_cell.protein_store, protein)
+            #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
+            #in the root cell
+            ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
         end
     end
     
-    Individual(run, genes, initial_cell, initial_proteins, store, 1.0)
+    Individual(run, genes, root_cell, initial_proteins, 1.0)
+end
+
+#resets everything to the way it was before the reg sim (so
+#we can run the reg sim again on the next ea_step)
+function reset(indiv::Individual)
+    #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
+    indiv.root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
+    #re-insert (copies of) the initial proteins
+    for protein in indiv.initial_proteins
+        ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
+    end
 end
 
 function run_protein_app(indiv::Individual)
@@ -56,7 +71,7 @@ function run_protein_app(indiv::Individual)
     #build an array of the cells (in bfs order) so that as the tree is modified,
     #we don't get messed up by any modifications (eg. new nodes that get added)
     bfs_list = Array{Cell}()
-    CellTree.bf_traverse(indiv.initial_cell, c -> push!(bfs_list, c))
+    CellTree.bf_traverse(indiv.root_cell, c -> push!(bfs_list, c))
 
     for cell in bfs_list
         run_app_for_cell(cell)
@@ -87,11 +102,11 @@ function run_protein_app_for_cell(cell::Cell)
 end
 
 function run_bind(indiv::Individual)
-    CellTreeMod.traverse(indiv.initial_cell, cell -> run_bind_for_cell(indiv, cell))
+    CellTreeMod.traverse(indiv.root_cell, cell -> run_bind_for_cell(indiv, cell))
 end
 
 function run_produce(indiv::Individual)
-    CellTreeMod.traverse(indiv.initial_cell, cell -> run_produce_for_cell(indiv, cell))
+    CellTreeMod.traverse(indiv.root_cell, cell -> run_produce_for_cell(indiv, cell))
 end
 
 function run_diffuse(indiv::Individual)
@@ -100,7 +115,7 @@ function run_diffuse(indiv::Individual)
 end
 
 function run_decay(indiv::Individual)
-    CellTreeMod.traverse(indiv.initial_cell, cell -> run_decay_for_cell(cell))
+    CellTreeMod.traverse(indiv.root_cell, cell -> run_decay_for_cell(cell))
 end
 
 function is_decayed(protein::Protein, thresh::Float64)
