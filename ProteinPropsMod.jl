@@ -4,6 +4,8 @@ import MiscUtilsMod
 import Base.hash
 import Base.==
 import Base.copy
+import Base.show
+import Formatting
 
 export ProteinProps,
     hash, ==
@@ -17,9 +19,20 @@ export ProteinProps,
 const ProteinEnum = Union{ProteinType, ProteinTarget, ProteinRegAction, ProteinAppAction}
 
 const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
+const type_digits = MiscUtilsMod.digits_needed(num_types)
+const type_fs = Formatting.FormatSpec("0$(type_digits)d")
+
 const num_targets = MiscUtilsMod.num_enum_vals(ProteinTarget)
+const target_digits = MiscUtilsMod.digits_needed(num_targets)
+const target_fs = Formatting.FormatSpec("0$(target_digits)d")
+
 const num_reg_actions = MiscUtilsMod.num_enum_vals(ProteinRegAction)
+const reg_action_digits = MiscUtilsMod.digits_needed(num_reg_actions)
+const reg_action_fs = Formatting.FormatSpec("0$(reg_action_digits)d")
+
 const num_app_actions = MiscUtilsMod.num_enum_vals(ProteinAppAction)
+const app_action_digits = MiscUtilsMod.digits_needed(num_app_actions)
+const app_action_fs = Formatting.FormatSpec("0$(app_action_digits)d")
 
 #note: must be only one field of each type
 mutable struct ProteinProps
@@ -27,6 +40,18 @@ mutable struct ProteinProps
     target::ProteinTarget
     reg_action::ProteinRegAction
     app_action::ProteinAppAction #index of action in app_actions array
+end
+
+function show(io::IO, props::ProteinProps)
+    pairs = (
+        (type_fs, props.type),
+        (target_fs, props.target),
+        (reg_action_fs, props.reg_action),
+        (app_action_fs, props.app_action)
+    )
+    for (fs, val) in pairs
+        Formatting.printfmt(io, fs, val)
+    end
 end
 
 function hash(props::ProteinProps)

@@ -4,6 +4,7 @@ using RunMod
 using ProteinPropsMod
 
 import RandUtilsMod
+import Base.show
 
 export Gene
 
@@ -17,6 +18,23 @@ mutable struct Gene
     genome_index::Int64
     reg_sites::Array{ProteinProps, 1}
     prod_sites::Array{ProteinProps, 1}
+end
+
+function show(io::IO, gene::Gene)
+    println("Gene:")
+    println("genome_index: $(gene.genome_index)")
+    
+    println("reg_sites:")
+    for site_type in instances(RegSites)
+        print("$(string(site_type)): ")
+        print(gene.reg_sites[Int64(site_type)])
+    end
+
+    println("prod_sites:")
+    for site_type in instances(ProdSites)
+        print("$(string(site_type)): ")
+        print(gene.prod_sites[Int64(site_type)])
+    end
 end
 
 function rand_site(

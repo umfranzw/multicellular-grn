@@ -13,6 +13,7 @@ using CellTreeMod
 
 import Random
 import RandUtilsMod
+import Base.show
 
 export Individual,
     rand_init, run_bind
@@ -24,6 +25,10 @@ struct Individual
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
+end
+
+function show(io::IO, indiv::Individual)
+    println(io, "This is an individual.")
 end
 
 function rand_init(run::Run)
