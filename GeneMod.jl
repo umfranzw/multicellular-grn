@@ -2,6 +2,7 @@ module GeneMod
 
 using RunMod
 using ProteinPropsMod
+using MiscUtilsMod
 
 import RandUtilsMod
 import Base.show
@@ -20,20 +21,20 @@ mutable struct Gene
     prod_sites::Array{ProteinProps, 1}
 end
 
-function show(io::IO, gene::Gene)
-    println("Gene:")
-    println("genome_index: $(gene.genome_index)")
+function show(io::IO, gene::Gene, ilevel::Int64=0)
+    iprintln(io, "Gene:", ilevel)
+    iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
-    println("reg_sites:")
+    iprintln(io, "reg_sites:", ilevel + 1)
     for site_type in instances(RegSites)
-        print("$(string(site_type)): ")
-        print(gene.reg_sites[Int64(site_type)])
+        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        ProteinPropsMod.show(io, gene.reg_sites[Int64(site_type)], 0)
     end
 
-    println("prod_sites:")
+    iprintln(io, "prod_sites:", ilevel + 1)
     for site_type in instances(ProdSites)
-        print("$(string(site_type)): ")
-        print(gene.prod_sites[Int64(site_type)])
+        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        ProteinPropsMod.show(io, gene.prod_sites[Int64(site_type)], 0)
     end
 end
 

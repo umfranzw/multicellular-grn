@@ -10,6 +10,7 @@ using ProteinStoreMod
 using SymMod
 using DiffusionMod
 using CellTreeMod
+using MiscUtilsMod
 
 import Random
 import RandUtilsMod
@@ -27,8 +28,18 @@ struct Individual
     fitness::Float64
 end
 
-function show(io::IO, indiv::Individual)
-    println(io, "This is an individual.")
+function show(io::IO, indiv::Individual, ilevel::Int64=0)
+    iprintln(io, "Individual:", ilevel)
+    iprintln(io, "Genes:", ilevel + 1)
+    map(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
+
+    iprintln(io, "root_cell:", ilevel + 1)
+    iprintln(io, indiv.root_cell, ilevel + 2)
+
+    iprintln(io, "initial_cell_proteins:", ilevel + 1)
+    map(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
+
+    iprintln(io, "fitness: $(indiv.fitness)", ilevel + 1)
 end
 
 function rand_init(run::Run)

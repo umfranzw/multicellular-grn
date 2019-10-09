@@ -1,9 +1,11 @@
 module ProteinMod
 
-using RunMod
 import RandUtilsMod
-using ProteinPropsMod
 import Base.copy
+import Base.show
+using RunMod
+using ProteinPropsMod
+using MiscUtilsMod
 
 export Protein,
     copy
@@ -31,6 +33,12 @@ end
 function copy(protein::Protein)
     #only the concs need to be deep copied
     Protein(protein.run, protein.props, copy(protein.concs))
+end
+
+function show(io::IO, protein::Protein, ilevel::Int64=0)
+    iprintln(io, "Protein:", ilevel)
+    iprint(io, "props: $(protein.props)", ilevel + 1)
+    iprintln(io, "concs: $(protein.concs)", ilevel + 1)
 end
 
 end

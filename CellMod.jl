@@ -5,7 +5,7 @@ using GeneStateMod
 using GeneMod
 using ProteinStoreMod
 using SymMod: Sym
-using Printf
+using MiscUtilsMod
 
 import Base.show
 
@@ -33,16 +33,19 @@ mutable struct Cell
     end
 end
 
-function show(io::IO, cell::Cell)
+function show(io::IO, cell::Cell, ilevel::Int64=0)
     parent_present = cell.parent == nothing ? "none" : "present"
     sym_desc = cell.sym == nothing ? "(nothing)" : cell.sym
-    @printf(
-        io,
-        "Cell(parent: %s, children: %d, sym: %s)",
-        parent_present,
-        length(cell.children),
-        sym_desc
-    )
+
+    iprintln(io, "Cell:", ilevel)
+
+    iprintln(io, "energy: $(cell.energy)", ilevel + 1)
+    iprintln(io, "parent: $(parent_present)", ilevel + 1)
+    iprintln(io, "children: $(length(cell.children))", ilevel + 1)
+    iprintln(io, "sym: $(sym_desc)", ilevel + 1)
+    
+    iprintln(io, "gene_states:", ilevel + 1)
+    map(gs -> GeneStateMod.show(io, gs, ilevel + 1), cell.gene_states)
 end
 
 end

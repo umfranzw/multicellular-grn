@@ -1,11 +1,11 @@
 module ProteinPropsMod
 
-import MiscUtilsMod
 import Base.hash
 import Base.==
 import Base.copy
 import Base.show
 import Formatting
+using MiscUtilsMod
 
 export ProteinProps,
     hash, ==
@@ -42,7 +42,7 @@ mutable struct ProteinProps
     app_action::ProteinAppAction #index of action in app_actions array
 end
 
-function show(io::IO, props::ProteinProps)
+function show(io::IO, props::ProteinProps, ilevel::Int64=0)
     pairs = (
         (type_fs, props.type),
         (target_fs, props.target),
@@ -50,8 +50,10 @@ function show(io::IO, props::ProteinProps)
         (app_action_fs, props.app_action)
     )
     for (fs, val) in pairs
-        Formatting.printfmt(io, fs, val)
+        str = Formatting.fmt(fs, val)
+        iprint(io, str, ilevel)
     end
+    println(io, "")
 end
 
 function hash(props::ProteinProps)

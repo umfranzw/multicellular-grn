@@ -4,6 +4,9 @@ using GeneMod
 using ProteinMod
 using ProteinPropsMod
 using RunMod
+using MiscUtilsMod
+
+import Base.show
 
 export GeneState
 
@@ -20,6 +23,34 @@ mutable struct GeneState
             repeat([nothing], length(instances(GeneMod.RegSites))),
             repeat([nothing], length(instances(GeneMod.ProdSites)))
         )
+    end
+end
+
+function show(io::IO, gs::GeneState, ilevel::Int64=0)
+    iprintln(io, "GeneState", ilevel)
+    
+    iprintln(io, "reg_site_bindings", ilevel + 1)
+    for site_type in instances(GeneMod.RegSites)
+        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        
+        site = gs.reg_site_bindings[Int64(site_type)]
+        if site == nothing
+            iprint(io, "(nothing)", 0)
+        else
+            iprint(io, site.props, 0)
+        end
+    end
+
+    iprintln(io, "prod_site_bindings", ilevel + 1)
+    for site_type in instances(GeneMod.ProdSites)
+        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        
+        site = gs.prod_site_bindings[Int64(site_type)]
+        if site == nothing
+            iprint(io, "(nothing)", 0)
+        else
+            iprint(io, site.props, 0)
+        end
     end
 end
 
