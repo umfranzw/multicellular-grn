@@ -2,9 +2,10 @@ module GeneStateMod
 
 using GeneMod
 using ProteinMod
+using ProteinPropsMod
 using RunMod
 
-export GeneState, SiteType
+export GeneState
 
 mutable struct GeneState
     run::Run
@@ -52,7 +53,7 @@ function calc_rate_for_sites(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1
     weight = 0.0
     for site in reg_sites
         protein = get_binding_state(gs, site)
-        if protein != nothing && protein.props.reg_action != ProteinMod.Inhibit
+        if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
             weight += protein.concs[gs.gene.genome_index]
         end
     end

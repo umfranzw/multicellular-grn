@@ -4,6 +4,7 @@ using RunMod
 using GeneMod
 using GeneStateMod
 using ProteinMod
+using ProteinPropsMod
 using CellMod
 using ProteinStoreMod
 using SymMod
@@ -34,10 +35,10 @@ function rand_init(run::Run)
     for i in 1:run.num_initial_proteins
         #all initial proteins will be type Reg, and have target Intra
         #this forces inter-cell communication and application proteins to be produced by a network
-        type = ProteinMod.Reg
-        target = ProteinMod.Intra
-        reg_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinRegAction)
-        app_action = RandUtilsMod.rand_enum_val(ProteinMod.ProteinAppAction)
+        type = ProteinPropsMod.Reg
+        target = ProteinPropsMod.Intra
+        reg_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinRegAction)
+        app_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinAppAction)
         
         protein = Protein(run, ProteinProps(type, target, reg_action, app_action), true)
         push!(initial_proteins, protein)
@@ -45,10 +46,10 @@ function rand_init(run::Run)
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         #However, we need to ensure that we only insert unique proteins into the root cell's store.
         #note: this logic means some individual's root cells may have fewer initial proteins than others...
-        if !ProteinStoreMod.contains(root_cell.protein_store, protein)
+        if !ProteinStoreMod.contains(root_cell.proteins, protein)
             #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
             #in the root cell
-            ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
+            ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
         end
     end
     
@@ -62,8 +63,8 @@ function reset(indiv::Individual)
     indiv.root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
     #re-insert (copies of) the initial proteins
     for protein in indiv.initial_proteins
-        if !ProteinStoreMod.contains(root_cell.protein_store, protein)
-            ProteinStoreMod.insert(root_cell.protein_store, ProteinMod.copy(protein), false)
+        if !ProteinStoreMod.contains(root_cell.proteins, protein)
+            ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
         end
     end
 end
@@ -82,7 +83,7 @@ end
 
 function run_protein_app_for_cell(cell::Cell)
     #get all proteins (from this cell) that are eligible for application
-    app_proteions = ProteinStoreMod.get_by_type(cell.protein_store, ProteinMod.App)
+    app_proteions = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
     #build a list of tuples of the form (protein, sum of concs), where each protein has a sum >= protein_app_threshold
     pairs = Array{Tuple{Protein, Float64}}()
@@ -98,8 +99,7 @@ function run_protein_app_for_cell(cell::Cell)
     #apply the proteins
     for pair in pairs
         protein = pair[1]
-        action = ProteinMod.get_app_action(protein)
-        action(cell, protein)
+        ProteinAppActionMod.run_app_action(cell, protein)
     end
 end
 
@@ -112,8 +112,8 @@ function run_produce(indiv::Individual)
 end
 
 function run_diffuse(indiv::Individual)
-    DiffusionMod.diffuse_intra_cell_proteins(indiv)
-    DiffusionMod.diffuse_inter_cell_proteins(indiv)
+    DiffusionMod.diffuse_intra_cell_proteins(indiv.root_cell)
+    DiffusionMod.diffuse_inter_cell_proteins(indiv.root_cell)
 end
 
 function run_decay(indiv::Individual)
@@ -131,7 +131,7 @@ function is_decayed(protein::Protein, thresh::Float64)
 end
 
 function run_decay_for_cell(cell::Cell)
-    proteins = ProteinStoreMod.get_all(cell.protein_store)
+    proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         #decrease the concentration using decay_rate
         protein.concs = max.(protein.concs - protein.concs * cell.run.decay_rate, zeros(length(protein.concs)))
@@ -141,7 +141,7 @@ function run_decay_for_cell(cell::Cell)
             #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
             #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
             #states to remove bindings
-            cell.protein_store.remove(protein)
+            cell.proteins.remove(protein)
         end
     end
 end
@@ -163,12 +163,12 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     #get the props for the protein that will be produced
     props = gene.prod_sites[site_type]
     #check if protein already exists in this cell's store
-    protein = ProteinStoreMod.get(cell.protein_store, props)
+    protein = ProteinStoreMod.get(cell.proteins, props)
     #if not, create and insert it
     if protein == nothing
         #note: protein will be initialized with conc values of zero
         protein = Protein(run, props, false)
-        ProteinStoreMod.insert(cell.protein_store, protein, true)
+        ProteinStoreMod.insert(cell.proteins, protein, true)
     end
     
     #increment the conc using the rate
@@ -188,12 +188,12 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
 
             #Get eligable proteins
             #for site types GeneMod.IntraIntra and GeneMod.IntraInter
-            if site.target == ProteinMod.Intra
-                eligable_proteins = get_bind_eligable_proteins_for_intra_site(cell.protein_store, gene_index, site, indiv.run.reg_bind_threshold)
+            if site.target == ProteinPropsMod.Intra
+                eligable_proteins = get_bind_eligable_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
                 
             #for site types GeneMod.InterIntra and GeneMod.InterInter
             else
-                proteins = get_bind_eligable_proteins_for_inter_site(cell.protein_store, gene_index, site, indiv.run.reg_bind_threshold)
+                proteins = get_bind_eligable_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
             end
             
             #run the binding
@@ -203,7 +203,7 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
 end
 
 function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Intra))
+    proteins = values(ProteinStore.get_by_target(ps, ProteinPropsMod.Intra))
 
     #for props:
     #- need to ensure that protein's type matches site type (Reg)
@@ -214,7 +214,7 @@ function get_bind_eligable_proteins_for_intra_site(ps::ProteinStore, gene_index:
 end
 
 function get_bind_eligable_proteins_for_inter_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    inter_cell_proteins = values(ProteinStore.get_by_target(ps, ProteinMod.Inter))
+    inter_cell_proteins = values(ProteinStore.get_by_target(ps, ProteinPropsMod.Inter))
     eligable_proteins = Array{Protein, 1}()
 
     for protein in inter_cell_proteins

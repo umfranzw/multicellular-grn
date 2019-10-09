@@ -1,13 +1,11 @@
 module GeneMod
 
 using RunMod
-using ProteinMod
+using ProteinPropsMod
 
 import RandUtilsMod
-import Random
 
-export Gene,
-    rand_init
+export Gene
 
 #accepts, regulates
 @enum RegSites::Int64 IntraIntra=1 IntraInter=2 InterIntra=3 InterInter=4
@@ -23,22 +21,22 @@ end
 
 function rand_site(
     run::Run;
-    type::Union{ProteinMod.ProteinType, Nothing}=nothing,
-    target::Union{ProteinMod.ProteinTarget, Nothing}=nothing,
-    reg_action::Union{ProteinMod.ProteinRegAction, Nothing}=nothing,
-    app_action::Union{ProteinMod.ProteinAppAction, Nothing}=nothing
+    type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
+    target::Union{ProteinPropsMod.ProteinTarget, Nothing}=nothing,
+    reg_action::Union{ProteinPropsMod.ProteinRegAction, Nothing}=nothing,
+    app_action::Union{ProteinPropsMod.ProteinAppAction, Nothing}=nothing
 )
     if type == nothing
-        type = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinType)
+        type = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinType)
     end
     if target == nothing
-        target = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinTarget)
+        target = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinTarget)
     end
     if reg_action == nothing
-        reg_action = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinRegAction)
+        reg_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinRegAction)
     end
     if app_action == nothing
-        app_action = RandUtilsMod.rand_enum_val(run, ProteinMod.ProteinAppAction)
+        app_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinAppAction)
     end
 
     ProteinProps(type, target, reg_action, app_action)
@@ -49,29 +47,29 @@ function rand_init(run::Run, genome_index::Int64)
     reg_sites = Array{ProteinProps, 1}()
     intra_intra = rand_site(
         run,
-        type=ProteinMod.Reg,
-        target=ProteinMod.Intra
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Intra
     )
     push!(reg_sites, intra_intra)
 
     intra_inter = rand_site(
         run,
-        type=ProteinMod.Reg,
-        target=ProteinMod.Intra
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Intra
     )
     push!(reg_sites, intra_inter)
 
     inter_intra = rand_site(
         run,
-        type=ProteinMod.Reg,
-        target=ProteinMod.Inter
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Inter
     )
     push!(reg_sites, inter_intra)
 
     inter_inter = rand_site(
         run,
-        type=ProteinMod.Reg,
-        target=ProteinMod.Inter
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Inter
     )
     push!(reg_sites, inter_inter)
 
@@ -79,13 +77,13 @@ function rand_init(run::Run, genome_index::Int64)
     prod_sites = Array{ProteinProps, 1}()
     intra = rand_site(
         run,
-        target=ProteinMod.Intra
+        target=ProteinPropsMod.Intra
     )
     push!(prod_sites, intra)
 
     inter = rand_site(
         run,
-        target=ProteinMod.Inter
+        target=ProteinPropsMod.Inter
     )
     push!(prod_sites, inter)
     

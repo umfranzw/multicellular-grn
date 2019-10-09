@@ -6,14 +6,14 @@ using DataStructures: Queue, enqueue!, dequeue!, isempty
 
 export traverse, find_empty, find
 
-function traverse(node::Cell, f::Function)
+function traverse(f::Function, node::Cell)
     f(node)
     for child in node.children
         traverse(child, f)
     end
 end
 
-function bf_traverse(node::Cell, f::Function)
+function bf_traverse(f::Function, node::Cell)
     q = Queue{Cell}()
     enqueue!(node)
 
