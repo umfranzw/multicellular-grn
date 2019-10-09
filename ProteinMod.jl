@@ -3,12 +3,16 @@ module ProteinMod
 import RandUtilsMod
 import Base.copy
 import Base.show
+import Formatting
+
 using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
 
 export Protein,
     copy
+
+const conc_fs = Formatting.FormatSpec("0.3f")
 
 mutable struct Protein
     run::Run
@@ -38,7 +42,16 @@ end
 function show(io::IO, protein::Protein, ilevel::Int64=0)
     iprintln(io, "Protein:", ilevel)
     iprint(io, "props: $(protein.props)", ilevel + 1)
-    iprintln(io, "concs: $(protein.concs)", ilevel + 1)
+    
+    iprint(io, "concs: [", ilevel + 1)
+    for i in 1:length(protein.concs)
+        Formatting.printfmt(io, conc_fs, protein.concs[i])
+        if i < length(protein.concs)
+            print(", ")
+        end
+    end
+    print(io, "]")
+    println("")
 end
 
 end

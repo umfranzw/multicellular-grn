@@ -28,30 +28,37 @@ end
 
 function show(io::IO, gs::GeneState, ilevel::Int64=0)
     iprintln(io, "GeneState", ilevel)
-    
+
+    iprintln(io, "genome_index: $(gs.gene.genome_index)", ilevel + 1)
     iprintln(io, "reg_site_bindings", ilevel + 1)
+    iprint(io, "", ilevel + 2)
     for site_type in instances(GeneMod.RegSites)
-        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        print(io, "$(string(site_type)): ")
         
         site = gs.reg_site_bindings[Int64(site_type)]
         if site == nothing
-            iprint(io, "(nothing)", 0)
+            print(io, "(nothing)  ")
         else
-            iprint(io, site.props, 0)
+            print(io, site.props)
+            print(io, "  ")
         end
     end
+    println(io, "")
 
     iprintln(io, "prod_site_bindings", ilevel + 1)
+    iprint(io, "", ilevel + 2)
     for site_type in instances(GeneMod.ProdSites)
-        iprint(io, "$(string(site_type)): ", ilevel + 2)
+        print(io, "$(string(site_type)): ")
         
         site = gs.prod_site_bindings[Int64(site_type)]
         if site == nothing
-            iprint(io, "(nothing)", 0)
+            print(io, "(nothing)  ")
         else
-            iprint(io, site.props, 0)
+            print(io, site.props)
+            print(io, "  ")
         end
     end
+    println(io, "")
 end
 
 function bind(gs::GeneState, protein::Protein, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
