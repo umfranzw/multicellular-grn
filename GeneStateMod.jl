@@ -72,18 +72,18 @@ end
 function modify_binding(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites}, val::Union{Protein, Nothing})
     index = Int64(site)
     if site isa GeneMod.RegSites
-        reg_site_bindings[index] = val
+        gs.reg_site_bindings[index] = val
     else
-        prod_site_bindings[index] = val
+        gs.prod_site_bindings[index] = val
     end
 end
 
 function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
     index = Int64(site)
     if site isa GeneMod.RegSites
-        return reg_site_bindings[index]
+        return gs.reg_site_bindings[index]
     else
-        return prod_site_bindings[index]
+        return gs.prod_site_bindings[index]
     end
 end
 

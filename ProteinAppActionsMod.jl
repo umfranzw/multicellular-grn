@@ -12,6 +12,9 @@ struct AppAction
     fcn::Function
 end
 
+function temp(cell::Cell, protein::Protein)
+end
+
 const app_actions = Array{AppAction, 1}([
     AppAction("a", temp),
     AppAction("b", temp),
@@ -26,9 +29,6 @@ end
 function run_app_action(cell::Cell, protein::Protein)
     action = app_actions[Int64(protein.props.app_action)]
     action.fcn(cell, protein)
-end
-
-function temp(cell::Cell, protein::Protein)
 end
 
 end

@@ -2,6 +2,7 @@ module RegSimMod
 
 using RunMod
 using IndividualMod
+using FitnessMod
 
 function reg_sim(run::Run, pop::Array{Individual, 1})
     for indiv in pop

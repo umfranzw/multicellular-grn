@@ -3,6 +3,7 @@ module EvAlgMod
 using RunMod
 using IndividualMod
 using MutateMod
+using RegSimMod
 
 function ev_alg(run::Run)
     pop = map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
@@ -17,4 +18,6 @@ function ev_alg(run::Run)
         #reset the individuals before the next iteration
         map(IndividualMod.reset, pop)
     end
+end
+
 end

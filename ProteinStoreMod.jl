@@ -86,11 +86,11 @@ function get_by_target(ps::ProteinStore, target::ProteinPropsMod.ProteinTarget)
 end
 
 function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
-    proteins = []
+    proteins = Array{Protein, 1}()
     for target in instances(ProteinPropsMod.ProteinTarget)
         for protein in values(ps.proteins[target])
             if protein.props.type == type
-                append!(proteins, protein)
+                push!(proteins, protein)
             end
         end
     end

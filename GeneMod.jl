@@ -9,6 +9,7 @@ import Base.show
 
 export Gene
 
+#note: these enum values will be used as indices into the corresponding arrays, so they should start at 1
 #accepts, regulates
 @enum RegSites::Int64 IntraIntra=1 IntraInter=2 InterIntra=3 InterInter=4
 #produces
