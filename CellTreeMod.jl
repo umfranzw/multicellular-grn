@@ -29,6 +29,29 @@ function traverse_bf(f::Function, node::Cell)
     end
 end
 
+function to_expr_str(root::Cell)
+    to_expr_str(root, "")
+end
+
+function to_expr_str(node::Cell, expr_str::String)
+    sym = node.sym
+    expr_str *= "$(sym.val)"
+    if sym.type == SymMod.FcnCall
+        expr_str *= "("
+    end
+    
+    for i in 1:length(node.children)
+        expr_str = to_expr_str(node.children[i], expr_str)
+        if sym.type == SymMod.FcnCall && i < length(node.children)
+            expr_str *= ", "
+        else
+            expr_str *= ")"
+        end
+    end
+
+    expr_str
+end
+
 function find_empty(node::Cell)
     results = Array{Cell, 1}()
 

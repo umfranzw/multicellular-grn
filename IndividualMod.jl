@@ -46,7 +46,7 @@ end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar))
+    root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar, 0))
     
     initial_proteins = Array{Protein, 1}()
     
@@ -78,7 +78,7 @@ end
 #we can run the reg sim again on the next ea_step)
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
-    indiv.root_cell = Cell(indiv.run, indiv.genes, nothing, Sym(:x, SymMod.DataVar))
+    indiv.root_cell = Cell(indiv.run, indiv.genes, nothing, Sym(:x, SymMod.DataVar, 0))
     #re-insert (copies of) the initial proteins
     for protein in indiv.initial_cell_proteins
         if !ProteinStoreMod.contains(indiv.root_cell.proteins, protein)

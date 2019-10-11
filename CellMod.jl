@@ -25,11 +25,21 @@ mutable struct Cell
         proteins = ProteinStore(run) #all proteins present in this cell
         children = Array{Cell, 1}()
 
-        new(run, gene_states, proteins, run.initial_cell_energy, nothing, children, sym)
+        cell = new(run, gene_states, proteins, run.initial_cell_energy, nothing, children, sym)
+        if parent != nothing
+            push!(parent.children, cell)
+        end
+        
+        cell
     end
 
     function Cell(run::Run, gene_states::Array{GeneState, 1}, parent::Union{Cell, Nothing}, sym::Union{Sym, Nothing})
-        new(run, gene_states, ProteinStore(), run.initial_cell_energy, Array{Cell, 1}(), parent, sym)
+        cell = new(run, gene_states, ProteinStore(), run.initial_cell_energy, Array{Cell, 1}(), parent, sym)
+        if parent != nothing
+            push!(parent.children, cell)
+        end
+        
+        cell
     end
 end
 

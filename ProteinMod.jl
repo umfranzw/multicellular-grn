@@ -47,11 +47,11 @@ function show(io::IO, protein::Protein, ilevel::Int64=0)
     for i in 1:length(protein.concs)
         Formatting.printfmt(io, conc_fs, protein.concs[i])
         if i < length(protein.concs)
-            print(", ")
+            print(io, ", ")
         end
     end
     print(io, "]")
-    println("")
+    println(io, "")
 end
 
 end

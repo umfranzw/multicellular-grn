@@ -9,6 +9,8 @@ function ev_alg(run::Run)
     pop = map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
 
     for ea_step in 1:run.ea_steps
+        @info "EA step" ea_step
+        
         #run the genetic operator
         MutateMod.mutate(run, pop)
         
