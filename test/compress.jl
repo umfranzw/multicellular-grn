@@ -6,11 +6,17 @@ using ProteinPropsMod
 using CellMod
 using Serialization
 using CodecZlib
+using Printf
 
 pop_size = 1000
 num_cells = 10
 num_proteins = 50
-    
+
+println("pop_size: $(pop_size)")
+println("num_cells: $(num_cells)")
+println("num_proteins: $(num_proteins)")
+println()
+
 run = RunMod.get_first_run()
 pop = Array{Individual, 1}()
 for i in 1:pop_size
@@ -32,23 +38,21 @@ end
 buf = IOBuffer()
 serialized_time = @elapsed Serialization.serialize(buf, pop)
 serialized_size = buf.size / 2^20
-println("Serialized size: $(serialized_size) MB")
-println("Serialization time: $(serialized_time)")
+@printf("Serialized size: %0.2f MB\n", serialized_size)
+@printf("Serialization time: %0.2f sec\n", serialized_time)
 
 compression_time = @elapsed compressed = transcode(GzipCompressor, buf.data)
 comp_size = length(compressed) / 2^20
-println("Compressed size: $(comp_size) MB")
-println("Compression time: $(compression_time)")
-println()
-
+@printf("Compressed size: %0.2f MB\n", comp_size)
+@printf("Compression time: %0.2f sec\n", compression_time)
 comp_factor = serialized_size / comp_size
-println("Compression factor: $(comp_factor)")
+@printf("Compression factor: %0.2f\n", comp_factor)
 println()
 
 decompression_time = @elapsed decompressed = transcode(GzipDecompressor, compressed)
-println("Decompression time: $(decompression_time)")
+@printf("Decompression time: %0.2f\n", decompression_time)
 
 new_buf = IOBuffer(decompressed; read=true, write=true)
 deserialization_time = @elapsed new_pop = Serialization.deserialize(new_buf)
-println("Deserialization time: $(deserialization_time)")
+@printf("Deserialization time: %0.2f\n", deserialization_time)
     
