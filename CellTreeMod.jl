@@ -10,7 +10,7 @@ export traverse, find_empty, find
 function traverse(f::Function, node::Cell)
     f(node)
     for child in node.children
-        traverse(child, f)
+        traverse(f, child)
     end
 end
 
