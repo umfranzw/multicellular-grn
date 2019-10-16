@@ -4,8 +4,10 @@ using RunMod
 using IndividualMod
 using MutateMod
 using RegSimMod
+using TrackerMod
 
 function ev_alg(run::Run)
+    TrackerMod.create_tracker(run)
     pop = map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
 
     for ea_step in 1:run.ea_steps

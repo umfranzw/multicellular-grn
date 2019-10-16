@@ -45,3 +45,8 @@ initial_cell_energy = 5.0
 ###########################
 fix_rng_seed = false
 rng_seed = 1207586232
+
+############
+# Tracking #
+############
+step_range = "1:2:10"

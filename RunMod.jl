@@ -44,6 +44,8 @@ struct Run
     fix_rng_seed::Bool
     rng_seed::Int64
 
+    step_range::StepRange{Int64, Int64}
+
     rng::Random.MersenneTwister
 
     function Run(run)
@@ -78,9 +80,22 @@ struct Run
             
             run["fix_rng_seed"],
             run["rng_seed"],
+
+            parse_step_range(run["step_range"]),
             
             Random.MersenneTwister()
         )
+    end
+end
+
+function parse_step_range(str::String)
+    #note: could just eval the string, but this allows us to give a more descriptive error message when something goes wrong
+    try
+        vals = map(val -> parse(Int64, val), split(str, ":"))
+        return StepRange(vals...)
+    catch
+        @error("Error parsing step_range param from run file.")
+        exit(1)
     end
 end
 
