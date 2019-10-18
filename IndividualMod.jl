@@ -95,11 +95,11 @@ function run_protein_app(indiv::Individual)
     CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.root_cell)
 
     for cell in bfs_list
-        run_protein_app_for_cell(cell)
+        run_protein_app_for_cell(cell, indiv.genes)
     end
 end
 
-function run_protein_app_for_cell(cell::Cell)
+function run_protein_app_for_cell(cell::Cell, genes::Array{Gene, 1})
     #get all proteins (from this cell) that are eligible for application
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
@@ -117,7 +117,7 @@ function run_protein_app_for_cell(cell::Cell)
     #apply the proteins
     for pair in pairs
         protein = pair[1]
-        ProteinAppActionsMod.run_app_action(cell, protein)
+        ProteinAppActionsMod.run_app_action(cell, genes, protein)
     end
 end
 

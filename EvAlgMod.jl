@@ -5,13 +5,14 @@ using IndividualMod
 using MutateMod
 using RegSimMod
 using TrackerMod
+using Printf
 
 function ev_alg(run::Run)
     TrackerMod.create_tracker(run)
     pop = map(i -> IndividualMod.rand_init(run), 1:run.pop_size)
 
     for ea_step in 1:run.ea_steps
-        @info "EA step" ea_step
+        @info @sprintf("EA step: %d", ea_step)
         
         #run the genetic operator
         MutateMod.mutate(run, pop)

@@ -49,6 +49,12 @@ struct Run
     rng::Random.MersenneTwister
 
     function Run(run)
+        if run["fix_rng_seed"]
+            rng = Random.MersenneTwister(run["rng_seed"])
+        else
+            rng = Random.MersenneTwister()
+        end
+        
         new(
             run["pop_size"],
             run["ea_steps"],
@@ -83,7 +89,7 @@ struct Run
 
             parse_step_range(run["step_range"]),
             
-            Random.MersenneTwister()
+            rng
         )
     end
 end
