@@ -18,10 +18,13 @@ function ev_alg(run::Run)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop)
+        TrackerMod.track_state(ea_step, pop)
 
         #reset the individuals before the next iteration
         map(IndividualMod.reset, pop)
     end
+
+    TrackerMod.destroy_tracker()
 end
 
 end
