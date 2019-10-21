@@ -88,15 +88,21 @@ function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.
 end
 
 function calc_rate_for_sites(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
+    producing = false
     weight = 0.0
     for site in reg_sites
         protein = get_binding_state(gs, site)
         if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
+            producing = true
             weight += protein.concs[gs.gene.genome_index]
         end
     end
-    
-    weight / length(reg_sites) #take the average (this will be a value in [0.0, 1.0])
+
+    if producing
+        return weight / length(reg_sites) #take the average (this will be a value in [0.0, 1.0])
+    else
+        return nothing
+    end
 end
 
 function get_prod_rates(gs::GeneState)

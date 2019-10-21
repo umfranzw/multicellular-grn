@@ -31,5 +31,3 @@ function decompress()
     buf = IOBuffer(decompressed; read=true)
     pop = Serialization.deserialize(buf)
 end
-
-    

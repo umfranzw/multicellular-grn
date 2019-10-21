@@ -13,6 +13,7 @@ using SymMod
 using DiffusionMod
 using CellTreeMod
 using MiscUtilsMod
+using Printf
 
 import Random
 import RandUtilsMod
@@ -171,9 +172,14 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
         rates = GeneStateMod.get_prod_rates(gene_state)
 
         #For intra prod site
-        run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
+        if rates.intra != nothing
+            run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
+        end
+        
         #For inter prod site
-        run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
+        if rates.inter != nothing
+            run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
+        end
     end
 end
 
@@ -186,6 +192,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     #if not, create and insert it
     if protein == nothing
         #note: protein will be initialized with conc values of zero
+        @info @sprintf("Produced protein: %s", props)
         protein = Protein(cell.run, props, false)
         ProteinStoreMod.insert(cell.proteins, protein, true)
     end
@@ -210,7 +217,7 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
             if site.target == ProteinPropsMod.Intra
                 eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
                 
-            #for site types GeneMod.InterIntra and GeneMod.InterInter
+                #for site types GeneMod.InterIntra and GeneMod.InterInter
             else
                 eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
             end
@@ -286,10 +293,15 @@ function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, Gen
 
         sel_protein = eligible_proteins[sel_index]
 
+        @info @sprintf("%s binding to site %s", sel_protein, site_type)
         GeneStateMod.bind(gs, sel_protein, site_type)
 
     else
-        GeneStateMod.unbind(gs, site_type)
+        state = GeneStateMod.get_binding_state(gs, site_type)
+        if state != nothing
+            @info @sprintf("Protein unbinding")
+            GeneStateMod.unbind(gs, site_type)
+        end
     end
 end
 

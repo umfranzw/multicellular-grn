@@ -9,6 +9,27 @@ using ProteinMod
 using ProteinPropsMod
 using DiffusionMod
 
+function test_binding()
+    run = RunMod.get_first_run()
+    indiv = IndividualMod.rand_init(run)
+    gene = indiv.genes[1]
+    
+    initial_proteins = ProteinStoreMod.get_all(indiv.root_cell.proteins)
+    for protein in initial_proteins
+        ProteinStoreMod.remove(indiv.root_cell.proteins, protein)
+    end
+
+    concs = Array{Float64, 1}()
+    for i in 1:run.num_genes
+        push!(concs, Float64(i == 1))
+    end
+
+    protein = Protein(run, copy(gene.reg_sites[1]), concs)
+    ProteinStoreMod.insert(indiv.root_cell.proteins, protein, false)
+
+    IndividualMod.run_bind(indiv)
+end
+
 function test_diffusion()
     run = RunMod.get_first_run()
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
@@ -90,3 +111,5 @@ function test_diffusion()
             intra_protein.concs[mid - 1] > 0 &&
             intra_protein.concs[mid + 1] > 0)
 end
+
+test_binding()

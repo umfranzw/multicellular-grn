@@ -48,15 +48,27 @@ function track_state(iter::Int64, pop::Array{Individual, 1})
         for indiv in pop
             if gen_best == nothing || indiv.fitness < gen_best.fitness
                 gen_best = indiv
-                @info "gen_best:"
-                @info @sprintf("fitness: %0.2f", gen_best.fitness)
-                @info CellTreeMod.to_expr_str(gen_best.root_cell)
+                info_str = join(
+                    (
+                        "gen_best:",
+                        @sprintf("fitness: %0.2f", gen_best.fitness),
+                        CellTreeMod.to_expr_str(gen_best.root_cell)
+                    ),
+                    "\n"
+                )
+                @info info_str
                 
                 if run_best == nothing || indiv.fitness < run_best.fitness
                     run_best = indiv
-                    @info "run_best updated:"
-                    @info @sprintf("fitness: %0.2f", run_best.fitness)
-                    @info CellTreeMod.to_expr_str(run_best.root_cell)
+                    info_str = join(
+                        (
+                            "run_best:",
+                            @sprintf("fitness: %0.2f", run_best.fitness),
+                            CellTreeMod.to_expr_str(run_best.root_cell)
+                        ),
+                        "\n"
+                    )
+                    @info info_str
                 end
             end
         end
