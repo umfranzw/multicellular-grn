@@ -99,12 +99,16 @@ function run_protein_app(indiv::Individual)
     bfs_list = Array{Cell, 1}()
     CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.cell_tree)
 
+    deleted_cells = Set{Cell}()
     for cell in bfs_list
-        run_protein_app_for_cell(cell, indiv.genes)
+        if cell ∉ deleted_cells
+            deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
+            deleted_cells = union(deleted_cells, deleted...)
+        end
     end
 end
 
-function run_protein_app_for_cell(cell::Cell, genes::Array{Gene, 1})
+function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
     #get all proteins (from this cell) that are eligible for application
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
@@ -120,10 +124,14 @@ function run_protein_app_for_cell(cell::Cell, genes::Array{Gene, 1})
     sort!(pairs; by=p -> p[2], rev=true)
 
     #apply the proteins
+    deleted_cells = Set{Cell}()
     for pair in pairs
         protein = pair[1]
-        ProteinAppActionsMod.run_app_action(cell, genes, protein)
+        deleted = ProteinAppActionsMod.run_app_action(tree, cell, genes, protein)
+        deleted_cells = union(deleted_cells, deleted...)
     end
+
+    deleted_cells
 end
 
 function run_bind(indiv::Individual)

@@ -44,35 +44,44 @@ function track_state(iter::Int64, pop::Array{Individual, 1})
     global gen_best
     global run_best
     
-    if iter in tracker.run.step_range
-        for indiv in pop
-            if gen_best == nothing || indiv.fitness < gen_best.fitness
-                gen_best = indiv
-                info_str = join(
-                    (
-                        "gen_best:",
-                        @sprintf("fitness: %0.2f", gen_best.fitness),
-                        CellTreeMod.to_expr_str(gen_best.cell_tree)
-                    ),
-                    "\n"
-                )
-                @info info_str
+    rb_updated = false
+    gb_updated = false
+    for indiv in pop
+        if gen_best == nothing || indiv.fitness < gen_best.fitness
+            gen_best = indiv
+            gb_updated = true
+            
+            if run_best == nothing || indiv.fitness < run_best.fitness
+                run_best = indiv
+                rb_updated = true
                 
-                if run_best == nothing || indiv.fitness < run_best.fitness
-                    run_best = indiv
-                    info_str = join(
-                        (
-                            "run_best:",
-                            @sprintf("fitness: %0.2f", run_best.fitness),
-                            CellTreeMod.to_expr_str(run_best.cell_tree)
-                        ),
-                        "\n"
-                    )
-                    @info info_str
-                end
             end
         end
+    end
 
+    if gb_updated
+        @info join(
+            (
+                "gen_best:",
+                @sprintf("fitness: %0.2f", gen_best.fitness),
+                CellTreeMod.to_expr_str(gen_best.cell_tree)
+            ),
+            "\n"
+        )
+        
+        if rb_updated
+            @info join(
+                (
+                    "run_best:",
+                    @sprintf("fitness: %0.2f", run_best.fitness),
+                    CellTreeMod.to_expr_str(run_best.cell_tree)
+                ),
+                "\n"
+            )
+        end
+    end
+
+    if iter in tracker.run.step_range
         entry = (iter, pop)
         buf = IOBuffer()
         Serialization.serialize(buf, entry)
