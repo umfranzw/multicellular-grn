@@ -52,7 +52,7 @@ function track_state(iter::Int64, pop::Array{Individual, 1})
                     (
                         "gen_best:",
                         @sprintf("fitness: %0.2f", gen_best.fitness),
-                        CellTreeMod.to_expr_str(gen_best.root_cell)
+                        CellTreeMod.to_expr_str(gen_best.cell_tree)
                     ),
                     "\n"
                 )
@@ -64,7 +64,7 @@ function track_state(iter::Int64, pop::Array{Individual, 1})
                         (
                             "run_best:",
                             @sprintf("fitness: %0.2f", run_best.fitness),
-                            CellTreeMod.to_expr_str(run_best.root_cell)
+                            CellTreeMod.to_expr_str(run_best.cell_tree)
                         ),
                         "\n"
                     )

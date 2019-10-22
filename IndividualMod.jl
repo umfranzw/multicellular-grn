@@ -25,7 +25,7 @@ export Individual,
 mutable struct Individual
     run::Run
     genes::Array{Gene, 1}
-    root_cell::Cell
+    cell_tree::CellTree
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
@@ -36,8 +36,8 @@ function show(io::IO, indiv::Individual, ilevel::Int64=0)
     iprintln(io, "Genes:", ilevel + 1)
     map(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
 
-    iprintln(io, "root_cell:", ilevel + 1)
-    iprintln(io, indiv.root_cell, ilevel + 2)
+    iprintln(io, "cell_tree:", ilevel + 1)
+    iprintln(io, indiv.cell_tree, ilevel + 2)
 
     iprintln(io, "initial_cell_proteins:", ilevel + 1)
     map(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
@@ -47,7 +47,8 @@ end
 
 function rand_init(run::Run)
     genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    root_cell = Cell(run, genes, nothing, Sym(:x, SymMod.DataVar, 0))
+    root_cell = Cell(run, genes, Sym(:x, SymMod.DataVar, 0))
+    cell_tree = CellTree(root_cell)
     
     initial_proteins = Array{Protein, 1}()
     
@@ -72,20 +73,23 @@ function rand_init(run::Run)
         end
     end
     
-    Individual(run, genes, root_cell, initial_proteins, 1.0)
+    Individual(run, genes, cell_tree, initial_proteins, 1.0)
 end
 
 #resets everything to the way it was before the reg sim (so
 #we can run the reg sim again on the next ea_step)
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
-    indiv.root_cell = Cell(indiv.run, indiv.genes, nothing, Sym(:x, SymMod.DataVar, 0))
+    root_cell = Cell(indiv.run, indiv.genes, Sym(:x, SymMod.DataVar, 0))
+    
     #re-insert (copies of) the initial proteins
     for protein in indiv.initial_cell_proteins
-        if !ProteinStoreMod.contains(indiv.root_cell.proteins, protein)
-            ProteinStoreMod.insert(indiv.root_cell.proteins, ProteinMod.copy(protein), false)
+        if !ProteinStoreMod.contains(root_cell.proteins, protein)
+            ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
         end
     end
+    
+    indiv.cell_tree = CellTree(root_cell)
 end
 
 function run_protein_app(indiv::Individual)
@@ -93,7 +97,7 @@ function run_protein_app(indiv::Individual)
     #build an array of the cells (in bfs order) so that as the tree is modified,
     #we don't get messed up by any modifications (eg. new nodes that get added)
     bfs_list = Array{Cell, 1}()
-    CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.root_cell)
+    CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.cell_tree)
 
     for cell in bfs_list
         run_protein_app_for_cell(cell, indiv.genes)
@@ -123,20 +127,20 @@ function run_protein_app_for_cell(cell::Cell, genes::Array{Gene, 1})
 end
 
 function run_bind(indiv::Individual)
-    CellTreeMod.traverse(cell -> run_bind_for_cell(indiv, cell), indiv.root_cell)
+    CellTreeMod.traverse(cell -> run_bind_for_cell(indiv, cell), indiv.cell_tree)
 end
 
 function run_produce(indiv::Individual)
-    CellTreeMod.traverse(cell -> run_produce_for_cell(indiv, cell), indiv.root_cell)
+    CellTreeMod.traverse(cell -> run_produce_for_cell(indiv, cell), indiv.cell_tree)
 end
 
 function run_diffuse(indiv::Individual)
-    DiffusionMod.diffuse_intra_cell_proteins(indiv.root_cell)
-    DiffusionMod.diffuse_inter_cell_proteins(indiv.root_cell)
+    DiffusionMod.diffuse_intra_cell_proteins(indiv.cell_tree)
+    DiffusionMod.diffuse_inter_cell_proteins(indiv.cell_tree)
 end
 
 function run_decay(indiv::Individual)
-    CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.root_cell)
+    CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.cell_tree)
 end
 
 function is_decayed(protein::Protein, thresh::Float64)
@@ -192,7 +196,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     #if not, create and insert it
     if protein == nothing
         #note: protein will be initialized with conc values of zero
-        @info @sprintf("Produced protein: %s", props)
+        #@info @sprintf("Produced protein: %s", props)
         protein = Protein(cell.run, props, false)
         ProteinStoreMod.insert(cell.proteins, protein, true)
     end
@@ -293,13 +297,13 @@ function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, Gen
 
         sel_protein = eligible_proteins[sel_index]
 
-        @info @sprintf("%s binding to site %s", sel_protein, site_type)
+        #@info @sprintf("%s binding to site %s", sel_protein, site_type)
         GeneStateMod.bind(gs, sel_protein, site_type)
 
     else
         state = GeneStateMod.get_binding_state(gs, site_type)
         if state != nothing
-            @info @sprintf("Protein unbinding")
+            #@info @sprintf("Protein unbinding")
             GeneStateMod.unbind(gs, site_type)
         end
     end

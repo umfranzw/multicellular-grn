@@ -5,7 +5,7 @@ using CellTreeMod
 
 function eval(indiv::Individual)
     expr_str = "f(x) = "
-    expr_str *= CellTreeMod.to_expr_str(indiv.root_cell)
+    expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 
     #f(x) = x * 2
     test_data = [(1, 2), (2, 4)]

@@ -5,6 +5,7 @@ using ProteinPropsMod
 using CellMod
 using SymMod
 using GeneMod
+using Printf
 
 export AppAction
 
@@ -13,17 +14,21 @@ struct AppAction
     fcn::Function
 end
 
+#returns any deleted cells
 function make_parent_op(cell::Cell, genes::Array{Gene, 1}, protein::Protein)
-    if cell.parent == nothing
-        parent = Cell(cell.run, genes, nothing, Sym(:*, SymMod.FcnCall, -1))
-        push!(parent.children, cell)
-    end
+    # if cell.parent == nothing
+    #     @info @sprintf("Applying protein: make_parent_op\n")
+    #     parent = Cell(cell.run, genes, Sym(:*, SymMod.FcnCall, -1))
+    #     CellMod.add_parent(cell, parent)
+    # end
 end
 
 function make_child_int(cell::Cell, genes::Array{Gene, 1}, protein::Protein)
-    if cell.sym.type == SymMod.FcnCall && (cell.sym.args_needed == -1 || length(cell.children) < cell.sym.args_needed)
-        child = Cell(cell.run, genes, cell, Sym(2, SymMod.IntConst, 0))
-    end
+    # if cell.sym.type == SymMod.FcnCall && (cell.sym.args_needed == -1 || length(cell.children) < cell.sym.args_needed)
+    #     @info @sprintf("Applying protein: make_child_int\n")
+    #     child = Cell(cell.run, genes, Sym(2, SymMod.IntConst, 0))
+    #     CellMod.add_child(cell, child)
+    # end
 end
 
 const app_actions = Array{AppAction, 1}([

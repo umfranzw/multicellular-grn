@@ -6,6 +6,7 @@ using ProteinMod
 using ProteinPropsMod
 using CellTreeMod
 using CellMod
+using Printf
 
 #note: row_offset must be in [-1, 0, 1]
 function get_2D(cell::Cell, protein::Protein, row_offset::Int64, col::Int64, width::Int64)
@@ -51,8 +52,8 @@ function get_1D(array::Array{Float64, 1}, col::Int64, len::Int64)
     end
 end
 
-function diffuse_intra_cell_proteins(root_cell::Cell)
-    CellTreeMod.traverse(cell -> diffuse_intra_cell_proteins_for_cell(cell), root_cell)
+function diffuse_intra_cell_proteins(cell_tree::CellTree)
+    CellTreeMod.traverse(cell -> diffuse_intra_cell_proteins_for_cell(cell), cell_tree)
 end
 
 function diffuse_intra_cell_proteins_for_cell(cell::Cell)
@@ -69,7 +70,7 @@ function diffuse_intra_cell_proteins_for_cell(cell::Cell)
     end
 end
 
-function get_all_inter_cell_props(root_cell::Cell)
+function get_all_inter_cell_props(cell_tree::CellTree)
     #go through the whole cell tree and build a set of all the inter-cell protein's props
     inter_cell_props = Set{ProteinProps}()
     CellTreeMod.traverse(
@@ -77,24 +78,27 @@ function get_all_inter_cell_props(root_cell::Cell)
             p -> push!(inter_cell_props, p.props),
             ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Inter)
         ),
-        root_cell
+        cell_tree
     )
     
     inter_cell_props
 end
 
-function diffuse_inter_cell_proteins(root_cell::Cell)
+function diffuse_inter_cell_proteins(cell_tree::CellTree)
     #build a set of all of the inter-cell proteins' props (across all cells in the tree)
-    inter_cell_props = get_all_inter_cell_props(root_cell)
+    inter_cell_props = get_all_inter_cell_props(cell_tree)
 
     #for each protein, traverse the tree and diffuse it in each cell - storing the new concs in a dictionary
     results = Dict{Cell, Dict{ProteinProps, Array{Float64, 1}}}()
+
     for props in inter_cell_props
-        CellTreeMod.traverse_bf(cell -> diffuse_inter_cell_proteins_for_props(cell, props, results), root_cell)
+        CellTreeMod.traverse_bf(cell -> diffuse_inter_cell_proteins_for_props(cell, props, results), cell_tree)
     end
 
     #update the current protein's concs in each cell in the tree
-    CellTreeMod.traverse(cell -> update_concs(cell, results), root_cell)
+    if length(results) > 0 #note: it's possible there may not be any inter-cellular proteins...
+        CellTreeMod.traverse(cell -> update_concs(cell, results), cell_tree)
+    end
 end
 
 function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, results::Dict{Cell, Dict{ProteinProps, Array{Float64, 1}}})
@@ -111,10 +115,10 @@ function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, 
     for j in 1:cols
         new_concs[j] = (1 - 4 * cell.run.diff_dt * cell.run.diff_alpha / cell.run.diff_h^2) * protein.concs[j] +
             cell.run.diff_dt * cell.run.diff_alpha * ((get_2D(cell, protein, 0, j - 1, cols) +
-                                             get_2D(cell, protein, -1, j, cols) +
-                                             get_2D(cell, protein, 1, j, cols) +
-                                             get_2D(cell, protein, 0, j + 1, cols)) /
-                                            cell.run.diff_h^2)
+                                                       get_2D(cell, protein, -1, j, cols) +
+                                                       get_2D(cell, protein, 1, j, cols) +
+                                                       get_2D(cell, protein, 0, j + 1, cols)) /
+                                                      cell.run.diff_h^2)
         #make sure the value stays in [0.0, 1.0]
         #note: not sure if this is guarenteed here because of the way we're diffusing between parents and children in the tree structure (it would be in a matrix)...
         new_concs[j] = clamp(new_concs[j], 0.0, 1.0)
@@ -123,7 +127,7 @@ function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, 
     #note: we cannot update protein.concs until the whole tree has been traversed (otherwise subsequent
     #calls may use the updated value instead of the original), since this cell may be referred to more than once.
     #So we save it in this dictionary instead.
-    if !(cell in keys(results))
+    if cell ∉ keys(results)
         results[cell] = Dict{ProteinProps, Array{Float64, 1}}()
     end
     results[cell][props] = new_concs

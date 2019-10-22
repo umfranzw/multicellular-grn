@@ -20,27 +20,36 @@ mutable struct Cell
     children::Array{Cell, 1}
     sym::Union{Sym, Nothing}
 
-    function Cell(run::Run, genes::Array{Gene, 1}, parent::Union{Cell, Nothing}, sym::Union{Sym, Nothing})
+    function Cell(run::Run, genes::Array{Gene, 1}, sym::Union{Sym, Nothing})
         gene_states = map(g -> GeneState(run, g), genes)
         proteins = ProteinStore(run) #all proteins present in this cell
         children = Array{Cell, 1}()
 
-        cell = new(run, gene_states, proteins, run.initial_cell_energy, parent, children, sym)
-        if parent != nothing
-            push!(parent.children, cell)
-        end
+        cell = new(run, gene_states, proteins, run.initial_cell_energy, nothing, children, sym)
         
         cell
     end
 
-    function Cell(run::Run, gene_states::Array{GeneState, 1}, parent::Union{Cell, Nothing}, sym::Union{Sym, Nothing})
-        cell = new(run, gene_states, ProteinStore(), run.initial_cell_energy, parent, Array{Cell, 1}(), sym)
-        if parent != nothing
-            push!(parent.children, cell)
-        end
+    function Cell(run::Run, gene_states::Array{GeneState, 1}, sym::Union{Sym, Nothing})
+        cell = new(run, gene_states, ProteinStore(), run.initial_cell_energy, nothing, Array{Cell, 1}(), sym)
         
         cell
     end
+end
+
+function add_parent(cur::Cell, parent::Cell)
+    if cur.parent == nothing
+        cur.parent = parent
+    else
+        #insert given parent into chain
+        parent.parent = cur.parent
+        cur.parent = parent
+    end
+    push!(parent.children, cur)
+end
+
+function add_child(cur::Cell, child::Cell)
+    push!(cur.children, child)
 end
 
 function show(io::IO, cell::Cell, ilevel::Int64=0)
