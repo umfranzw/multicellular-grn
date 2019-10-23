@@ -17,10 +17,10 @@ gen_best = nothing
 
 mutable struct Tracker
     run::Run
-    states::Array{Array{UInt8, 1}}
+    states::Dict{String, Array{Array{UInt8, 1}, 1}}
 
     function Tracker(run::Run)
-        new(run, Array{Tuple{Int64, Array{UInt8, 1}}, 1}())
+        new(run, Dict{String, Array{Array{UInt8, 1}, 1}}())
     end
 end
 
@@ -39,7 +39,7 @@ function destroy_tracker()
     tracker = nothing
 end
 
-function update_bests(ea_iter::Int64, pop::Array{Individual, 1})
+function update_bests(pop::Array{Individual, 1})
     global tracker
     global gen_best
     global run_best
@@ -82,15 +82,24 @@ function update_bests(ea_iter::Int64, pop::Array{Individual, 1})
     end
 end
 
-function save_pop_state(ea_iter::Int64, pop::Array{Individual, 1})
+function save_state(label::String, pop::Array{T, 1}) where T
+    global tracker
+    
+    buf = IOBuffer()
+    Serialization.serialize(buf, pop)
+    bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+    
+    if label ∉ keys(tracker.states)
+        tracker.states[label] = Array{Array{Uint8, 1}, 1}()
+    end
+    push!(tracker.states[label], bytes)
+end
+
+function save_state_on_step(ea_iter::Int64, label::String, pop::Array{T, 1}) where T
     global tracker
 
     if ea_iter in tracker.run.step_range
-        entry = (ea_iter, pop)
-        buf = IOBuffer()
-        Serialization.serialize(buf, entry)
-        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
-        push!(tracker.states, bytes)
+        save_state(label, pop)
     end
 end
 

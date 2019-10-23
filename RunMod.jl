@@ -42,7 +42,7 @@ struct Run
     initial_cell_energy::Float64
 
     fix_rng_seed::Bool
-    rng_seed::Int64
+    rng_seed::UInt64
 
     step_range::StepRange{Int64, Int64}
 

@@ -8,16 +8,24 @@ using TrackerMod
 using Printf
 import Random
 
+gen_ops = (MutateMod.mutate)
+
 function ev_alg(run::Run)
     TrackerMod.create_tracker(run)
     pop = create_pop(run)
+    TrackerMod.save_state("initial_pop", pop)
+    RegSimMod.reg_sim(run, pop)
+    TrackerMod.update_bests(pop)
 
-    for ea_step in 1:run.ea_steps
+    ea_step = 1
+    while !terminate(run) && ea_step < run.ea_steps
         @info @sprintf("EA step: %d", ea_step)
-        TrackerMod.save_pop_state(ea_step, pop)
         
-        #run the genetic operator
-        MutateMod.mutate(pop)
+        #run the genetic operators
+        for op in gen_ops
+            op(pop)
+        end
+        TrackerMod.save_state_on_step(ea_step, "after_gen_ops", pop)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop)
@@ -29,6 +37,10 @@ function ev_alg(run::Run)
     end
 
     TrackerMod.destroy_tracker()
+end
+
+function terminate(run::Run)
+    TrackerMod.run_best != nothing && TrackerMod.run_best.fitness <= run.fitness_term_threshold
 end
 
 function create_pop(run::Run)
