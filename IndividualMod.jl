@@ -23,8 +23,6 @@ import Random
 export Individual,
     rand_init, run_bind
 
-next_seed = 0
-
 mutable struct Individual
     config::Config
     genes::Array{Gene, 1}
@@ -48,10 +46,8 @@ function show(io::IO, indiv::Individual, ilevel::Int64=0)
     iprintln(io, "fitness: $(indiv.fitness)", ilevel + 1)
 end
 
-function rand_init(run::Run)
-    global next_seed
-    rng = Random.MersenneTwister(next_seed)
-    next_seed += 1
+function rand_init(run::Run, seed::UInt64)
+    rng = Random.MersenneTwister(seed)
     config = Config(run, rng)
     
     genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_genes)
