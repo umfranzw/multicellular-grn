@@ -3,8 +3,8 @@ module RunMod
 import TOML
 import Random
 
-export Run,
-    get_config_channel, get_first_run
+export Run, Config,
+    get_run_channel, get_first_run
 
 if gethostname() == "ibis"
     const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
@@ -46,15 +46,7 @@ struct Run
 
     step_range::StepRange{Int64, Int64}
 
-    rng::Random.MersenneTwister
-
     function Run(run)
-        if run["fix_rng_seed"]
-            rng = Random.MersenneTwister(run["rng_seed"])
-        else
-            rng = Random.MersenneTwister()
-        end
-        
         new(
             run["pop_size"],
             run["ea_steps"],
@@ -87,11 +79,14 @@ struct Run
             run["fix_rng_seed"],
             run["rng_seed"],
 
-            parse_step_range(run["step_range"]),
-            
-            rng
+            parse_step_range(run["step_range"])
         )
     end
+end
+
+mutable struct Config
+    run::Run
+    rng::Random.MersenneTwister
 end
 
 function parse_step_range(str::String)
@@ -113,13 +108,13 @@ function next_run(c::Channel)
 end
 
 
-function get_config_channel()
+function get_run_channel()
     Channel(next_run)
 end
 
 #useful for testing in the REPL
 function get_first_run()
-    channel = get_config_channel()
+    channel = get_run_channel()
     take!(channel)
 end
 

@@ -12,7 +12,7 @@ import Base.show
 export Cell
 
 mutable struct Cell
-    run::Run
+    config::Config
     gene_states::Array{GeneState, 1}
     proteins::ProteinStore
     energy::Float64
@@ -20,18 +20,18 @@ mutable struct Cell
     children::Array{Cell, 1}
     sym::Union{Sym, Nothing}
 
-    function Cell(run::Run, genes::Array{Gene, 1}, sym::Union{Sym, Nothing})
-        gene_states = map(g -> GeneState(run, g), genes)
-        proteins = ProteinStore(run) #all proteins present in this cell
+    function Cell(config::Config, genes::Array{Gene, 1}, sym::Union{Sym, Nothing})
+        gene_states = map(g -> GeneState(config, g), genes)
+        proteins = ProteinStore(config) #all proteins present in this cell
         children = Array{Cell, 1}()
 
-        cell = new(run, gene_states, proteins, run.initial_cell_energy, nothing, children, sym)
+        cell = new(config, gene_states, proteins, config.run.initial_cell_energy, nothing, children, sym)
         
         cell
     end
 
-    function Cell(run::Run, gene_states::Array{GeneState, 1}, sym::Union{Sym, Nothing})
-        cell = new(run, gene_states, ProteinStore(), run.initial_cell_energy, nothing, Array{Cell, 1}(), sym)
+    function Cell(config::Config, gene_states::Array{GeneState, 1}, sym::Union{Sym, Nothing})
+        cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), sym)
         
         cell
     end

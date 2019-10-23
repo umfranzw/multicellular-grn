@@ -7,11 +7,11 @@ using RunMod
 export ProteinStore
 
 mutable struct ProteinStore
-    run::Run
+    config::Config
     proteins::Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}
     owned_intercell_proteins::Set{ProteinProps} #set of inter-cell proteins that the cell that owns this store has produced
     
-    function ProteinStore(run::Run)
+    function ProteinStore(config::Config)
         proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
         owned_intercell_proteins = Set{ProteinProps}()
         
@@ -19,7 +19,7 @@ mutable struct ProteinStore
             proteins[target] = Dict{ProteinProps, Protein}()
         end
         
-        new(run, proteins, owned_intercell_proteins)
+        new(config, proteins, owned_intercell_proteins)
     end
 end
 

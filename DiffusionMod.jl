@@ -57,14 +57,14 @@ function diffuse_intra_cell_proteins(cell_tree::CellTree)
 end
 
 function diffuse_intra_cell_proteins_for_cell(cell::Cell)
-    cols = cell.run.num_genes
+    cols = cell.config.run.num_genes
     intra_cell_proteins = ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Intra)
     
     for protein in intra_cell_proteins
         new_concs = zeros(Float64, cols)
         
         for j in 1:cols
-            new_concs[j] = (1 - 4 * cell.run.diff_dt * cell.run.diff_alpha / cell.run.diff_h^2) * protein.concs[j] + cell.run.diff_dt * cell.run.diff_alpha * ((get_1D(protein.concs, j - 1, cols) + get_1D(protein.concs, j, cols) + get_1D(protein.concs, j, cols) + get_1D(protein.concs, j + 1, cols)) / cell.run.diff_h^2)
+            new_concs[j] = (1 - 4 * cell.config.run.diff_dt * cell.config.run.diff_alpha / cell.config.run.diff_h^2) * protein.concs[j] + cell.config.run.diff_dt * cell.config.run.diff_alpha * ((get_1D(protein.concs, j - 1, cols) + get_1D(protein.concs, j, cols) + get_1D(protein.concs, j, cols) + get_1D(protein.concs, j + 1, cols)) / cell.config.run.diff_h^2)
         end
         protein.concs = new_concs
     end
@@ -102,23 +102,23 @@ function diffuse_inter_cell_proteins(cell_tree::CellTree)
 end
 
 function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, results::Dict{Cell, Dict{ProteinProps, Array{Float64, 1}}})
-    cols = cell.run.num_genes
+    cols = cell.config.run.num_genes
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
     if protein == nothing
-        protein = Protein(cell.run, ProteinPropsMod.copy(props), false)
+        protein = Protein(cell.config, ProteinPropsMod.copy(props), false)
         ProteinStoreMod.insert(cell.proteins, protein, false)
     end
     
     new_concs = zeros(Float64, cols)
     for j in 1:cols
-        new_concs[j] = (1 - 4 * cell.run.diff_dt * cell.run.diff_alpha / cell.run.diff_h^2) * protein.concs[j] +
-            cell.run.diff_dt * cell.run.diff_alpha * ((get_2D(cell, protein, 0, j - 1, cols) +
+        new_concs[j] = (1 - 4 * cell.config.run.diff_dt * cell.config.run.diff_alpha / cell.config.run.diff_h^2) * protein.concs[j] +
+            cell.config.run.diff_dt * cell.config.run.diff_alpha * ((get_2D(cell, protein, 0, j - 1, cols) +
                                                        get_2D(cell, protein, -1, j, cols) +
                                                        get_2D(cell, protein, 1, j, cols) +
                                                        get_2D(cell, protein, 0, j + 1, cols)) /
-                                                      cell.run.diff_h^2)
+                                                      cell.config.run.diff_h^2)
         #make sure the value stays in [0.0, 1.0]
         #note: not sure if this is guarenteed here because of the way we're diffusing between parents and children in the tree structure (it would be in a matrix)...
         new_concs[j] = clamp(new_concs[j], 0.0, 1.0)

@@ -39,7 +39,7 @@ function destroy_tracker()
     tracker = nothing
 end
 
-function track_state(iter::Int64, pop::Array{Individual, 1})
+function update_bests(ea_iter::Int64, pop::Array{Individual, 1})
     global tracker
     global gen_best
     global run_best
@@ -80,9 +80,13 @@ function track_state(iter::Int64, pop::Array{Individual, 1})
             )
         end
     end
+end
 
-    if iter in tracker.run.step_range
-        entry = (iter, pop)
+function save_pop_state(ea_iter::Int64, pop::Array{Individual, 1})
+    global tracker
+
+    if ea_iter in tracker.run.step_range
+        entry = (ea_iter, pop)
         buf = IOBuffer()
         Serialization.serialize(buf, entry)
         bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)

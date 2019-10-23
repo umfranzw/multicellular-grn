@@ -15,28 +15,28 @@ export Protein,
 const conc_fs = Formatting.FormatSpec("0.3f")
 
 mutable struct Protein
-    run::Run
+    config::Config
     props::ProteinProps
     concs::Array{Float64, 1}
 
-    function Protein(run::Run, props::ProteinProps, rand_concs::Bool)
+    function Protein(config::Config, props::ProteinProps, rand_concs::Bool)
         if rand_concs
-            concs = RandUtilsMod.rand_floats(run, run.num_genes)
+            concs = RandUtilsMod.rand_floats(config, config.run.num_genes)
         else
-            concs = zeros(Float64, run.num_genes)
+            concs = zeros(Float64, config.run.num_genes)
         end
         
-        new(run, props, concs)
+        new(config, props, concs)
     end
 
-    function Protein(run::Run,  props::ProteinProps, concs::Array{Float64, 1})
-        new(run, props, concs)
+    function Protein(config::Config,  props::ProteinProps, concs::Array{Float64, 1})
+        new(config, props, concs)
     end
 end
 
 function copy(protein::Protein)
     #only the concs need to be deep copied
-    Protein(protein.run, protein.props, copy(protein.concs))
+    Protein(protein.config, protein.props, copy(protein.concs))
 end
 
 function show(io::IO, protein::Protein, ilevel::Int64=0)

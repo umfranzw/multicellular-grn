@@ -13,13 +13,15 @@ function ev_alg(run::Run)
 
     for ea_step in 1:run.ea_steps
         @info @sprintf("EA step: %d", ea_step)
+        TrackerMod.save_pop_state(ea_step, pop)
         
         #run the genetic operator
-        MutateMod.mutate(run, pop)
+        MutateMod.mutate(pop)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop)
-        TrackerMod.track_state(ea_step, pop)
+
+        TrackerMod.update_bests(ea_step, pop)
 
         #reset the individuals before the next iteration
         map(IndividualMod.reset, pop)

@@ -18,12 +18,15 @@ using Printf
 import Random
 import RandUtilsMod
 import Base.show
+import Random
 
 export Individual,
     rand_init, run_bind
 
+next_seed = 0
+
 mutable struct Individual
-    run::Run
+    config::Config
     genes::Array{Gene, 1}
     cell_tree::CellTree
     initial_cell_proteins::Array{Protein, 1}
@@ -46,21 +49,26 @@ function show(io::IO, indiv::Individual, ilevel::Int64=0)
 end
 
 function rand_init(run::Run)
-    genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-    root_cell = Cell(run, genes, Sym(:x, SymMod.DataVar, 0))
+    global next_seed
+    rng = Random.MersenneTwister(next_seed)
+    next_seed += 1
+    config = Config(run, rng)
+    
+    genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_genes)
+    root_cell = Cell(config, genes, Sym(:x, SymMod.DataVar, 0))
     cell_tree = CellTree(root_cell)
     
     initial_proteins = Array{Protein, 1}()
     
-    for i in 1:run.num_initial_proteins
+    for i in 1:config.run.num_initial_proteins
         #all initial proteins will be type Reg, and have target Intra
         #this forces inter-cell communication and application proteins to be produced by a network
         type = ProteinPropsMod.Reg
         target = ProteinPropsMod.Intra
-        reg_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinRegAction)
-        app_action = RandUtilsMod.rand_enum_val(run, ProteinPropsMod.ProteinAppAction)
+        reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
+        app_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinAppAction)
         
-        protein = Protein(run, ProteinProps(type, target, reg_action, app_action), true)
+        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true)
         push!(initial_proteins, protein)
 
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
@@ -72,15 +80,17 @@ function rand_init(run::Run)
             ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
         end
     end
+
     
-    Individual(run, genes, cell_tree, initial_proteins, 1.0)
+    
+    Individual(config, genes, cell_tree, initial_proteins, 1.0)
 end
 
 #resets everything to the way it was before the reg sim (so
 #we can run the reg sim again on the next ea_step)
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
-    root_cell = Cell(indiv.run, indiv.genes, Sym(:x, SymMod.DataVar, 0))
+    root_cell = Cell(indiv.config, indiv.genes, Sym(:x, SymMod.DataVar, 0))
     
     #re-insert (copies of) the initial proteins
     for protein in indiv.initial_cell_proteins
@@ -116,7 +126,7 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     pairs = Array{Tuple{Protein, Float64}, 1}()
     for protein in app_proteins
         conc_sum = sum(protein.concs)
-        if conc_sum >= cell.run.protein_app_threshold
+        if conc_sum >= cell.config.run.protein_app_threshold
             push!(pairs, (protein, conc_sum))
         end
     end
@@ -165,10 +175,10 @@ function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         #decrease the concentration using decay_rate
-        protein.concs = max.(protein.concs - protein.concs * cell.run.decay_rate, zeros(length(protein.concs)))
+        protein.concs = max.(protein.concs - protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
-        if is_decayed(protein, cell.run.protein_deletion_threshold)
+        if is_decayed(protein, cell.config.run.protein_deletion_threshold)
             #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
             #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
             #states to remove bindings
@@ -178,7 +188,7 @@ function run_decay_for_cell(cell::Cell)
 end
 
 function run_produce_for_cell(indiv::Individual, cell::Cell)
-    for gene_index in 1:indiv.run.num_genes
+    for gene_index in 1:indiv.config.run.num_genes
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
         rates = GeneStateMod.get_prod_rates(gene_state)
@@ -205,7 +215,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     if protein == nothing
         #note: protein will be initialized with conc values of zero
         #@info @sprintf("Produced protein: %s", props)
-        protein = Protein(cell.run, props, false)
+        protein = Protein(cell.config, props, false)
         ProteinStoreMod.insert(cell.proteins, protein, true)
     end
     
@@ -216,7 +226,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
 end
 
 function run_bind_for_cell(indiv::Individual, cell::Cell)
-    for gene_index in 1:indiv.run.num_genes
+    for gene_index in 1:indiv.config.run.num_genes
         gene = indiv.genes[gene_index]
         
         #run binding for each of the regulatory sites
@@ -227,11 +237,11 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
             #Get eligible_proteins proteins
             #for site types GeneMod.IntraIntra and GeneMod.IntraInter
             if site.target == ProteinPropsMod.Intra
-                eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
+                eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
                 
                 #for site types GeneMod.InterIntra and GeneMod.InterInter
             else
-                eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.run.reg_bind_threshold)
+                eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
             end
             
             #run the binding
@@ -298,7 +308,7 @@ function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, Gen
         wheel[end] = 1.0 #just in case we've got some floating point error
 
         sel_index = 1
-        r = RandUtilsMod.rand_float(gs.run) #random value in [0, 1)
+        r = RandUtilsMod.rand_float(gs.config) #random value in [0, 1)
         while r >= wheel[sel_index]
             sel_index += 1
         end

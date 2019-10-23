@@ -11,14 +11,14 @@ import Base.show
 export GeneState
 
 mutable struct GeneState
-    run::Run
+    config::Config
     gene::Gene
     reg_site_bindings::Array{Union{Protein, Nothing}, 1}
     prod_site_bindings::Array{Union{Protein, Nothing}, 1}
 
-    function GeneState(run::Run, gene::Gene)
+    function GeneState(config::Config, gene::Gene)
         new(
-            run,
+            config,
             gene,
             repeat([nothing], length(instances(GeneMod.RegSites))),
             repeat([nothing], length(instances(GeneMod.ProdSites)))

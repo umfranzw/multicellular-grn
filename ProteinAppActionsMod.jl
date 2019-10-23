@@ -19,7 +19,7 @@ end
 function make_parent_op(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
     if cell.parent == nothing
         #@info @sprintf("Applying protein: make_parent_op\n")
-        parent = Cell(cell.run, genes, Sym(:*, SymMod.FcnCall, -1))
+        parent = Cell(cell.config, genes, Sym(:*, SymMod.FcnCall, -1))
         CellMod.add_parent(cell, parent)
         tree.root = parent
     end
@@ -30,7 +30,7 @@ end
 function make_child_int(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
     if cell.sym.type == SymMod.FcnCall && (cell.sym.args_needed == -1 || length(cell.children) < cell.sym.args_needed)
         #@info @sprintf("Applying protein: make_child_int\n")
-        child = Cell(cell.run, genes, Sym(2, SymMod.IntConst, 0))
+        child = Cell(cell.config, genes, Sym(2, SymMod.IntConst, 0))
         CellMod.add_child(cell, child)
     end
 
