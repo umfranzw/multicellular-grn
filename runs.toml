@@ -50,3 +50,5 @@ rng_seed = 123
 # Tracking #
 ############
 step_range = "1:2:10"
+#filename (path is specified in RunMod.jl)
+data_output_file = "data"

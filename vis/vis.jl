@@ -1,14 +1,20 @@
 using Gtk
 using Gadfly
 using Printf
+using RunMod
+using Serialization
 
-struct ControlState
+mutable struct ControlState
     indiv::Int64
     ea_step::Int64
     reg_step::Int64
 end
 
 function main()
+    println("Reading data...")
+    run, data = read_data()
+    println("Done.")
+    
     win = GtkWindow("Vis", 400, 400)
     vbox = GtkBox(:v)
     push!(win, vbox)
@@ -19,13 +25,24 @@ function main()
     push!(paned, build_regsim_pane())
     push!(paned, build_tree_pane())
 
-    push!(vbox, build_control_area())
+    push!(vbox, build_control_area(run))
 
     condition = Condition()
     endit(w) = notify(condition)
     signal_connect(endit, win, :destroy)
     showall(win)
     wait(condition)
+end
+
+#default to reading the first run for now...
+#later it might be useful to give the user a way to choose
+function read_data()
+    run = RunMod.get_first_run()
+    in_stream = open(join((RunMod.DATA_PATH, run.data_output_file), "/"), "r")
+    data = Serialization.deserialize(in_stream)
+    close(in_stream)
+
+    (run, data)
 end
 
 function build_regsim_pane()
@@ -69,23 +86,25 @@ function adjust_val(entry::GtkEntry, step_range::StepRange{Int64, Int64}, dir::I
     cur = clamp(cur + dir * step_range.step, step_range.start, step_range.stop)
     set_gtk_property!(entry, :text, string(cur))
 
+    set_field!(cs, entry_sym, cur)
     
-    
-    update_graph()
+    update_graph(cs)
 end
 
-function build_control_area()
+function build_control_area(run::Run)
     cs = ControlState(1, 1, 1)
     
     vbox = GtkBox(:v)
-    push!(vbox, make_control("Individual: ", 1:2:10, cs))
-    push!(vbox, make_control("EA Step: ", 1:2:10, cs))
-    push!(vbox, make_control("Reg Step: ", 1:2:10, cs))
+    indiv_range = 1:1:run.pop_size
+    reg_range = 1:1:run.reg_steps
+    push!(vbox, make_control("Individual: ", indiv_range, cs, :indiv))
+    push!(vbox, make_control("EA Step: ", run.step_range, cs, :ea_step))
+    push!(vbox, make_control("Reg Step: ", reg_range, cs, :reg_step))
 
     vbox
 end
 
-function update_graph()
+function update_graph(cs::ControlState)
 end
 
 main()

@@ -8,8 +8,12 @@ export Run, Config,
 
 if gethostname() == "ibis"
     const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
+    #no trailing "/"
+    const DATA_PATH = "/home/umfranzw/multicellular-grn/data"
 else
     const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
+    #no trailing "/"
+    const DATA_PATH = "/home/wayne/multicellular-grn/data"
 end
 
 struct Run
@@ -45,6 +49,7 @@ struct Run
     rng_seed::UInt64
 
     step_range::StepRange{Int64, Int64}
+    data_output_file::String
 
     function Run(run)
         new(
@@ -79,7 +84,8 @@ struct Run
             run["fix_rng_seed"],
             run["rng_seed"],
 
-            parse_step_range(run["step_range"])
+            parse_step_range(run["step_range"]),
+            run["data_output_file"]
         )
     end
 end
