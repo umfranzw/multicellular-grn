@@ -3,6 +3,8 @@ using Gadfly
 using Printf
 using RunMod
 using Serialization
+using IndividualMod
+using CellTreeMod
 
 mutable struct ControlState
     indiv::Int64
@@ -37,12 +39,30 @@ end
 #default to reading the first run for now...
 #later it might be useful to give the user a way to choose
 function read_data()
+    #get the run so we can determine the data file path
     run = RunMod.get_first_run()
-    in_stream = open(join((RunMod.DATA_PATH, run.data_output_file), "/"), "r")
-    data = Serialization.deserialize(in_stream)
+    file_path = join((RunMod.DATA_PATH, run.data_output_file), "/")
+
+    #read in the data and deserialize it. This gives a 2-tuple of the form (ea_states, reg_states), where
+    #each item is a dictionary
+    in_stream = open(file_path, "r")
+    ea_states, reg_states = Serialization.deserialize(in_stream)
     close(in_stream)
 
-    (run, data)
+    #decompress everything
+    ea_pops = Dict{String, Array{Individual}}()
+    for (key, val) in ea_states
+        #key is a string, and val is an array of arrays of UInt8 (bytes)
+        decomp = transcode(GzipDecompressor, val)
+        buf = IOBuffer(decomp; read=true)
+        serialized_pops = Serialization.deserialize(buf)
+        if key ∉ keys(ea_pops)
+            ea_pops[key] = Array{Array{Individual, 1}, 1}()
+        end
+        #push!(ea_pops[key], 
+    
+
+    (run, ea_states, reg_states)
 end
 
 function build_regsim_pane()
