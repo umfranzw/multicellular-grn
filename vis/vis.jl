@@ -2,6 +2,12 @@ using Gtk
 using Gadfly
 using Printf
 
+struct ControlState
+    indiv::Int64
+    ea_step::Int64
+    reg_step::Int64
+end
+
 function main()
     win = GtkWindow("Vis", 400, 400)
     vbox = GtkBox(:v)
@@ -36,7 +42,7 @@ function build_tree_pane()
     pane
 end
 
-function make_control(title::String, step_range::StepRange{Int64, Int64})
+function make_control(title::String, step_range::StepRange{Int64, Int64}, cs::ControlState, entry_sym::Symbol)
     grid = GtkGrid()
     
     label = GtkLabel(title)
@@ -52,24 +58,29 @@ function make_control(title::String, step_range::StepRange{Int64, Int64})
     grid[3, 1] = up_button
     grid[4, 1] = down_button
 
-    signal_connect(button -> adjust_val(entry, step_range, 1), up_button, :clicked)
-    signal_connect(button -> adjust_val(entry, step_range, -1), down_button, :clicked)
+    signal_connect(button -> adjust_val(entry, step_range, 1, cs, entry_sym), up_button, :clicked)
+    signal_connect(button -> adjust_val(entry, step_range, -1, cs, entry_sym), down_button, :clicked)
 
     grid
 end
 
-function adjust_val(entry::GtkEntry, step_range::StepRange{Int64, Int64}, dir::Int64)
+function adjust_val(entry::GtkEntry, step_range::StepRange{Int64, Int64}, dir::Int64, cs::ControlState, entry_sym::Symbol)
     cur = parse(Int64, get_gtk_property(entry, :text, String))
     cur = clamp(cur + dir * step_range.step, step_range.start, step_range.stop)
     set_gtk_property!(entry, :text, string(cur))
+
+    
+    
     update_graph()
 end
 
 function build_control_area()
+    cs = ControlState(1, 1, 1)
+    
     vbox = GtkBox(:v)
-    push!(vbox, make_control("Individual: ", 1:2:10))
-    push!(vbox, make_control("EA Step: ", 1:2:10))
-    push!(vbox, make_control("Reg Step: ", 1:2:10))
+    push!(vbox, make_control("Individual: ", 1:2:10, cs))
+    push!(vbox, make_control("EA Step: ", 1:2:10, cs))
+    push!(vbox, make_control("Reg Step: ", 1:2:10, cs))
 
     vbox
 end
