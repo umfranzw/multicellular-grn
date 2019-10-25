@@ -13,7 +13,7 @@ if gethostname() == "ibis"
 else
     const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
     #no trailing "/"
-    const DATA_PATH = "/home/wayne/multicellular-grn/data"
+    const DATA_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/data"
 end
 
 struct Run

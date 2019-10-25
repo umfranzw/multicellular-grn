@@ -5,6 +5,7 @@ using RunMod
 using Serialization
 using IndividualMod
 using CellTreeMod
+import CodecZlib
 
 mutable struct ControlState
     indiv::Int64
@@ -14,7 +15,7 @@ end
 
 function main()
     println("Reading data...")
-    run, data = read_data()
+    run, ea_pops, reg_trees = read_data()
     println("Done.")
     
     win = GtkWindow("Vis", 400, 400)
@@ -50,19 +51,38 @@ function read_data()
     close(in_stream)
 
     #decompress everything
-    ea_pops = Dict{String, Array{Individual}}()
-    for (key, val) in ea_states
-        #key is a string, and val is an array of arrays of UInt8 (bytes)
-        decomp = transcode(GzipDecompressor, val)
-        buf = IOBuffer(decomp; read=true)
-        serialized_pops = Serialization.deserialize(buf)
-        if key ∉ keys(ea_pops)
-            ea_pops[key] = Array{Array{Individual, 1}, 1}()
+    #ea_states:
+    ea_pops = Dict{String, Array{Array{Individual, 1}, 1}}()
+    for (label, pops) in ea_states
+        #label is a string, and pops is an array of arrays of UInt8 (bytes)
+        for comp_pop in pops
+            decomp_pop = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_pop)
+            buf = IOBuffer(decomp_pop; read=true)
+            deserial_pop = Serialization.deserialize(buf)
+            
+            if label ∉ keys(ea_pops)
+                ea_pops[label] = Array{Array{Individual, 1}, 1}()
+            end
+            push!(ea_pops[label], deserial_pop)
         end
-        #push!(ea_pops[key], 
-    
+    end
 
-    (run, ea_states, reg_states)
+    #reg_states:
+    reg_trees = Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}()
+    for (label, trees) in reg_states
+        for comp_trees in trees
+            decomp = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_trees)
+            buf = IOBuffer(decomp; read=true)
+            deserial = Serialization.deserialize(buf)
+
+            if label ∉ keys(reg_trees)
+                reg_trees[label] = Array{Array{Array{CellTree, 1}, 1}, 1}()
+            end
+            push!(reg_trees[label], deserial)
+        end
+    end
+
+    (run, ea_pops, reg_trees)
 end
 
 function build_regsim_pane()
