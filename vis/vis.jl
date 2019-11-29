@@ -2,12 +2,8 @@ using Gtk
 using Gadfly
 using Printf
 using RunMod
-
-mutable struct ControlState
-    indiv::Int64
-    ea_step::Int64
-    reg_step::Int64
-end
+using DataMod
+using RegSimTabMod
 
 function main()
     run, ea_pops, reg_trees = DataMod.read_data()
@@ -16,13 +12,8 @@ function main()
     vbox = GtkBox(:v)
     push!(win, vbox)
     
-    paned = GtkPaned(:h)
-    push!(vbox, paned)
-
-    push!(paned, build_regsim_pane())
-    push!(paned, build_tree_pane())
-
-    push!(vbox, build_control_area(run))
+    reg_sim_tab = RegSimTabMod.build(run)
+    push!(vbox, reg_sim_tab)
 
     condition = Condition()
     endit(w) = notify(condition)

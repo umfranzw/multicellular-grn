@@ -3,16 +3,39 @@ module RegSimTabMod
 using Gtk
 using RunMod
 
-function build(run::Run)
-    pane = GtkBox(:v)
-    push!(pane, GtkLabel("Reg Sim"))
+mutable struct ControlState
+    indiv::Int64
+    ea_step::Int64
+    reg_step::Int64
+end
 
-    pane
+function build(run::Run)
+    vbox = GtkBox(:v)
+    
+    paned = GtkPaned(:h)
+    genome_pane = build_genome_pane()
+    tree_pane = build_tree_pane()
+    push!(paned, genome_pane)
+    push!(paned, tree_pane)
+
+    controls = build_control_area(run)
+
+    push!(vbox, paned)
+    push!(vbox, controls)
+
+    vbox
 end
 
 function build_tree_pane()
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Tree"))
+
+    pane
+end
+
+function build_genome_pane()
+    pane = GtkBox(:v)
+    push!(pane, GtkLabel("Genome"))
 
     pane
 end
