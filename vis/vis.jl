@@ -5,8 +5,18 @@ using RunMod
 using DataMod
 using RegSimTabMod
 
+function get_args()
+    if length(ARGS) != 1
+        println("Usage: julia vis.jl <datafile>")
+        exit(1)
+    end
+
+    ARGS[1]
+end
+
 function main()
-    run, ea_pops, reg_trees = DataMod.read_data(ARGS[1])
+    datafile = get_args()
+    run, ea_pops, reg_trees = DataMod.read_data(datafile)
     
     win = GtkWindow("Vis", 400, 400)
     vbox = GtkBox(:v)

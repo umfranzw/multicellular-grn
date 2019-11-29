@@ -3,6 +3,7 @@ module RegSimTabMod
 using Gtk
 using RunMod
 import Gadfly
+import Compose
 
 mutable struct ControlState
     indiv::Int64
@@ -39,8 +40,14 @@ function build_genome_pane()
     push!(pane, GtkLabel("Genome"))
 
     plot = Gadfly.plot(x=rand(10), y=rand(10))
-    buf = IOBuffer()
-    Gadfly.draw(Gadfly.PNG(buf, 4 * Gadfly.inch, 3 * Gadfly.inch), plot)
+    graphic = Gadfly.render(plot)
+    canvas = GtkCanvas(400, 300)
+    push!(pane, canvas)
+    show(canvas)
+
+    Gtk.draw(canvas) do widget
+        Compose.draw(Compose.CAIROSURFACE(canvas.back), graphic)
+    end
     
     pane
 end
