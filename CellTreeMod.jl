@@ -47,6 +47,42 @@ function traverse_bf(f::Function, tree::CellTree)
     end
 end
 
+function get_bf_node(tree::CellTree, index::Int64)
+    if tree.root == nothing
+        return nothing
+    else
+        return get_bf_node(tree.root, index)
+    end
+end
+
+function get_bf_node(node::Cell, dist::Int64)
+    if dist == 0
+        return node
+    else
+        q = Queue{Cell}()
+        for child in cell.children
+            enqueue!(q, child)
+        end
+        
+        while !isempty(q) and dist > 0
+            cell = dequeue!(q)
+            dist -= 1
+
+            if dist > 0
+                for child in cell.children
+                    enqueue!(q, child)
+                end
+            end
+        end
+
+        if dist == 0
+            return cell
+        else
+            return nothing
+        end
+    end
+end
+
 function size(tree::CellTree)
     count = 0
     if tree.root != nothing

@@ -22,7 +22,7 @@ function main()
     vbox = GtkBox(:v)
     push!(win, vbox)
     
-    reg_sim_tab = RegSimTabMod.build(run)
+    reg_sim_tab = RegSimTabMod.build(run, ea_pops, reg_trees)
     push!(vbox, reg_sim_tab)
 
     condition = Condition()
