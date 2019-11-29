@@ -6,7 +6,7 @@ using DataMod
 using RegSimTabMod
 
 function main()
-    run, ea_pops, reg_trees = DataMod.read_data()
+    run, ea_pops, reg_trees = DataMod.read_data(ARGS[1])
     
     win = GtkWindow("Vis", 400, 400)
     vbox = GtkBox(:v)

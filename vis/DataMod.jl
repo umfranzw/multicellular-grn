@@ -8,20 +8,18 @@ import CodecZlib
 
 #default to reading the first run for now...
 #later it might be useful to give the user a way to choose
-function read_data()
+function read_data(filename::String)
     println("Reading data...")
     
-    #get the run so we can determine the data file path
-    run = RunMod.get_first_run()
-    file_path = join((RunMod.DATA_PATH, run.data_output_file), "/")
+    file_path = join((RunMod.DATA_PATH, filename), "/")
 
-    #read in the data and deserialize it. This gives a 2-tuple of the form (ea_states, reg_states), where
-    #each item is a dictionary
+    #read in the data and deserialize it. This gives a 3-tuple of the form (run, ea_states, reg_states), where
+    #to first item is a Run struct and the following two are dictionaries
     in_stream = open(file_path, "r")
-    ea_states, reg_states = Serialization.deserialize(in_stream)
+    run, ea_states, reg_states = Serialization.deserialize(in_stream)
     close(in_stream)
 
-    #decompress everything
+    #decompress and deserialize the state dictionaries
     #ea_states:
     ea_pops = Dict{String, Array{Array{Individual, 1}, 1}}()
     for (label, pops) in ea_states

@@ -3,7 +3,7 @@
 # GA #
 ######
 pop_size = 10
-ea_steps = 2
+ea_steps = 5
 mut_prob = 0.4
 num_genes = 4
 #GA will terminate when best fitness drops below this value
@@ -49,6 +49,6 @@ rng_seed = 123
 ############
 # Tracking #
 ############
-step_range = "1:2:10"
+step_range = "1:2:5"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

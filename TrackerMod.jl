@@ -125,7 +125,9 @@ function write_data(path::String)
     #note: it's really not worth compressing the enclosing dictionaries here - since the data inside is already compressed,
     #it's small enough...
     out_stream = open(path, "w")
-    Serialization.serialize(out_stream, (tracker.ea_states, tracker.reg_states))
+
+    #save the run (no need to compress), ea state (compressed), and reg state (compressed)
+    Serialization.serialize(out_stream, (tracker.run, tracker.ea_states, tracker.reg_states))
     close(out_stream)
 end
 

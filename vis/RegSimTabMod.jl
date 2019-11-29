@@ -2,6 +2,7 @@ module RegSimTabMod
 
 using Gtk
 using RunMod
+import Gadfly
 
 mutable struct ControlState
     indiv::Int64
@@ -37,6 +38,10 @@ function build_genome_pane()
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Genome"))
 
+    plot = Gadfly.plot(x=rand(10), y=rand(10))
+    buf = IOBuffer()
+    Gadfly.draw(Gadfly.PNG(buf, 4 * Gadfly.inch, 3 * Gadfly.inch), plot)
+    
     pane
 end
 
