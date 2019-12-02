@@ -60,23 +60,23 @@ function get_bf_node(node::Cell, dist::Int64)
         return node
     else
         q = Queue{Cell}()
-        for child in cell.children
+        for child in node.children
             enqueue!(q, child)
         end
         
-        while !isempty(q) and dist > 0
-            cell = dequeue!(q)
+        while !isempty(q) && dist > 0
+            node = dequeue!(q)
             dist -= 1
 
             if dist > 0
-                for child in cell.children
+                for child in node.children
                     enqueue!(q, child)
                 end
             end
         end
 
         if dist == 0
-            return cell
+            return node
         else
             return nothing
         end

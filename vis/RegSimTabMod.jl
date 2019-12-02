@@ -8,6 +8,7 @@ import Compose
 using IndividualMod
 using CellTreeMod
 using ProteinStoreMod
+using ProteinPropsMod
 
 mutable struct ControlState
     indiv::Int64
@@ -73,37 +74,32 @@ function build_genome_plot(
 )
     Gadfly.set_default_plot_size(400, 300)
 
-    gene_theme = Gadfly.Theme(
-        default_color=Gadfly.RGB(0.0, 1.0, 0.0)
-    )
-    gene_dframe = DataFrame(
-        x1=[i + 0.01 for i in 0:run.num_genes - 1],
-        x2=[i - 0.01 for i in 1:run.num_genes],
-        y1=[-0.25 for i in 1:run.num_genes],
-        y2=[0 for i in 1:run.num_genes],
-    )
-
     #reg_trees: ea_step, indiv, reg_step
-    tree = reg_trees[cs.ea_step][cs.indiv, cs.reg_step]
+    tree = reg_trees["after_reg_step"][cs.ea_step][cs.indiv][cs.reg_step]
     cell = CellTreeMod.get_bf_node(tree, cs.cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
-    cell_dframe = DataFrame()
-    for protein in proteins
+
+    labels = Array{String, 1}()
+    concs = Array{Float64, 1}()
+    for i in length(proteins)
         buf = IOBuffer()
-        ProteinPropsMod.show(buf, protein.props)
+        ProteinPropsMod.show(buf, proteins[i].props)
         seek(buf, 0)
-        col_name = read(buf, String) #protein sequence string
-        cell_dframe.#!!!!!
+        label = read(buf, String) #protein sequence string
+        append!(labels, repeat([label], run.num_genes))
+        append!(concs, proteins[i].concs)
     end
+    cell_dframe = DataFrame(label=labels, concs=concs)
 
     plot = Gadfly.plot(
-        Gadfly.Scale.x_continuous(minvalue=0, maxvalue=run.num_genes), Gadfly.Scale.y_continuous(minvalue=-0.25, maxvalue=1.0),
-        #genes (boxes)
+        Gadfly.Scale.x_continuous(minvalue=0, maxvalue=run.num_genes), Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
+        #proteins concs (lines)
         Gadfly.layer(
-            gene_dframe,
-            xmin=:x1, ymin=:y1, xmax=:x2, ymax=:y2,
-            Gadfly.Geom.rect,
-            gene_theme)
+            cell_dframe,
+            y=:concs,
+            color=:label,
+            Gadfly.Geom.bar(position=:stack)
+        )
     )
 
     plot
@@ -147,7 +143,7 @@ function build_control_area(run::Run)
     vbox = GtkBox(:v)
     indiv_range = 1:1:run.pop_size
     reg_range = 1:1:run.reg_steps
-    cell_range = 1:1
+    cell_range = 1:1:1
     push!(vbox, make_control("Individual: ", indiv_range, cs, :indiv))
     push!(vbox, make_control("EA Step: ", run.step_range, cs, :ea_step))
     push!(vbox, make_control("Reg Step: ", reg_range, cs, :reg_step))
