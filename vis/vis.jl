@@ -6,12 +6,13 @@ using DataMod
 using RegSimTabMod
 
 function get_args()
-    if length(ARGS) != 1
-        println("Usage: julia vis.jl <datafile>")
-        exit(1)
-    end
+    # if length(ARGS) != 1
+    #     println("Usage: julia vis.jl <datafile>")
+    #     exit(1)
+    # end
 
-    ARGS[1]
+    # ARGS[1]
+    "data"
 end
 
 function main()

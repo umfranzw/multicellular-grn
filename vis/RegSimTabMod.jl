@@ -10,11 +10,18 @@ using CellTreeMod
 using ProteinStoreMod
 using ProteinPropsMod
 
-mutable struct ControlState
-    indiv::Int64
-    ea_step::Int64
-    reg_step::Int64
-    cell::Int64
+mutable struct Control
+    title::String
+    entry::GtkEntry
+    range::StepRange{Int64, Int64}
+end
+
+mutable struct Controls
+    indiv::Control
+    ea_step::Control
+    reg_step::Control
+    cell::Control
+    canvas::GtkCanvas
 end
 
 function build(
@@ -23,16 +30,16 @@ function build(
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
     vbox = GtkBox(:v)
-    controls, control_state = build_control_area(run)
+    control_area, controls = build_control_area(run, ea_pops, reg_trees)
     
     paned = GtkPaned(:h)
-    genome_pane = build_genome_pane(run, ea_pops, reg_trees, control_state)
-    tree_pane = build_tree_pane(run, ea_pops, reg_trees, control_state)
+    genome_pane = build_genome_pane(run, ea_pops, reg_trees, controls)
+    tree_pane = build_tree_pane(run, ea_pops, reg_trees, controls)
     push!(paned, genome_pane)
     push!(paned, tree_pane)
 
     push!(vbox, paned)
-    push!(vbox, controls)
+    push!(vbox, control_area)
 
     vbox
 end
@@ -41,7 +48,7 @@ function build_tree_pane(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
-    cs::ControlState
+    controls::Controls
 )
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Tree"))
@@ -53,19 +60,19 @@ function build_genome_pane(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
-    cs::ControlState
+    controls::Controls
 )
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Genome"))
 
-    plot = build_genome_plot(run, ea_pops, reg_trees, cs)
+    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
     graphic = Gadfly.render(plot)
-    canvas = GtkCanvas(400, 300)
-    push!(pane, canvas)
-    show(canvas)
+    #canvas = GtkCanvas(400, 300)
+    push!(pane, controls.canvas)
+    show(controls.canvas)
 
-    Gtk.draw(canvas) do widget
-        Compose.draw(Compose.CAIROSURFACE(canvas.back), graphic)
+    Gtk.draw(controls.canvas) do widget
+        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
     end
     
     pane
@@ -75,13 +82,13 @@ function build_genome_plot(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
-    cs::ControlState
+    controls::Controls
 )
     Gadfly.set_default_plot_size(400, 300)
 
     #reg_trees: ea_step, indiv, reg_step
-    tree = reg_trees["after_reg_step"][cs.ea_step][cs.indiv][cs.reg_step]
-    cell = CellTreeMod.get_bf_node(tree, cs.cell)
+    tree = reg_trees["after_reg_step"][get_control_val(controls.ea_step)][get_control_val(controls.indiv)][get_control_val(controls.reg_step)]
+    cell = CellTreeMod.get_bf_node(tree, get_control_val(controls.cell))
     proteins = ProteinStoreMod.get_all(cell.proteins)
 
     labels = Array{String, 1}()
@@ -110,54 +117,96 @@ function build_genome_plot(
     plot
 end
 
-function make_control(title::String, step_range::StepRange{Int64, Int64}, cs::ControlState, entry_sym::Symbol)
-    grid = GtkGrid()
-    
-    label = GtkLabel(title)
-    set_gtk_property!(label, :width_chars, 12)
-    entry = GtkEntry()
-    set_gtk_property!(entry, :text, string(step_range.start))
-    set_gtk_property!(entry, :width_chars, 4)
-    up_button = GtkButton("+")
-    down_button = GtkButton("-")
-
-    grid[1, 1] = label
-    grid[2, 1] = entry
-    grid[3, 1] = up_button
-    grid[4, 1] = down_button
-
-    signal_connect(button -> adjust_val(entry, step_range, 1, cs, entry_sym), up_button, :clicked)
-    signal_connect(button -> adjust_val(entry, step_range, -1, cs, entry_sym), down_button, :clicked)
-
-    grid
-end
-
-function adjust_val(entry::GtkEntry, step_range::StepRange{Int64, Int64}, dir::Int64, cs::ControlState, entry_sym::Symbol)
-    cur = parse(Int64, get_gtk_property(entry, :text, String))
-    cur = clamp(cur + dir * step_range.step, step_range.start, step_range.stop)
-    set_gtk_property!(entry, :text, string(cur))
-
-    set_field!(cs, entry_sym, cur)
-    
-    update_graph(cs)
-end
-
-function build_control_area(run::Run)
-    cs = ControlState(1, 1, 1, 1)
-    
+function setup_controls(
+    controls::Controls,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+)
     vbox = GtkBox(:v)
-    indiv_range = 1:1:run.pop_size
-    reg_range = 1:1:run.reg_steps
-    cell_range = 1:1:1
-    push!(vbox, make_control("Individual: ", indiv_range, cs, :indiv))
-    push!(vbox, make_control("EA Step: ", run.step_range, cs, :ea_step))
-    push!(vbox, make_control("Reg Step: ", reg_range, cs, :reg_step))
-    push!(vbox, make_control("Cell: ", cell_range, cs, :cell))
+    
+    control_syms = Array{Symbol, 1}([:indiv, :ea_step, :reg_step, :cell])
+    for i in 1:length(control_syms)
+        control = getfield(controls, control_syms[i])
+        grid = GtkGrid()
+        
+        label = GtkLabel(control.title)
+        set_gtk_property!(label, :width_chars, 12)
+        set_gtk_property!(control.entry, :text, string(control.range.start))
+        set_gtk_property!(control.entry, :width_chars, 4)
+        up_button = GtkButton("+")
+        down_button = GtkButton("-")
 
-    vbox, cs
+        grid[1, 1] = label
+        grid[2, 1] = control.entry
+        grid[3, 1] = up_button
+        grid[4, 1] = down_button
+
+        up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(controls, ea_pops, reg_trees)
+        down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(controls, ea_pops, reg_trees)
+        
+        signal_connect(up_callback, up_button, :clicked)
+        signal_connect(down_callback, down_button, :clicked)
+
+        push!(vbox, grid)
+    end
+
+    vbox
 end
 
-function update_graph(cs::ControlState)
+function adjust_control_val(control::Control, dir::Int64, reset::Array{Control, 1})
+    cur = parse(Int64, get_gtk_property(control.entry, :text, String))
+    cur = clamp(cur + dir * control.range.step, control.range.start, control.range.stop)
+    set_gtk_property!(control.entry, :text, string(cur))
+
+    for control in reset
+        reset_control_val(control)
+    end
+
+    false
+end
+
+function reset_control_val(control::Control)
+    set_gtk_property!(control.entry, :text, "1")
+end
+
+function get_control_val(control::Control)
+    parse(Int64, get_gtk_property(control.entry, :text, String))
+end
+
+function build_control_area(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+)
+    controls = Controls(
+        Control("Individual: ", GtkEntry(), 1:1:run.pop_size), #indiv
+        Control("EA Step: ", GtkEntry(), run.step_range), #ea
+        Control("Reg Step: ", GtkEntry(), 1:1:run.reg_steps), #reg
+        Control("Cell: ", GtkEntry(), 1:1:1), #cell
+        GtkCanvas(400, 300)
+    )
+    vbox = setup_controls(controls, ea_pops, reg_trees)
+
+    vbox, controls
+end
+
+function update_genome_graph(
+    controls::Controls,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+)
+    #plot = build_genome_plot(run, ea_pops, reg_trees, controls)
+    #graphic = Gadfly.render(plot)
+    #show(controls.canvas)
+
+    #Gtk.draw(controls.canvas) do widget
+    #    Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+    #end
+
+    composition = Compose.compose(Compose.compose(Compose.context(), Compose.rectangle()), Compose.fill("tomato"))
+    Gtk.draw(controls.canvas) do widget
+        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), composition)
+    end
 end
 
 end
