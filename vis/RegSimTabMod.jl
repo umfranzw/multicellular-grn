@@ -27,7 +27,7 @@ function build(
     
     paned = GtkPaned(:h)
     genome_pane = build_genome_pane(run, ea_pops, reg_trees, control_state)
-    tree_pane = build_tree_pane()
+    tree_pane = build_tree_pane(run, ea_pops, reg_trees, control_state)
     push!(paned, genome_pane)
     push!(paned, tree_pane)
 
@@ -37,7 +37,12 @@ function build(
     vbox
 end
 
-function build_tree_pane()
+function build_tree_pane(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    cs::ControlState
+)
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Tree"))
 
@@ -92,7 +97,7 @@ function build_genome_plot(
     cell_dframe = DataFrame(label=labels, concs=concs)
 
     plot = Gadfly.plot(
-        Gadfly.Scale.x_continuous(minvalue=0, maxvalue=run.num_genes), Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
+        Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
         #proteins concs (lines)
         Gadfly.layer(
             cell_dframe,
