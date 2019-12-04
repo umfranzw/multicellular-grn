@@ -21,6 +21,9 @@ mutable struct Controls
     ea_step::Control
     reg_step::Control
     cell::Control
+end
+
+mutable struct Graphs
     canvas::GtkCanvas
 end
 
@@ -30,10 +33,10 @@ function build(
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
     vbox = GtkBox(:v)
-    control_area, controls = build_control_area(run, ea_pops, reg_trees)
+    control_area, controls, graphs = build_control_area(run, ea_pops, reg_trees)
     
     paned = GtkPaned(:h)
-    genome_pane = build_genome_pane(run, ea_pops, reg_trees, controls)
+    genome_pane = build_genome_pane(run, ea_pops, reg_trees, controls, graphs)
     tree_pane = build_tree_pane(run, ea_pops, reg_trees, controls)
     push!(paned, genome_pane)
     push!(paned, tree_pane)
@@ -60,13 +63,14 @@ function build_genome_pane(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
-    controls::Controls
+    controls::Controls,
+    graphs::Graphs
 )
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Genome"))
 
-    push!(pane, controls.canvas)
-    show(controls.canvas)
+    push!(pane, graphs.canvas)
+    show(graphs.canvas)
     
     plot = build_genome_plot(run, ea_pops, reg_trees, controls)
     if plot == nothing
@@ -75,8 +79,8 @@ function build_genome_pane(
         graphic = Gadfly.render(plot)
     end
     
-    Gtk.draw(controls.canvas) do widget
-        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+    Gtk.draw(graphs.canvas) do widget
+        Compose.draw(Compose.CAIROSURFACE(graphs.canvas.back), graphic)
     end
     
     pane
@@ -93,11 +97,8 @@ function build_genome_plot(
     #reg_trees: ea_step, indiv, reg_step
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
     tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
-    println("Cell tree size: $(CellTreeMod.size(tree))")
     cell = CellTreeMod.get_bf_node(tree, cell_index)
-    println("cell is nothing: $(cell == nothing)")
     proteins = ProteinStoreMod.get_all(cell.proteins)
-    println("num proteins: $(length(proteins))")
 
     plot = nothing
     if length(proteins) > 0 #work around so that Gadfly doesn't crash when there's nothing to plot...
@@ -134,6 +135,7 @@ end
 function setup_controls(
     run::Run,
     controls::Controls,
+    graphs::Graphs,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
@@ -156,16 +158,31 @@ function setup_controls(
         grid[3, 1] = up_button
         grid[4, 1] = down_button
 
-        up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(run, controls, ea_pops, reg_trees)
-        down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(run, controls, ea_pops, reg_trees)
-        
+        up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
+        down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
+        update_genome_graph_callback = button -> update_genome_graph(run, controls, graphs, ea_pops, reg_trees)
+        update_cell_range_callback = button -> update_cell_range(controls, reg_trees)
+
         signal_connect(up_callback, up_button, :clicked)
+        signal_connect(update_genome_graph_callback, up_button, :clicked)
+        signal_connect(update_cell_range_callback, up_button, :clicked)
+        
         signal_connect(down_callback, down_button, :clicked)
+        signal_connect(update_genome_graph_callback, down_button, :clicked)
+        signal_connect(update_cell_range_callback, down_button, :clicked)
 
         push!(vbox, grid)
     end
+    update_cell_range(controls, reg_trees)
 
     vbox
+end
+
+function update_cell_range(controls::Controls, reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}})
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    size = CellTreeMod.size(tree)
+    controls.cell.range = StepRange(controls.cell.range.start, controls.cell.range.step, size) # note: must construct a new range, since they're immutable
 end
 
 function adjust_control_val(control::Control, dir::Int64, reset::Array{Control, 1})
@@ -176,8 +193,6 @@ function adjust_control_val(control::Control, dir::Int64, reset::Array{Control, 
     for control in reset
         reset_control_val(control)
     end
-
-    false
 end
 
 function reset_control_val(control::Control)
@@ -197,33 +212,34 @@ function build_control_area(
         Control("Individual: ", GtkEntry(), 1:1:run.pop_size), #indiv
         Control("EA Step: ", GtkEntry(), run.step_range), #ea
         Control("Reg Step: ", GtkEntry(), 1:1:run.reg_steps), #reg
-        Control("Cell: ", GtkEntry(), 1:1:1), #cell
-        GtkCanvas(400, 300)
+        Control("Cell: ", GtkEntry(), 1:1:1) #cell
     )
-    vbox = setup_controls(run, controls, ea_pops, reg_trees)
+    graphs = Graphs(GtkCanvas(400, 300))
+    vbox = setup_controls(run, controls, graphs, ea_pops, reg_trees)
 
-    vbox, controls
+    vbox, controls, graphs
 end
 
 function update_genome_graph(
     run::Run,
     controls::Controls,
+    graphs::Graphs,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
     #clear the old graph
     graphic = Compose.compose(Compose.Compose.context(), Compose.rectangle(), Compose.fill(Compose.Colors.RGB(0.96, 0.96, 0.96)))
     
-    Gtk.draw(controls.canvas) do widget
-        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+    Gtk.draw(graphs.canvas) do widget
+        Compose.draw(Compose.CAIROSURFACE(graphs.canvas.back), graphic)
     end
     
     plot = build_genome_plot(run, ea_pops, reg_trees, controls)
     if plot != nothing
         graphic = Gadfly.render(plot)
         
-        Gtk.draw(controls.canvas) do widget
-            Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+        Gtk.draw(graphs.canvas) do widget
+            Compose.draw(Compose.CAIROSURFACE(graphs.canvas.back), graphic)
         end
     end
 end
