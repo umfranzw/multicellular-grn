@@ -56,7 +56,7 @@ function get_bf_node(tree::CellTree, index::Int64)
 end
 
 function get_bf_node(node::Cell, dist::Int64)
-    if dist == 0
+    if dist == 1
         return node
     else
         q = Queue{Cell}()
@@ -64,18 +64,18 @@ function get_bf_node(node::Cell, dist::Int64)
             enqueue!(q, child)
         end
         
-        while !isempty(q) && dist > 0
+        while !isempty(q) && dist > 1
             node = dequeue!(q)
-            dist -= 1
+            index -= 1
 
-            if dist > 0
+            if dist > 1
                 for child in node.children
                     enqueue!(q, child)
                 end
             end
         end
 
-        if dist == 0
+        if dist == 1
             return node
         else
             return nothing

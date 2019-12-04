@@ -65,12 +65,16 @@ function build_genome_pane(
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Genome"))
 
-    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
-    graphic = Gadfly.render(plot)
-    #canvas = GtkCanvas(400, 300)
     push!(pane, controls.canvas)
     show(controls.canvas)
-
+    
+    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
+    if plot == nothing
+        graphic = Compose.compose(Compose.Compose.context(), Compose.rectangle(), Compose.fill(Compose.Colors.RGB(0.96, 0.96, 0.96)))
+    else
+        graphic = Gadfly.render(plot)
+    end
+    
     Gtk.draw(controls.canvas) do widget
         Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
     end
@@ -89,40 +93,46 @@ function build_genome_plot(
     #reg_trees: ea_step, indiv, reg_step
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
     tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    println("Cell tree size: $(CellTreeMod.size(tree))")
     cell = CellTreeMod.get_bf_node(tree, cell_index)
+    println("cell is nothing: $(cell == nothing)")
     proteins = ProteinStoreMod.get_all(cell.proteins)
-    println(proteins)
+    println("num proteins: $(length(proteins))")
 
-    labels = Array{String, 1}()
-    concs = Array{Float64, 1}()
-    genes = Array{Int64, 1}()
-    for i in 1:length(proteins)
-        buf = IOBuffer()
-        ProteinPropsMod.show(buf, proteins[i].props)
-        seek(buf, 0)
-        label = read(buf, String) #protein sequence string
-        append!(labels, repeat([label], run.num_genes))
-        append!(concs, proteins[i].concs)
-        append!(genes, 1:run.num_genes)
-    end
-    cell_dframe = DataFrame(label=labels, concs=concs, genes=genes)
+    plot = nothing
+    if length(proteins) > 0 #work around so that Gadfly doesn't crash when there's nothing to plot...
+        labels = Array{String, 1}()
+        concs = Array{Float64, 1}()
+        genes = Array{Int64, 1}()
+        for i in 1:length(proteins)
+            buf = IOBuffer()
+            ProteinPropsMod.show(buf, proteins[i].props)
+            seek(buf, 0)
+            label = read(buf, String) #protein sequence string
+            append!(labels, repeat([label], run.num_genes))
+            append!(concs, proteins[i].concs)
+            append!(genes, 1:run.num_genes)
+        end
+        cell_dframe = DataFrame(label=labels, concs=concs, genes=genes)
 
-    plot = Gadfly.plot(
-        Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
-        #proteins concs (lines)
-        Gadfly.layer(
-            cell_dframe,
-            x=:genes,
-            y=:concs,
-            color=:label,
-            Gadfly.Geom.bar(position=:stack)
+        plot = Gadfly.plot(
+            Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
+            #proteins concs (lines)
+            Gadfly.layer(
+                cell_dframe,
+                x=:genes,
+                y=:concs,
+                color=:label,
+                Gadfly.Geom.bar(position=:stack)
+            )
         )
-    )
+    end
 
     plot
 end
 
 function setup_controls(
+    run::Run,
     controls::Controls,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
@@ -146,8 +156,8 @@ function setup_controls(
         grid[3, 1] = up_button
         grid[4, 1] = down_button
 
-        up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(controls, ea_pops, reg_trees)
-        down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(controls, ea_pops, reg_trees)
+        up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(run, controls, ea_pops, reg_trees)
+        down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end])) || update_genome_graph(run, controls, ea_pops, reg_trees)
         
         signal_connect(up_callback, up_button, :clicked)
         signal_connect(down_callback, down_button, :clicked)
@@ -190,28 +200,32 @@ function build_control_area(
         Control("Cell: ", GtkEntry(), 1:1:1), #cell
         GtkCanvas(400, 300)
     )
-    vbox = setup_controls(controls, ea_pops, reg_trees)
+    vbox = setup_controls(run, controls, ea_pops, reg_trees)
 
     vbox, controls
 end
 
 function update_genome_graph(
+    run::Run,
     controls::Controls,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
-    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
-    graphic = Gadfly.render(plot)
-    show(controls.canvas)
-
+    #clear the old graph
+    graphic = Compose.compose(Compose.Compose.context(), Compose.rectangle(), Compose.fill(Compose.Colors.RGB(0.96, 0.96, 0.96)))
+    
     Gtk.draw(controls.canvas) do widget
-       Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
     end
-
-    # composition = Compose.compose(Compose.compose(Compose.context(), Compose.rectangle()), Compose.fill("tomato"))
-    # Gtk.draw(controls.canvas) do widget
-    #     Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), composition)
-    # end
+    
+    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
+    if plot != nothing
+        graphic = Gadfly.render(plot)
+        
+        Gtk.draw(controls.canvas) do widget
+            Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
+        end
+    end
 end
 
 end
