@@ -87,27 +87,32 @@ function build_genome_plot(
     Gadfly.set_default_plot_size(400, 300)
 
     #reg_trees: ea_step, indiv, reg_step
-    tree = reg_trees["after_reg_step"][get_control_val(controls.ea_step)][get_control_val(controls.indiv)][get_control_val(controls.reg_step)]
-    cell = CellTreeMod.get_bf_node(tree, get_control_val(controls.cell))
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    cell = CellTreeMod.get_bf_node(tree, cell_index)
     proteins = ProteinStoreMod.get_all(cell.proteins)
+    println(proteins)
 
     labels = Array{String, 1}()
     concs = Array{Float64, 1}()
-    for i in length(proteins)
+    genes = Array{Int64, 1}()
+    for i in 1:length(proteins)
         buf = IOBuffer()
         ProteinPropsMod.show(buf, proteins[i].props)
         seek(buf, 0)
         label = read(buf, String) #protein sequence string
         append!(labels, repeat([label], run.num_genes))
         append!(concs, proteins[i].concs)
+        append!(genes, 1:run.num_genes)
     end
-    cell_dframe = DataFrame(label=labels, concs=concs)
+    cell_dframe = DataFrame(label=labels, concs=concs, genes=genes)
 
     plot = Gadfly.plot(
         Gadfly.Scale.y_continuous(minvalue=0, maxvalue=1),
         #proteins concs (lines)
         Gadfly.layer(
             cell_dframe,
+            x=:genes,
             y=:concs,
             color=:label,
             Gadfly.Geom.bar(position=:stack)
@@ -195,18 +200,18 @@ function update_genome_graph(
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
 )
-    #plot = build_genome_plot(run, ea_pops, reg_trees, controls)
-    #graphic = Gadfly.render(plot)
-    #show(controls.canvas)
+    plot = build_genome_plot(run, ea_pops, reg_trees, controls)
+    graphic = Gadfly.render(plot)
+    show(controls.canvas)
 
-    #Gtk.draw(controls.canvas) do widget
-    #    Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
-    #end
-
-    composition = Compose.compose(Compose.compose(Compose.context(), Compose.rectangle()), Compose.fill("tomato"))
     Gtk.draw(controls.canvas) do widget
-        Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), composition)
+       Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), graphic)
     end
+
+    # composition = Compose.compose(Compose.compose(Compose.context(), Compose.rectangle()), Compose.fill("tomato"))
+    # Gtk.draw(controls.canvas) do widget
+    #     Compose.draw(Compose.CAIROSURFACE(controls.canvas.back), composition)
+    # end
 end
 
 end
