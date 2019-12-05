@@ -1,5 +1,4 @@
 using Gtk
-using Gadfly
 using Printf
 using RunMod
 using DataMod
