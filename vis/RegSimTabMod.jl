@@ -7,8 +7,10 @@ using IndividualMod
 using CellTreeMod
 using ProteinStoreMod
 using ProteinPropsMod
+using TreeVisMod
 
 genome_graph_path = "/tmp/genome_graph.png"
+tree_graph_path = "/tmp/tree_graph.png"
 
 mutable struct Control
     title::String
@@ -25,6 +27,7 @@ end
 
 mutable struct Graphs
     genome_graph::GtkImage
+    tree_graph::GtkImage
 end
 
 function build(
@@ -37,7 +40,7 @@ function build(
     
     paned = GtkPaned(:h)
     genome_pane = build_genome_pane(run, ea_pops, reg_trees, controls, graphs)
-    tree_pane = build_tree_pane(run, ea_pops, reg_trees, controls)
+    tree_pane = build_tree_pane(run, ea_pops, reg_trees, controls, graphs)
     push!(paned, genome_pane)
     push!(paned, tree_pane)
 
@@ -51,10 +54,15 @@ function build_tree_pane(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
-    controls::Controls
+    controls::Controls,
+    graphs::Graphs
 )
     pane = GtkBox(:v)
     push!(pane, GtkLabel("Tree"))
+
+    build_tree_plot(run, ea_pops, reg_trees, controls, graphs)
+    push!(pane, graphs.tree_graph)
+    show(graphs.tree_graph)
 
     pane
 end
@@ -74,6 +82,20 @@ function build_genome_pane(
     show(graphs.genome_graph)
     
     pane
+end
+
+function build_tree_plot(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    graphs::Graphs
+)
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+
+    TreeVisMod.gen_graph(tree, tree_graph_path, cell_index)
+    set_gtk_property!(graphs.tree_graph, :file, tree_graph_path)
 end
 
 function build_genome_plot(
@@ -100,10 +122,9 @@ function build_genome_plot(
         labels[:, i] = [label]
         concs[:, i]= proteins[i].concs
     end
-    println(labels)
 
-    plot = groupedbar(concs, bar_position=:stack, bar_width=0.7, label=labels);
-    savefig(plot, genome_graph_path)
+    plot = groupedbar(concs, bar_position=:stack, bar_width=0.5, label=labels);
+    savefig(plot, genome_graph_path);
     set_gtk_property!(graphs.genome_graph, :file, genome_graph_path)
 end
 
@@ -136,14 +157,17 @@ function setup_controls(
         up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
         down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
         update_genome_graph_callback = button -> build_genome_plot(run, ea_pops, reg_trees, controls, graphs)
+        update_tree_graph_callback = button -> build_tree_plot(run, ea_pops, reg_trees, controls, graphs)
         update_cell_range_callback = button -> update_cell_range(controls, reg_trees)
 
         signal_connect(up_callback, up_button, :clicked)
         signal_connect(update_genome_graph_callback, up_button, :clicked)
+        signal_connect(update_tree_graph_callback, up_button, :clicked)
         signal_connect(update_cell_range_callback, up_button, :clicked)
         
         signal_connect(down_callback, down_button, :clicked)
         signal_connect(update_genome_graph_callback, down_button, :clicked)
+        signal_connect(update_tree_graph_callback, down_button, :clicked)
         signal_connect(update_cell_range_callback, down_button, :clicked)
 
         push!(vbox, grid)
@@ -189,7 +213,7 @@ function build_control_area(
         Control("Reg Step: ", GtkEntry(), 1:1:run.reg_steps), #reg
         Control("Cell: ", GtkEntry(), 1:1:1) #cell
     )
-    graphs = Graphs(GtkImage())
+    graphs = Graphs(GtkImage(), GtkImage())
     vbox = setup_controls(run, controls, graphs, ea_pops, reg_trees)
 
     vbox, controls, graphs

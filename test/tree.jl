@@ -1,20 +1,23 @@
-import RunMod
-using CellMod
-using GeneMod
-using SymMod
-using CellTreeMod
+using TreeVisMod
+using Gtk
 
-run = RunMod.get_first_run()
-genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-root = Cell(run, genes, nothing, Sym(:+, SymMod.FcnCall))
+file_path = "/home/wayne/test.png"
 
-genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-child1 = Cell(run, genes, root, nothing)
+code = """
+digraph G {
+  1 [label="1"]
+  1 -> 2
+  1 -> 3
+  2 [label="2"]
+  3 [label="3"]
+}
+"""
 
-genes = map(i -> GeneMod.rand_init(run, i), 1:run.num_genes)
-child2 = Cell(run, genes, root, Sym(2, SymMod.IntConst))
+data = TreeVisMod.gen_graph(code)
+f = open(file_path, "w")
+write(f, data)
+close(f)
 
-push!(root.children, child1, child2)
-
-cells = CellTreeMod.find_empty(root)
-println(cells)
+image = GtkImage(file_path)
+w = GtkWindow(image, "title")
+show(image)
