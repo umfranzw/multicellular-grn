@@ -37,6 +37,7 @@ function build(
 )
     vbox = GtkBox(:v)
     control_area, controls, graphs = build_control_area(run, ea_pops, reg_trees)
+    props_area = build_props_area(run, ea_pops, reg_trees)
     
     paned = GtkPaned(:h)
     genome_pane = build_genome_pane(run, ea_pops, reg_trees, controls, graphs)
@@ -44,8 +45,12 @@ function build(
     push!(paned, genome_pane)
     push!(paned, tree_pane)
 
+    hbox = GtkBox(:h)
+    push!(hbox, control_area)
+    push!(hbox, props_area)
+    
     push!(vbox, paned)
-    push!(vbox, control_area)
+    push!(vbox, hbox)
 
     vbox
 end
@@ -217,6 +222,47 @@ function build_control_area(
     vbox = setup_controls(run, controls, graphs, ea_pops, reg_trees)
 
     vbox, controls, graphs
+end
+
+function build_props_area(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+)
+    vbox = GtkBox(:v)
+
+    #row: props, concs
+    conc_types = repeat([Float64], run.num_genes)
+    store = GtkListStore(String, conc_types...)
+
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    cell = CellTreeMod.get_bf_node(tree, cell_index)
+    proteins = ProteinStoreMod.get_all(cell.proteins)
+    for protein in proteins
+        buf = IOBuffer()
+        show(buf, protein.props)
+        seek(buf, 0)
+        props = String(take!(buf))
+
+        push!(store, (props, protein.concs...))
+    end
+
+    view = GtkTreeView(GtkTreeModel(store))
+    
+    ren = GtkCellRendererText()
+    props_col = GtkTreeViewColumn("Props", ren, Dict([("text", 0)]))
+    push!(view, props_col)
+
+    for i in 1:run.num_genes
+        concs_col = GtkTreeViewColumn("Conc $i", ren, Dict([("text", i)]))
+        push!(view, concs_col)
+    end
+
+    push!(vbox, GtkLabel("Proteins"))
+    push!(vbox, view)
+    
+    vbox
 end
 
 end

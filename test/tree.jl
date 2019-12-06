@@ -1,23 +1,15 @@
-using TreeVisMod
 using Gtk
 
-file_path = "/home/wayne/test.png"
+ts = GtkTreeStore(String)
+iter1 = push!(ts,("one",))
+iter2 = push!(ts,("two",),iter1)
+iter3 = push!(ts,("three",),iter2)
+tv = GtkTreeView(GtkTreeModel(ts))
+r1 = GtkCellRendererText()
+c1 = GtkTreeViewColumn("A", r1, Dict([("text",0)]))
+push!(tv,c1)
+win = GtkWindow(tv, "Tree View")
+showall(win)
 
-code = """
-digraph G {
-  1 [label="1"]
-  1 -> 2
-  1 -> 3
-  2 [label="2"]
-  3 [label="3"]
-}
-"""
-
-data = TreeVisMod.gen_graph(code)
-f = open(file_path, "w")
-write(f, data)
-close(f)
-
-image = GtkImage(file_path)
-w = GtkWindow(image, "title")
-show(image)
+iter = Gtk.iter_from_index(ts, [1])
+ts[iter,1] = "ONE"
