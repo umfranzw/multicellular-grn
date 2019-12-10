@@ -8,6 +8,8 @@ using CellTreeMod
 using ProteinStoreMod
 using ProteinPropsMod
 using TreeVisMod
+import GeneMod
+import MiscUtilsMod
 
 genome_graph_path = "/tmp/genome_graph.png"
 tree_graph_path = "/tmp/tree_graph.png"
@@ -36,7 +38,7 @@ function build(
     controls, controls_vbox, add_callbacks = build_control_area(run, reg_trees)
 
     #props area
-    props_win = build_props_area(run, reg_trees, controls, add_callbacks)
+    props_notebook = build_props_area(run, reg_trees, controls, add_callbacks)
 
     #tree graph
     tree_vbox = build_tree_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
@@ -49,14 +51,10 @@ function build(
     push!(paned, genome_vbox)
     push!(paned, tree_vbox)
 
-    #tabbed container for props area
-    notebook = GtkNotebook()
-    push!(notebook, props_win, "Protein Concs")
-    
     #hbox for control and props areas
     hbox = GtkBox(:h)
     push!(hbox, controls_vbox)
-    push!(hbox, notebook)
+    push!(hbox, props_notebook)
     
     push!(outer_vbox, paned)
     push!(outer_vbox, hbox)
@@ -120,12 +118,29 @@ function build_props_area(
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
+    notebook = GtkNotebook()
+
+    concs_tab = build_concs_tab(run, reg_trees, controls, add_callbacks)
+    bindings_tab = build_bindings_tab(run, reg_trees, controls, add_callbacks)
+    
+    push!(notebook, concs_tab, "Protein Concs")
+    push!(notebook, bindings_tab, "Gene Bindings")
+
+    notebook
+end
+
+function build_concs_tab(
+    run::Run,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
     conc_types = repeat([Float64], run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
-    populate_store(store, reg_trees, controls)
+    populate_concs_store(store, reg_trees, controls)
     for (sym, connector) in add_callbacks
-        connector(button -> populate_store(store, reg_trees, controls))
+        connector(button -> populate_concs_store(store, reg_trees, controls))
     end
 
     props_view = GtkTreeView(GtkTreeModel(store))
@@ -140,6 +155,47 @@ function build_props_area(
 
     props_win = GtkScrolledWindow()
     set_gtk_property!(props_win, :hscrollbar_policy, Gtk.GConstants.GtkPolicyType.NEVER) #many Bothans died to bring us this information...
+    push!(props_win, props_view)
+
+    props_win
+end
+
+function build_bindings_tab(
+    run::Run,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
+    num_reg_cols = MiscUtilsMod.num_enum_vals(GeneMod.RegSites)
+    num_prod_cols = MiscUtilsMod.num_enum_vals(GeneMod.ProdSites)
+    store = GtkListStore(Int64, repeat([String], num_reg_cols + num_prod_cols)...) #gene index, reg site bindings, prod site bindings
+
+    populate_bindings_store(store, reg_trees, controls)
+    for (sym, connector) in add_callbacks
+        connector(button -> populate_bindings_store(store, reg_trees, controls))
+    end
+
+    props_view = GtkTreeView(GtkTreeModel(store))
+    ren = GtkCellRendererText()
+    props_col = GtkTreeViewColumn("Gene", ren, Dict([("text", 0)]))
+    push!(props_view, props_col)
+
+    for i in 1:num_reg_cols
+        enum_val = GeneMod.RegSites(i)
+        label = split(MiscUtilsMod.enum_val_to_str(enum_val), ".")[2]
+        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", i)]))
+        push!(props_view, concs_col)
+    end
+
+    for i in 1:num_prod_cols
+        enum_val = GeneMod.ProdSites(i)
+        label = split(MiscUtilsMod.enum_val_to_str(enum_val), ".")[2]
+        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", num_reg_cols + i)]))
+        push!(props_view, concs_col)
+    end
+
+    props_win = GtkScrolledWindow()
+    set_gtk_property!(props_win, :hscrollbar_policy, Gtk.GConstants.GtkPolicyType.NEVER)
     push!(props_win, props_view)
 
     props_win
@@ -187,7 +243,41 @@ function build_genome_graph_area(
     genome_vbox
 end
 
-function populate_store(
+function populate_bindings_store(
+    store::GtkListStore,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls
+)
+    while length(store) > 0
+        pop!(store)
+    end
+    
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    cell = CellTreeMod.get_bf_node(tree, cell_index)
+
+    for i in 1:length(cell.gene_states)
+        row = Array{Any, 1}()
+        push!(row, i)
+        for site_type in instances(GeneMod.RegSites)
+            site_index = Int64(site_type)
+            bound_protein = cell.gene_states[i].reg_site_bindings[site_index]
+            bind_str = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
+            push!(row, bind_str)
+        end
+
+        for site_type in instances(GeneMod.ProdSites)
+            site_index = Int64(site_type)
+            prod_protein = cell.gene_states[i].prod_site_bindings[site_index]
+            bind_str = prod_protein == nothing ? "-" : ProteinPropsMod.to_str(prod_protein.props)
+            push!(row, bind_str)
+        end
+
+        push!(store, tuple(row...))
+    end
+end
+
+function populate_concs_store(
     store::GtkListStore,
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
     controls::Controls
@@ -201,11 +291,7 @@ function populate_store(
     cell = CellTreeMod.get_bf_node(tree, cell_index)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
-        buf = IOBuffer()
-        show(buf, protein.props)
-        seek(buf, 0)
-        props = String(take!(buf))
-
+        props = ProteinPropsMod.to_str(protein.props)
         push!(store, (props, protein.concs...))
     end
 end
@@ -240,11 +326,7 @@ function build_genome_plot(
     concs = zeros(run.num_genes, length(proteins))
     labels = fill("", (1, length(proteins)))
     for i in 1:length(proteins)
-        buf = IOBuffer()
-        ProteinPropsMod.show(buf, proteins[i].props)
-        seek(buf, 0)
-        label = chomp(read(buf, String)) #protein sequence string (remove the newline)
-
+        label = ProteinPropsMod.to_str(proteins[i].props)
         labels[:, i] = [label]
         concs[:, i] = proteins[i].concs
     end

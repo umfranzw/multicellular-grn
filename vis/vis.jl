@@ -18,7 +18,7 @@ function main()
     datafile = get_args()
     run, ea_pops, reg_trees = DataMod.read_data(datafile)
     
-    win = GtkWindow("Vis", 1000, 400)
+    win = GtkWindow("Vis", 1100, 600)
     vbox = GtkBox(:v)
     push!(win, vbox)
     

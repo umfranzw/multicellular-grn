@@ -67,4 +67,12 @@ function copy(props::ProteinProps)
     ProteinProps(props.type, props.target, props.reg_action, props.app_action)
 end
 
+function to_str(props::ProteinProps)
+    buf = IOBuffer()
+    show(buf, props)
+    seek(buf, 0)
+
+    chomp(read(buf, String)) #protein sequence string (remove the newline)
+end
+
 end
