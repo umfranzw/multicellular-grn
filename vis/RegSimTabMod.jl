@@ -33,6 +33,41 @@ function build(
     outer_vbox = GtkBox(:v)
 
     #control area
+    controls, controls_vbox, add_callbacks = build_control_area(run, reg_trees)
+
+    #props area
+    props_win = build_props_area(run, reg_trees, controls, add_callbacks)
+
+    #tree graph
+    tree_vbox = build_tree_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
+
+    #genome_graph
+    genome_vbox = build_genome_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
+
+    #paned container for graphs
+    paned = GtkPaned(:h)
+    push!(paned, genome_vbox)
+    push!(paned, tree_vbox)
+
+    #tabbed container for props area
+    notebook = GtkNotebook()
+    push!(notebook, props_win, "Protein Concs")
+    
+    #hbox for control and props areas
+    hbox = GtkBox(:h)
+    push!(hbox, controls_vbox)
+    push!(hbox, notebook)
+    
+    push!(outer_vbox, paned)
+    push!(outer_vbox, hbox)
+
+    outer_vbox
+end
+
+function build_control_area(
+    run::Run,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+)
     controls = Controls(
         Control("Individual: ", GtkEntry(), 1:1:run.pop_size), #indiv
         Control("EA Step: ", GtkEntry(), run.step_range), #ea
@@ -76,7 +111,15 @@ function build(
     end
     update_cell_range(controls, reg_trees)
 
-    #props area
+    controls, controls_vbox, add_callbacks
+end
+
+function build_props_area(
+    run::Run,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
     conc_types = repeat([Float64], run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
@@ -99,7 +142,16 @@ function build(
     set_gtk_property!(props_win, :hscrollbar_policy, Gtk.GConstants.GtkPolicyType.NEVER) #many Bothans died to bring us this information...
     push!(props_win, props_view)
 
-    #tree graph
+    props_win
+end
+
+function build_tree_graph_area(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
     tree_vbox = GtkBox(:v)
     push!(tree_vbox, GtkLabel("Tree"))
     tree_graph = GtkImage()
@@ -111,7 +163,16 @@ function build(
         connector(button -> build_tree_plot(run, ea_pops, reg_trees, controls, tree_graph))
     end
 
-    #genome_graph
+    tree_vbox
+end
+
+function build_genome_graph_area(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
     genome_vbox = GtkBox(:v)
     push!(genome_vbox, GtkLabel("Genome"))
     genome_graph = GtkImage()
@@ -123,24 +184,7 @@ function build(
         connector(button -> build_genome_plot(run, ea_pops, reg_trees, controls, genome_graph))
     end
 
-    #paned container for graphs
-    paned = GtkPaned(:h)
-    push!(paned, genome_vbox)
-    push!(paned, tree_vbox)
-
-    #tabbed container for props area
-    notebook = GtkNotebook()
-    push!(notebook, props_win, "Protein Concs")
-    
-    #hbox for control and props areas
-    hbox = GtkBox(:h)
-    push!(hbox, controls_vbox)
-    push!(hbox, notebook)
-    
-    push!(outer_vbox, paned)
-    push!(outer_vbox, hbox)
-
-    outer_vbox
+    genome_vbox
 end
 
 function populate_store(
@@ -149,7 +193,7 @@ function populate_store(
     controls::Controls
 )
     while length(store) > 0
-        pop(store)
+        pop!(store)
     end
     
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))

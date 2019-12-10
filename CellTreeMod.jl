@@ -66,7 +66,7 @@ function get_bf_node(node::Cell, dist::Int64)
         
         while !isempty(q) && dist > 1
             node = dequeue!(q)
-            index -= 1
+            dist -= 1
 
             if dist > 1
                 for child in node.children
