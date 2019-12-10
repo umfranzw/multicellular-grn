@@ -77,8 +77,6 @@ function build(
     update_cell_range(controls, reg_trees)
 
     #props area
-    props_vbox = GtkBox(:v)
-
     conc_types = repeat([Float64], run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
@@ -87,19 +85,19 @@ function build(
         connector(button -> populate_store(store, reg_trees, controls))
     end
 
-    view = GtkTreeView(GtkTreeModel(store))
-    
+    props_view = GtkTreeView(GtkTreeModel(store))
     ren = GtkCellRendererText()
     props_col = GtkTreeViewColumn("Props", ren, Dict([("text", 0)]))
-    push!(view, props_col)
+    push!(props_view, props_col)
 
     for i in 1:run.num_genes
         concs_col = GtkTreeViewColumn("Conc $i", ren, Dict([("text", i)]))
-        push!(view, concs_col)
+        push!(props_view, concs_col)
     end
 
-    push!(props_vbox, GtkLabel("Proteins"))
-    push!(props_vbox, view)
+    props_win = GtkScrolledWindow()
+    set_gtk_property!(props_win, :hscrollbar_policy, Gtk.GConstants.GtkPolicyType.NEVER) #many Bothans died to bring us this information...
+    push!(props_win, props_view)
 
     #tree graph
     tree_vbox = GtkBox(:v)
@@ -130,10 +128,14 @@ function build(
     push!(paned, genome_vbox)
     push!(paned, tree_vbox)
 
+    #tabbed container for props area
+    notebook = GtkNotebook()
+    push!(notebook, props_win, "Protein Concs")
+    
     #hbox for control and props areas
     hbox = GtkBox(:h)
     push!(hbox, controls_vbox)
-    push!(hbox, props_vbox)
+    push!(hbox, notebook)
     
     push!(outer_vbox, paned)
     push!(outer_vbox, hbox)
