@@ -82,17 +82,9 @@ function build(
     conc_types = repeat([Float64], run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
-    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
-    cell = CellTreeMod.get_bf_node(tree, cell_index)
-    proteins = ProteinStoreMod.get_all(cell.proteins)
-    for protein in proteins
-        buf = IOBuffer()
-        show(buf, protein.props)
-        seek(buf, 0)
-        props = String(take!(buf))
-
-        push!(store, (props, protein.concs...))
+    populate_store(store, reg_trees, controls)
+    for (sym, connector) in add_callbacks
+        connector(button -> populate_store(store, reg_trees, controls))
     end
 
     view = GtkTreeView(GtkTreeModel(store))
@@ -149,6 +141,29 @@ function build(
     outer_vbox
 end
 
+function populate_store(
+    store::GtkListStore,
+    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    controls::Controls
+)
+    while length(store) > 0
+        pop(store)
+    end
+    
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    cell = CellTreeMod.get_bf_node(tree, cell_index)
+    proteins = ProteinStoreMod.get_all(cell.proteins)
+    for protein in proteins
+        buf = IOBuffer()
+        show(buf, protein.props)
+        seek(buf, 0)
+        props = String(take!(buf))
+
+        push!(store, (props, protein.concs...))
+    end
+end
+
 function build_tree_plot(
     run::Run,
     ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
@@ -185,10 +200,10 @@ function build_genome_plot(
         label = chomp(read(buf, String)) #protein sequence string (remove the newline)
 
         labels[:, i] = [label]
-        concs[:, i]= proteins[i].concs
+        concs[:, i] = proteins[i].concs
     end
 
-    plot = groupedbar(concs, bar_position=:stack, bar_width=0.5, label=labels);
+    plot = groupedbar(concs, bar_position=:overlay, label=labels);
     savefig(plot, genome_graph_path);
     set_gtk_property!(graph, :file, genome_graph_path)
 end
