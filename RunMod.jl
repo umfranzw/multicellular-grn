@@ -41,7 +41,7 @@ struct Run
     diff_dt::Float64
 
     dev_start_iter::Int64
-    cell_div_conc_threshold::Float64
+    cell_energy_threshold::Float64
 
     initial_cell_energy::Float64
 
@@ -77,7 +77,7 @@ struct Run
             run["diff_dt"],
             
             run["dev_start_iter"],
-            run["cell_div_conc_threshold"],
+            run["cell_energy_threshold"],
             
             run["initial_cell_energy"],
             

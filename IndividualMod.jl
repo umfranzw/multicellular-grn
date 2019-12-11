@@ -107,7 +107,7 @@ function run_protein_app(indiv::Individual)
 
     deleted_cells = Set{Cell}()
     for cell in bfs_list
-        if cell ∉ deleted_cells
+        if cell.energy > run.cell_energy_threshold && cell ∉ deleted_cells
             deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
             deleted_cells = union(deleted_cells, deleted...)
         end

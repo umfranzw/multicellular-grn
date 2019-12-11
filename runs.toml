@@ -36,7 +36,7 @@ diff_dt = 1.0
 #################################
 # note: bounds are inclusive
 dev_start_iter = 10
-cell_div_conc_threshold = 0.25
+cell_energy_threshold = 0.25
 
 initial_cell_energy = 5.0
 
