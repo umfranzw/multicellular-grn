@@ -1,16 +1,19 @@
 module CustomEnumMod
 
 using RunMod
+using DataStructures
 
 import Base.getproperty
+import Base.iterate
+import Random.rand
 export CustomEnum
 
 mutable struct CustomEnum
-    items::Dict{Symbol, UInt8}
+    items::OrderedDict{Symbol, UInt8}
     start::UInt8
     
     function CustomEnum(symbols::Array{Symbol}; start::UInt8=UInt8(1))
-        items = Dict{Symbol, UInt8}()
+        items = OrderedDict{Symbol, UInt8}()
         
         for i in 1:length(symbols)
             items[symbols[i]] = i + start - 1
@@ -31,10 +34,17 @@ function getproperty(enum::CustomEnum, name::Symbol)
     end
 end
 
-function rand_val(config::Config, enum::CustomEnum)
+function get_val(enum::CustomEnum, sym::Symbol)
+    getfield(enum, :items)[sym]
+end
+
+function rand(config::Config, enum::CustomEnum)
     items = getfield(enum, :items)
     
-    Random.rand(config.rng, keys(items))
+    rand(config.rng, items) #returns a Pair{Symbol, Int64}
 end
+
+iterate(enum::CustomEnum) = Base.iterate(getfield(enum, :items))
+iterate(enum::CustomEnum, state) = Base.iterate(getfield(enum, :items), state)
     
 end

@@ -124,4 +124,10 @@ function get_first_run()
     take!(channel)
 end
 
+function get_test_config()
+    run = get_first_run()
+
+    Config(run, Random.MersenneTwister())
+end
+
 end
