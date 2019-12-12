@@ -54,6 +54,7 @@ function mutate_initial_protein(protein::Protein)
 end
 
 #the enums in the given array are the ones that will be (potentially) mutated
+#use symbols instead!!!
 function mutate_props(config::Config, props::ProteinProps, enums::Array{DataType, 1})
     for enum in enums
         if RandUtilsMod.rand_float(config) < config.run.mut_prob
