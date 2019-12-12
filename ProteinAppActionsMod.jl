@@ -1,7 +1,6 @@
 module ProteinAppActionsMod
 
 using ProteinMod
-using ProteinPropsMod
 using CellMod
 using CellTreeMod
 using SymMod
@@ -15,38 +14,50 @@ struct AppAction
     fcn::Function
 end
 
+struct AppArgs
+    tree::CellTree
+    cell::Cell
+    genes::Array{Gene, 1}
+    protein::Protein
+end
+
 #returns a set containing any deleted cells
-function make_parent_op(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
+function make_parent_op(args::AppArgs, op::Symbol)
     if cell.parent == nothing
         #@info @sprintf("Applying protein: make_parent_op\n")
-        parent = Cell(cell.config, genes, Sym(:*, SymMod.FcnCall, -1))
-        CellMod.add_parent(cell, parent)
-        cell.energy /= 2
-        tree.root = parent
+        parent = Cell(args.cell.config, args.genes, Sym(op, SymMod.FcnCall, -1))
+        CellMod.add_parent(args.cell, parent)
+        args.cell.energy /= 2
+        args.tree.root = parent
     end
 
     Set{Cell}()
 end
 
-function make_child_int(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
-    if cell.sym.type == SymMod.FcnCall && (cell.sym.args_needed == -1 || length(cell.children) < cell.sym.args_needed)
+function make_child_int(args::AppArgs, val::Int64)
+    if args.cell.sym.type == SymMod.FcnCall && (args.cell.sym.args_needed == -1 || length(args.cell.children) < args.cell.sym.args_needed)
         #@info @sprintf("Applying protein: make_child_int\n")
-        child = Cell(cell.config, genes, Sym(2, SymMod.IntConst, 0))
-        cell.energy /= 2
-        CellMod.add_child(cell, child)
+        child = Cell(args.cell.config, args.genes, Sym(val, SymMod.IntConst, 0))
+        args.cell.energy /= 2
+        CellMod.add_child(args.cell, child)
     end
 
     Set{Cell}()
 end
 
 const app_actions = Array{AppAction, 1}([
-    AppAction("make_parent_op", make_parent_op),
-    AppAction("make_child_int", make_child_int),
+    AppAction("make_parent_op_plus", args -> make_parent_op(args, :+)),
+    AppAction("make_parent_op_minus", args -> make_parent_op(args, :-)),
+    AppAction("make_parent_op_mult", args -> make_parent_op(args, :*)),
+    AppAction("make_child_int_1", args -> make_child_int(args, 1)),
+    AppAction("make_child_int_2", args -> make_child_int(args, 2)),
+    AppAction("make_child_int_3", args -> make_child_int(args, 3)),
 ])
 
 function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
+    args = AppArgs(tree, cell, genes, protein)
     action = app_actions[Int64(protein.props.app_action)]
-    action.fcn(tree, cell, genes, protein)
+    action.fcn(args)
 end
 
 end

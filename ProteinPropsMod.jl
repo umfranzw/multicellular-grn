@@ -14,7 +14,7 @@ export ProteinProps,
 @enum ProteinTarget::UInt8 Intra=0 Inter=1
 @enum ProteinRegAction::UInt8 Activate=0 Inhibit=1
 #note: these must match the values in the app_actions array in ProteinAppActionsMod
-@enum ProteinAppAction::UInt8 A=1 B=2
+@enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
 
 const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
 const type_digits = MiscUtilsMod.digits_needed(num_types)
