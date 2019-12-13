@@ -235,7 +235,7 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
             if site.target == ProteinPropsMod.Intra
                 eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
                 
-                #for site types GeneMod.InterIntra and GeneMod.InterInter
+            #for site types GeneMod.InterIntra and GeneMod.InterInter
             else
                 eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
             end

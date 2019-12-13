@@ -20,8 +20,8 @@ mutable struct GeneState
         new(
             config,
             gene,
-            repeat([nothing], length(instances(GeneMod.RegSites))),
-            repeat([nothing], length(instances(GeneMod.ProdSites)))
+            repeat([nothing], length(GeneMod.RegSites)),
+            repeat([nothing], length(GeneMod.ProdSites))
         )
     end
 end
@@ -32,10 +32,10 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gs.gene.genome_index)", ilevel + 1)
     iprintln(io, "reg_site_bindings", ilevel + 1)
     iprint(io, "", ilevel + 2)
-    for site_type in instances(GeneMod.RegSites)
-        print(io, "$(string(site_type)): ")
+    for (sym, val) in GeneMod.RegSites
+        print(io, "$(string(sym)): ")
         
-        site = gs.reg_site_bindings[Int64(site_type)]
+        site = gs.reg_site_bindings[val]
         if site == nothing
             print(io, "(nothing)  ")
         else
@@ -47,10 +47,10 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
 
     iprintln(io, "prod_site_bindings", ilevel + 1)
     iprint(io, "", ilevel + 2)
-    for site_type in instances(GeneMod.ProdSites)
-        print(io, "$(string(site_type)): ")
+    for (sym, val) in GeneMod.ProdSites
+        print(io, "$(string(sym)): ")
         
-        site = gs.prod_site_bindings[Int64(site_type)]
+        site = gs.prod_site_bindings[val]
         if site == nothing
             print(io, "(nothing)  ")
         else
@@ -61,37 +61,36 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     println(io, "")
 end
 
-function bind(gs::GeneState, protein::Protein, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
-    modify_binding(gs, site, protein)
+function bind(gs::GeneState, protein::Protein, site_type::CustomEnum, site_index::Int64)
+    modify_binding(gs, site_type, site_index, protein)
 end
 
-function unbind(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
-    modify_binding(gs, site, nothing)
+function unbind(gs::GeneState, site_type::CustomEnum, site_index::Int64)
+    modify_binding(gs, site_type, site_index, nothing)
 end
 
-function modify_binding(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites}, val::Union{Protein, Nothing})
-    index = Int64(site)
-    if site isa GeneMod.RegSites
-        gs.reg_site_bindings[index] = val
+function modify_binding(gs::GeneState, site_type::CustomEnum, site_index::Int64, val::Union{Protein, Nothing})
+    if site_type == GeneMod.RegSites
+        gs.reg_site_bindings[site_index] = val
     else
-        gs.prod_site_bindings[index] = val
+        gs.prod_site_bindings[site_index] = val
     end
 end
 
-function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSites, GeneMod.ProdSites})
-    index = Int64(site)
-    if site isa GeneMod.RegSites
-        return gs.reg_site_bindings[index]
+function get_binding_state(gs::GeneState, site_type::CustomEnum, site_index::Int64)
+    if site_type == GeneMod.RegSites
+        return gs.reg_site_bindings[site_index]
     else
-        return gs.prod_site_bindings[index]
+        return gs.prod_site_bindings[site_index]
     end
 end
 
-function calc_rate_for_sites(gs::GeneState, reg_sites::Array{GeneMod.RegSites, 1})
+#reg_sites is array of enum values from GeneMod.RegSites
+function calc_rate_for_sites(gs::GeneState, reg_sites::Array{Int64, 1})
     producing = false
     weight = 0.0
     for site in reg_sites
-        protein = get_binding_state(gs, site)
+        protein = get_binding_state(gs, GeneMod.RegSites, site)
         if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
             producing = true
             weight += protein.concs[gs.gene.genome_index]
@@ -110,10 +109,10 @@ function get_prod_rates(gs::GeneState)
     #this is a value in [0.0, 1.0]
     
     #For intra production site
-    intra_rate = calc_rate_for_sites(gs, [GeneMod.IntraIntra, GeneMod.InterIntra])
+    intra_rate = calc_rate_for_sites(gs, [GeneMod.RegSites.IntraIntra, GeneMod.RegSites.InterIntra])
     
     #for inter production site
-    inter_rate = calc_rate_for_sites(gs, [GeneMod.IntraInter, GeneMod.InterInter])
+    inter_rate = calc_rate_for_sites(gs, [GeneMod.RegSites.IntraInter, GeneMod.RegSites.InterInter])
 
     (intra=intra_rate, inter=inter_rate)
 end

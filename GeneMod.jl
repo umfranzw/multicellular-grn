@@ -3,6 +3,7 @@ module GeneMod
 using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
+using CustomEnumMod
 
 import RandUtilsMod
 import Base.show
@@ -11,9 +12,9 @@ export Gene
 
 #note: these enum values will be used as indices into the corresponding arrays, so they should start at 1
 #accepts, regulates
-@enum RegSites::Int64 IntraIntra=1 IntraInter=2 InterIntra=3 InterInter=4
+RegSites = CustomEnum([:IntraIntra, :IntraInter, :InterIntra, :InterInter])
 #produces
-@enum ProdSites::Int64 Intra=1 Inter=2
+ProdSites = CustomEnum([:Intra, :Inter])
 
 mutable struct Gene
     config::Config
@@ -27,15 +28,15 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
     iprintln(io, "reg_sites:", ilevel + 1)
-    for site_type in instances(RegSites)
-        iprint(io, "$(string(site_type)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.reg_sites[Int64(site_type)], 0)
+    for (sym, val) in RegSites
+        iprint(io, "$(string(sym)): ", ilevel + 2)
+        ProteinPropsMod.show(io, gene.reg_sites[val], 0)
     end
 
     iprintln(io, "prod_sites:", ilevel + 1)
-    for site_type in instances(ProdSites)
-        iprint(io, "$(string(site_type)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.prod_sites[Int64(site_type)], 0)
+    for (sym, val) in instances(ProdSites)
+        iprint(io, "$(string(sym)): ", ilevel + 2)
+        ProteinPropsMod.show(io, gene.prod_sites[val], 0)
     end
 end
 

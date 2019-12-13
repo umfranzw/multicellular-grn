@@ -6,6 +6,7 @@ using DataStructures
 import Base.getproperty
 import Base.iterate
 import Random.rand
+import Base.length
 export CustomEnum
 
 mutable struct CustomEnum
@@ -43,6 +44,8 @@ function rand(config::Config, enum::CustomEnum)
     
     rand(config.rng, items) #returns a Pair{Symbol, Int64}
 end
+
+length(enum::CustomEnum) = length(getfield(enum, :items))
 
 iterate(enum::CustomEnum) = Base.iterate(getfield(enum, :items))
 iterate(enum::CustomEnum, state) = Base.iterate(getfield(enum, :items), state)
