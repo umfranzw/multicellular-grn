@@ -14,6 +14,7 @@ using DiffusionMod
 using CellTreeMod
 using MiscUtilsMod
 using Printf
+using CustomEnumMod
 
 import Random
 import RandUtilsMod
@@ -107,7 +108,7 @@ function run_protein_app(indiv::Individual)
 
     deleted_cells = Set{Cell}()
     for cell in bfs_list
-        if cell.energy > run.cell_energy_threshold && cell ∉ deleted_cells
+        if cell.energy > indiv.config.run.cell_energy_threshold && cell ∉ deleted_cells
             deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
             deleted_cells = union(deleted_cells, deleted...)
         end
@@ -191,17 +192,17 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
 
         #For intra prod site
         if rates.intra != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
+            run_produce_for_site(cell, gene_index, GeneMod.ProdSites.Intra, rates.intra)
         end
         
         #For inter prod site
         if rates.inter != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
+            run_produce_for_site(cell, gene_index, GeneMod.ProdSites.Inter, rates.inter)
         end
     end
 end
 
-function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.ProdSites, rate::Float64)
+function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::CustomEnumMod.ProdSiteVal, rate::Float64)
     #get the props for the protein that will be produced
     gene = cell.gene_states[gene_index].gene
     props = gene.prod_sites[Int64(site_type)]
@@ -226,10 +227,9 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
         gene = indiv.genes[gene_index]
         
         #run binding for each of the regulatory sites
-        for site_index in 1:length(gene.reg_sites)
-            site = gene.reg_sites[site_index]
-            site_type = GeneMod.RegSites(site_index)
-
+        for site_type in GeneMod.RegSites
+            site = gene.reg_sites[Int64(site_type)]
+            
             #Get eligible_proteins proteins
             #for site types GeneMod.IntraIntra and GeneMod.IntraInter
             if site.target == ProteinPropsMod.Intra
@@ -290,7 +290,7 @@ function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index:
     eligible_proteins
 end
 
-function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, GeneMod.ProdSites}, gene_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site(gs::GeneState, site::CustomVal, gene_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
@@ -312,13 +312,13 @@ function run_bind_for_site(gs::GeneState, site_type::Union{GeneMod.RegSites, Gen
         sel_protein = eligible_proteins[sel_index]
 
         #@info @sprintf("%s binding to site %s", sel_protein, site_type)
-        GeneStateMod.bind(gs, sel_protein, site_type)
+        GeneStateMod.bind(gs, sel_protein, site)
 
     else
-        state = GeneStateMod.get_binding_state(gs, site_type)
+        state = GeneStateMod.get_binding_state(gs, site)
         if state != nothing
             #@info @sprintf("Protein unbinding")
-            GeneStateMod.unbind(gs, site_type)
+            GeneStateMod.unbind(gs, site)
         end
     end
 end

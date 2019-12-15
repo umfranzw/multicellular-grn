@@ -7,20 +7,52 @@ import Base.getproperty
 import Base.iterate
 import Random.rand
 import Base.length
-export CustomEnum
+import Base.show
+import Base.Int64
 
-mutable struct CustomEnum
-    items::OrderedDict{Symbol, UInt8}
-    start::UInt8
+export CustomEnum, RegSites, ProdSites, CustomVal, RegVal, ProdVal
+
+abstract type CustomEnum end
+abstract type CustomVal <: Integer end
+
+function build_items(val_type::Any, items:: Array{Symbol, 1})
+    OrderedDict{Symbol, val_type}([(sym, val_type(sym, i)) for (i, sym) in enumerate(items)])
+end
+
+function show(io::IO, cv::CustomVal)
+    print(io, "$(typeof(cv))::$(cv.name) = $(cv.val)")
+end
+
+function Base.Int64(val::CustomVal)
+    val.val
+end
+
+struct RegSiteVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+#note: these enum values will be used as indices into the corresponding arrays, so they should start at 1
+#accepts, regulates
+struct RegSites <: CustomEnum
+    items::OrderedDict{Symbol, RegSiteVal}
     
-    function CustomEnum(symbols::Array{Symbol}; start::UInt8=UInt8(1))
-        items = OrderedDict{Symbol, UInt8}()
-        
-        for i in 1:length(symbols)
-            items[symbols[i]] = i + start - 1
-        end
+    function RegSites()
+        new(build_items(RegSiteVal, [:IntraIntra, :IntraInter, :InterIntra, :InterInter]))
+    end
+end
 
-        new(items, start)
+struct ProdSiteVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+#produces
+struct ProdSites <: CustomEnum
+    items::OrderedDict{Symbol, ProdSiteVal}
+
+    function ProdSites()
+        new(build_items(ProdSiteVal, [:Intra, :Inter]))
     end
 end
 
@@ -35,10 +67,6 @@ function getproperty(enum::CustomEnum, name::Symbol)
     end
 end
 
-function get_val(enum::CustomEnum, sym::Symbol)
-    getfield(enum, :items)[sym]
-end
-
 function rand(config::Config, enum::CustomEnum)
     items = getfield(enum, :items)
     
@@ -47,7 +75,17 @@ end
 
 length(enum::CustomEnum) = length(getfield(enum, :items))
 
-iterate(enum::CustomEnum) = Base.iterate(getfield(enum, :items))
-iterate(enum::CustomEnum, state) = Base.iterate(getfield(enum, :items), state)
+#iterate(enum::CustomEnum) = Base.iterate(getfield(enum, :items))
+#iterate(enum::CustomEnum, state) = Base.iterate(getfield(enum, :items), state)
+function iterate(enum::CustomEnum)
+    vals = collect(values(getfield(enum, :items)))
+    Base.iterate(vals)
+end
+
+function iterate(enum::CustomEnum, state)
+    vals = collect(values(getfield(enum, :items)))
+
+    Base.iterate(vals, state)
+end
     
 end

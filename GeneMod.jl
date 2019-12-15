@@ -3,18 +3,15 @@ module GeneMod
 using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
-using CustomEnumMod
 
+import CustomEnumMod
 import RandUtilsMod
 import Base.show
 
 export Gene
 
-#note: these enum values will be used as indices into the corresponding arrays, so they should start at 1
-#accepts, regulates
-RegSites = CustomEnum([:IntraIntra, :IntraInter, :InterIntra, :InterInter])
-#produces
-ProdSites = CustomEnum([:Intra, :Inter])
+RegSites = CustomEnumMod.RegSites()
+ProdSites = CustomEnumMod.ProdSites()
 
 mutable struct Gene
     config::Config

@@ -5,6 +5,7 @@ using ProteinMod
 using ProteinPropsMod
 using RunMod
 using MiscUtilsMod
+using CustomEnumMod
 
 import Base.show
 
@@ -61,36 +62,38 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     println(io, "")
 end
 
-function bind(gs::GeneState, protein::Protein, site_type::CustomEnum, site_index::Int64)
-    modify_binding(gs, site_type, site_index, protein)
+function bind(gs::GeneState, protein::Protein, site::CustomVal)
+    modify_binding(gs, site, protein)
 end
 
-function unbind(gs::GeneState, site_type::CustomEnum, site_index::Int64)
-    modify_binding(gs, site_type, site_index, nothing)
+function unbind(gs::GeneState, site::CustomVal)
+    modify_binding(gs, site, nothing)
 end
 
-function modify_binding(gs::GeneState, site_type::CustomEnum, site_index::Int64, val::Union{Protein, Nothing})
-    if site_type == GeneMod.RegSites
-        gs.reg_site_bindings[site_index] = val
+function modify_binding(gs::GeneState, site::CustomVal, val::Union{Protein, Nothing})
+    index = Int64(site)
+    if site isa CustomEnumMod.RegSiteVal
+        gs.reg_site_bindings[index] = val
     else
-        gs.prod_site_bindings[site_index] = val
+        gs.prod_site_bindings[index] = val
     end
 end
 
-function get_binding_state(gs::GeneState, site_type::CustomEnum, site_index::Int64)
-    if site_type == GeneMod.RegSites
-        return gs.reg_site_bindings[site_index]
+function get_binding_state(gs::GeneState, site::CustomVal)
+    index = Int64(site)
+    if site isa CustomEnumMod.RegSiteVal
+        return gs.reg_site_bindings[index]
     else
-        return gs.prod_site_bindings[site_index]
+        return gs.prod_site_bindings[index]
     end
 end
 
 #reg_sites is array of enum values from GeneMod.RegSites
-function calc_rate_for_sites(gs::GeneState, reg_sites::Array{Int64, 1})
+function calc_rate_for_reg_sites(gs::GeneState, sites::Array{CustomEnumMod.RegSiteVal, 1})
     producing = false
     weight = 0.0
-    for site in reg_sites
-        protein = get_binding_state(gs, GeneMod.RegSites, site)
+    for site in GeneMod.RegSites
+        protein = get_binding_state(gs, site)
         if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
             producing = true
             weight += protein.concs[gs.gene.genome_index]
@@ -98,7 +101,7 @@ function calc_rate_for_sites(gs::GeneState, reg_sites::Array{Int64, 1})
     end
 
     if producing
-        return weight / length(reg_sites) #take the average (this will be a value in [0.0, 1.0])
+        return weight / length(GeneMod.RegSites) #take the average (this will be a value in [0.0, 1.0])
     else
         return nothing
     end
@@ -109,10 +112,10 @@ function get_prod_rates(gs::GeneState)
     #this is a value in [0.0, 1.0]
     
     #For intra production site
-    intra_rate = calc_rate_for_sites(gs, [GeneMod.RegSites.IntraIntra, GeneMod.RegSites.InterIntra])
+    intra_rate = calc_rate_for_reg_sites(gs, [GeneMod.RegSites.IntraIntra, GeneMod.RegSites.InterIntra])
     
     #for inter production site
-    inter_rate = calc_rate_for_sites(gs, [GeneMod.RegSites.IntraInter, GeneMod.RegSites.InterInter])
+    inter_rate = calc_rate_for_reg_sites(gs, [GeneMod.RegSites.IntraInter, GeneMod.RegSites.InterInter])
 
     (intra=intra_rate, inter=inter_rate)
 end

@@ -23,7 +23,7 @@ end
 
 #returns a set containing any deleted cells
 function make_parent_op(args::AppArgs, op::Symbol)
-    if cell.parent == nothing
+    if args.cell.parent == nothing
         #@info @sprintf("Applying protein: make_parent_op\n")
         parent = Cell(args.cell.config, args.genes, Sym(op, SymMod.FcnCall, -1))
         CellMod.add_parent(args.cell, parent)
