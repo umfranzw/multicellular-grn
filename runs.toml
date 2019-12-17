@@ -2,9 +2,9 @@
 ######
 # GA #
 ######
-pop_size = 10
-ea_steps = 5
-mut_prob = 0.4
+pop_size = 100
+ea_steps = 20
+mut_prob = 0.3
 num_genes = 4
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
@@ -15,13 +15,13 @@ prod_rate_incr = 0.1
 #########################
 # Regulatory Simulation #
 #########################
-reg_steps = 10
+reg_steps = 50
 #note: this must be < reg_bind_threshold
 protein_deletion_threshold = 0.04
 
 decay_rate = 0.05
 #note: if the number of unique proteins is less than num_initial_proteins, it will be used instead
-num_initial_proteins = 4
+num_initial_proteins = 10
 max_proteins = 20
 max_conc_mut = 0.1
 max_mut_bits_change = 8
@@ -34,21 +34,18 @@ diff_dt = 1.0
 #################################
 # Genotype -> Phenotype Mapping #
 #################################
-# note: bounds are inclusive
-dev_start_iter = 10
 cell_energy_threshold = 0.25
-
 initial_cell_energy = 5.0
 
 ###########################
 #Random Number Generation #
 ###########################
-fix_rng_seed = true
+fix_rng_seed = false
 rng_seed = 123
 
 ############
 # Tracking #
 ############
-step_range = "1:2:5"
+step_range = "1:5:100"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

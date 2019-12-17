@@ -10,7 +10,8 @@ import Base.length
 import Base.show
 import Base.Int64
 
-export CustomEnum, RegSites, ProdSites, CustomVal, RegVal, ProdVal
+export CustomEnum, RegSites, ProdSites,
+    CustomVal, RegVal, ProdVal
 
 abstract type CustomEnum end
 abstract type CustomVal <: Integer end
@@ -55,6 +56,60 @@ struct ProdSites <: CustomEnum
         new(build_items(ProdSiteVal, [:Intra, :Inter]))
     end
 end
+
+struct ProteinTypeVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+struct ProteinTypes <: CustomEnum
+    items::OrderedDict{Symbol, ProteinTypeVal}
+
+    function ProdSites()
+        new(build_items(ProteinTypeVal, [:Activate, :Inhibit]))
+    end
+end
+
+struct ProteinTargetVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+struct ProteinTargets <: CustomEnum
+    items::OrderedDict{Symbol, ProteinTargetVal}
+
+    function ProdSites()
+        new(build_items(ProteinTargetVal, [:Intra, :Inter]))
+    end
+end
+
+struct ProteinRegActionVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+struct ProteinRegActions <: CustomEnum
+    items::OrderedDict{Symbol, ProteinRegActionVal}
+
+    function ProdSites()
+        new(build_items(ProteinRegActionVal, [:Intra, :Inter]))
+    end
+end
+
+struct ProteinAppActionVal <: CustomVal
+    name::Symbol
+    val::Int64
+end
+
+struct ProteinAppActions <: CustomEnum
+    items::OrderedDict{Symbol, ProteinAppActionVal}
+
+    function ProdSites()
+        new(build_items(ProteinAppActionVal, [:Intra, :Inter]))
+    end
+end
+
+#----------------
 
 function getproperty(enum::CustomEnum, name::Symbol)
     #note: using getfield() allows us to avoid the dot syntax (enum.items), which would cause infinite recursion

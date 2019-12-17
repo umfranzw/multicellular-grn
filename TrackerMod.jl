@@ -49,11 +49,11 @@ function update_bests(pop::Array{Individual, 1})
     gb_updated = false
     for indiv in pop
         if gen_best == nothing || indiv.fitness < gen_best.fitness
-            gen_best = indiv
+            gen_best = deepcopy(indiv)
             gb_updated = true
             
             if run_best == nothing || indiv.fitness < run_best.fitness
-                run_best = indiv
+                run_best = gen_best #can just use the copy that was already made
                 rb_updated = true
                 
             end
@@ -61,14 +61,14 @@ function update_bests(pop::Array{Individual, 1})
     end
 
     if gb_updated
-        @info join(
-            (
-                "gen_best:",
-                @sprintf("fitness: %0.2f", gen_best.fitness),
-                CellTreeMod.to_expr_str(gen_best.cell_tree)
-            ),
-            "\n"
-        )
+        # @info join(
+        #     (
+        #         "gen_best:",
+        #         @sprintf("fitness: %0.2f", gen_best.fitness),
+        #         CellTreeMod.to_expr_str(gen_best.cell_tree)
+        #     ),
+        #     "\n"
+        # )
         
         if rb_updated
             @info join(

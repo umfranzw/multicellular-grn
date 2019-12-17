@@ -9,7 +9,11 @@ function eval(indiv::Individual)
     expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 
     #f(x) = x * 2
-    test_data = [(1, 2), (2, 4)]
+    #test_data = [(1, 2), (2, 4)]
+
+    #f(x) = x * 2 + 1
+    test_data = [(1, 3), (2, 5), (3, 7)]
+    
     fitness = 1.0
     chunk = 1 / length(test_data)
     

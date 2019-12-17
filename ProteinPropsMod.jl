@@ -5,16 +5,24 @@ import Base.==
 import Base.copy
 import Base.show
 import Formatting
+import CustomEnumMod
 using MiscUtilsMod
 
 export ProteinProps,
     hash, ==
 
 @enum ProteinType::UInt8 Reg=0 App=1
+#ProteinType = CustomEnumMod.ProteinTypes()
+
 @enum ProteinTarget::UInt8 Intra=0 Inter=1
+#ProteinTarget = CustomEnumMod.ProteinTargets()
+
 @enum ProteinRegAction::UInt8 Activate=0 Inhibit=1
+#ProteinRegAction = CustomEnumMod.ProteinRegActions()
+
 #note: these must match the values in the app_actions array in ProteinAppActionsMod
 @enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
+#ProteinAppAction = CustomEnumMod.ProteinAppActions()
 
 const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
 const type_digits = MiscUtilsMod.digits_needed(num_types)

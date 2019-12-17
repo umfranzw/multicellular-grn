@@ -166,8 +166,8 @@ function build_bindings_tab(
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
-    num_reg_cols = MiscUtilsMod.num_enum_vals(GeneMod.RegSites)
-    num_prod_cols = MiscUtilsMod.num_enum_vals(GeneMod.ProdSites)
+    num_reg_cols = length(GeneMod.RegSites)
+    num_prod_cols = length(GeneMod.ProdSites)
     store = GtkListStore(Int64, repeat([String], num_reg_cols + num_prod_cols)...) #gene index, reg site bindings, prod site bindings
 
     populate_bindings_store(store, reg_trees, controls)
@@ -180,17 +180,17 @@ function build_bindings_tab(
     props_col = GtkTreeViewColumn("Gene", ren, Dict([("text", 0)]))
     push!(props_view, props_col)
 
-    for i in 1:num_reg_cols
-        enum_val = GeneMod.RegSites(i)
-        label = split(MiscUtilsMod.enum_val_to_str(enum_val), ".")[2]
-        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", i)]))
+    for enum_val in GeneMod.RegSites
+        int_val = Int64(enum_val)
+        label = string(enum_val.name)
+        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", int_val)]))
         push!(props_view, concs_col)
     end
 
-    for i in 1:num_prod_cols
-        enum_val = GeneMod.ProdSites(i)
-        label = split(MiscUtilsMod.enum_val_to_str(enum_val), ".")[2]
-        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", num_reg_cols + i)]))
+    for enum_val in GeneMod.ProdSites
+        int_val = Int64(enum_val)
+        label = string(enum_val.name)
+        concs_col = GtkTreeViewColumn(label, ren, Dict([("text", num_reg_cols + int_val)]))
         push!(props_view, concs_col)
     end
 
@@ -259,14 +259,14 @@ function populate_bindings_store(
     for i in 1:length(cell.gene_states)
         row = Array{Any, 1}()
         push!(row, i)
-        for site_type in instances(GeneMod.RegSites)
+        for site_type in GeneMod.RegSites
             site_index = Int64(site_type)
             bound_protein = cell.gene_states[i].reg_site_bindings[site_index]
             bind_str = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
             push!(row, bind_str)
         end
 
-        for site_type in instances(GeneMod.ProdSites)
+        for site_type in GeneMod.ProdSites
             site_index = Int64(site_type)
             prod_protein = cell.gene_states[i].prod_site_bindings[site_index]
             bind_str = prod_protein == nothing ? "-" : ProteinPropsMod.to_str(prod_protein.props)
