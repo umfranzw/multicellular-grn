@@ -1,5 +1,6 @@
 module ProteinAppActionsMod
 
+using ProteinPropsMod
 using ProteinMod
 using CellMod
 using CellTreeMod
@@ -19,6 +20,21 @@ struct AppArgs
     cell::Cell
     genes::Array{Gene, 1}
     protein::Protein
+end
+
+const app_actions = Array{AppAction, 1}([
+    AppAction("make_parent_op_plus", args -> make_parent_op(args, :+)),
+    AppAction("make_parent_op_minus", args -> make_parent_op(args, :-)),
+    AppAction("make_parent_op_mult", args -> make_parent_op(args, :*)),
+    AppAction("make_child_int_1", args -> make_child_int(args, 1)),
+    AppAction("make_child_int_2", args -> make_child_int(args, 2)),
+    AppAction("make_child_int_3", args -> make_child_int(args, 3)),
+])
+
+function push_app_actions()
+    for action in app_actions
+        push!(ProteinProps.AppActions, action)
+    end
 end
 
 #returns a set containing any deleted cells
@@ -44,15 +60,6 @@ function make_child_int(args::AppArgs, val::Int64)
 
     Set{Cell}()
 end
-
-const app_actions = Array{AppAction, 1}([
-    AppAction("make_parent_op_plus", args -> make_parent_op(args, :+)),
-    AppAction("make_parent_op_minus", args -> make_parent_op(args, :-)),
-    AppAction("make_parent_op_mult", args -> make_parent_op(args, :*)),
-    AppAction("make_child_int_1", args -> make_child_int(args, 1)),
-    AppAction("make_child_int_2", args -> make_child_int(args, 2)),
-    AppAction("make_child_int_3", args -> make_child_int(args, 3)),
-])
 
 function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
     args = AppArgs(tree, cell, genes, protein)

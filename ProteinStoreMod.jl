@@ -15,7 +15,7 @@ mutable struct ProteinStore
         proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
         owned_intercell_proteins = Set{ProteinProps}()
         
-        for target in instances(ProteinPropsMod.ProteinTarget)
+        for target in ProteinPropsMod.ProteinTargets
             proteins[target] = Dict{ProteinProps, Protein}()
         end
         
@@ -24,15 +24,13 @@ mutable struct ProteinStore
 end
 
 function contains(ps::ProteinStore, protein::Protein)
-    i = 1
-    found = false
-    while !found && i < length(instances(ProteinPropsMod.ProteinTarget))
-        target = ProteinPropsMod.ProteinTarget(i)
-        found = protein.props in keys(ps.proteins[target])
-        i += 1
+    for target in ProteinPropsMod.ProteinTargets
+        if protein.props in keys(ps.proteins[target])
+            return true
+        end
     end
 
-    found
+    return false
 end
 
 #owned should be set to true if the cell that's inserting the protein produced it
@@ -47,7 +45,7 @@ function insert(ps::ProteinStore, protein::Protein, owned::Bool)
         sub_dict[protein.props] = protein
     end
 
-    if owned && protein.props.target == ProteinPropsMod.Inter
+    if owned && protein.props.target == ProteinPropsMod.ProteinTargets.Inter
         #note: no need to check if it's already present since this is a Set
         push!(ps.owned_intercell_proteins, protein.props)
     end
@@ -59,7 +57,7 @@ function remove(ps::ProteinStore, protein::Protein)
         delete!(sub_dict, protein.props)
     end
     
-    if protein.props.target == ProteinPropsMod.Inter && protein.props in ps.owned_intercell_proteins
+    if protein.props.target == ProteinPropsMod.ProteinTargets.Inter && protein.props in ps.owned_intercell_proteins
         delete!(ps.owned_intercell_proteins, protein.props)
     end
 end
@@ -87,7 +85,7 @@ end
 
 function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
     proteins = Array{Protein, 1}()
-    for target in instances(ProteinPropsMod.ProteinTarget)
+    for target in ProteinPropsMod.ProteinTargets
         for protein in values(ps.proteins[target])
             if protein.props.type == type
                 push!(proteins, protein)
@@ -100,7 +98,7 @@ end
 
 function get_all(ps::ProteinStore)
     proteins = Array{Protein, 1}()
-    for target in instances(ProteinPropsMod.ProteinTarget)
+    for target in ProteinPropsMod.ProteinTargets
         push!(proteins, values(ps.proteins[target])...)
     end
 

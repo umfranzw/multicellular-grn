@@ -10,6 +10,7 @@ import Random.rand
 import Base.length
 import Base.show
 import Base.Int64
+import Base.push!
 
 export CustomEnum, CustomVal, define_enum
 
@@ -31,8 +32,12 @@ end
 function getproperty(enum::CustomEnum, name::Symbol)
     #note: using getfield() allows us to avoid the dot syntax (enum.items), which would cause infinite recursion
     items = getfield(enum, :items)
-    
-    if name in keys(items)
+
+    #allow retreival of items dictionary (for push!() - adding an enum val)
+    #note: this means that you can't define an enum value called "items"
+    if name == :items
+        return items
+    elseif name in keys(items)
         return items[name]
     else
         throw(UndefVarError(name))
@@ -47,6 +52,13 @@ end
 
 length(enum::CustomEnum) = length(getfield(enum, :items))
 
+function add_enum_val(enum::CustomEnum, name::Symbol)
+    type = typeof(enum)
+    next_int = length(enum)
+    
+    type(name, next_int)
+end
+
 #iterate(enum::CustomEnum) = Base.iterate(getfield(enum, :items))
 #iterate(enum::CustomEnum, state) = Base.iterate(getfield(enum, :items), state)
 function iterate(enum::CustomEnum)
@@ -60,7 +72,7 @@ function iterate(enum::CustomEnum, state)
     Base.iterate(vals, state)
 end
 
-struct_templates = [
+templates = [
     mt"""
 struct {{name}}Val <: CustomEnumMod.CustomVal
   name::Symbol
@@ -75,18 +87,28 @@ struct {{name}}s <: CustomEnumMod.CustomEnum
     new(CustomEnumMod.build_items({{name}}Val, {{values}}))
   end
 end
+""",
+    mt"""
+function push!(enum_instance::{{name}}s, val_name::Symbol)
+  next_int = length(enum_instance) + 1
+  val = {{name}}Val(val_name, next_int)
+  enum_instance.items[val_name] = val
+end
 """
 ]
 
 #note: regardless of where this function is called from, the enum will be defined within the CustomEnumMod module.
 #The calling module can then create a local instance of it.
 function define_enum(name::Symbol, values::Array{Symbol, 1})
+    str_vals = map(v -> ":$v", values)
+    vals_code = join(str_vals, ", ")
+    
     dict = Dict(
-        "name" => name,
-        "values" => values
+        "name" => string(name),
+        "values" => "Symbol[$vals_code]"
     )
 
-    code_segs = map(t -> Mustache.render(t, dict), struct_templates)
+    code_segs = map(t -> Mustache.render(t, dict), templates)
     map(eval ∘ Meta.parse, code_segs)
 end
 

@@ -5,7 +5,6 @@ using ProteinMod
 using ProteinPropsMod
 using RunMod
 using MiscUtilsMod
-using CustomEnumMod
 
 import Base.show
 
@@ -62,26 +61,26 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     println(io, "")
 end
 
-function bind(gs::GeneState, protein::Protein, site::CustomVal)
+function bind(gs::GeneState, protein::Protein, site::Union{GeneMod.RegSite, GeneMod.ProdSite})
     modify_binding(gs, site, protein)
 end
 
-function unbind(gs::GeneState, site::CustomVal)
+function unbind(gs::GeneState, site::Union{GeneMod.RegSite, GeneMod.ProdSite})
     modify_binding(gs, site, nothing)
 end
 
-function modify_binding(gs::GeneState, site::CustomVal, val::Union{Protein, Nothing})
+function modify_binding(gs::GeneState, site::Union{GeneMod.RegSite, GeneMod.ProdSite}, val::Union{Protein, Nothing})
     index = Int64(site)
-    if site isa CustomEnumMod.RegSiteVal
+    if site isa GeneMod.RegSite
         gs.reg_site_bindings[index] = val
     else
         gs.prod_site_bindings[index] = val
     end
 end
 
-function get_binding_state(gs::GeneState, site::CustomVal)
+function get_binding_state(gs::GeneState, site::Union{GeneMod.RegSite, GeneMod.ProdSite})
     index = Int64(site)
-    if site isa CustomEnumMod.RegSiteVal
+    if site isa GeneMod.RegSite
         return gs.reg_site_bindings[index]
     else
         return gs.prod_site_bindings[index]
@@ -89,12 +88,12 @@ function get_binding_state(gs::GeneState, site::CustomVal)
 end
 
 #reg_sites is array of enum values from GeneMod.RegSites
-function calc_rate_for_reg_sites(gs::GeneState, sites::Array{CustomEnumMod.RegSiteVal, 1})
+function calc_rate_for_reg_sites(gs::GeneState, sites::Array{GeneMod.RegSite, 1})
     producing = false
     weight = 0.0
     for site in GeneMod.RegSites
         protein = get_binding_state(gs, site)
-        if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
+        if protein != nothing && protein.props.reg_action != ProteinPropsMod.ProteinRegActions.Inhibit
             producing = true
             weight += protein.concs[gs.gene.genome_index]
         end

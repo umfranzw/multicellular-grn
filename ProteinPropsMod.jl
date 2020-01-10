@@ -12,62 +12,56 @@ export ProteinProps,
     hash, ==
 
 #@enum ProteinType::UInt8 Reg=0 App=1
-CustomEnumMod.define(
+CustomEnumMod.define_enum(
     :ProteinType,
     [:Reg, :App]
 )
-ProteinType = CustomEnumMod.ProteinTypes()
+ProteinTypes = CustomEnumMod.ProteinTypes() #instance (contains enum values)
+ProteinType = CustomEnumMod.ProteinTypeVal #value type (CustomEnumMod.ProteinTypeVal)
 
 #@enum ProteinTarget::UInt8 Intra=0 Inter=1
-CustomEnumMod.define(
+CustomEnumMod.define_enum(
     :ProteinTarget,
     [:Intra, :Inter]
 )
-ProteinTarget = CustomEnumMod.ProteinTargets()
+ProteinTargets = CustomEnumMod.ProteinTargets()
+ProteinTarget = CustomEnumMod.ProteinTargetVal
 
 #@enum ProteinRegAction::UInt8 Activate=0 Inhibit=1
-CustomEnumMod.define(
+CustomEnumMod.define_enum(
     :ProteinRegAction,
     [:Activate, :Inhibit]
 )
-ProteinRegAction = CustomEnumMod.ProteinRegActions()
+ProteinRegActions = CustomEnumMod.ProteinRegActions()
+ProteinRegAction = CustomEnumMod.ProteinRegActionVal
 
 #note: these must match the values in the app_actions array in ProteinAppActionsMod
-@enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
-#ProteinAppAction = CustomEnumMod.ProteinAppActions()
-
-const num_types = MiscUtilsMod.num_enum_vals(ProteinType)
-const type_digits = MiscUtilsMod.digits_needed(num_types)
-const type_fs = Formatting.FormatSpec("0$(type_digits)d")
-
-const num_targets = MiscUtilsMod.num_enum_vals(ProteinTarget)
-const target_digits = MiscUtilsMod.digits_needed(num_targets)
-const target_fs = Formatting.FormatSpec("0$(target_digits)d")
-
-const num_reg_actions = MiscUtilsMod.num_enum_vals(ProteinRegAction)
-const reg_action_digits = MiscUtilsMod.digits_needed(num_reg_actions)
-const reg_action_fs = Formatting.FormatSpec("0$(reg_action_digits)d")
-
-const num_app_actions = MiscUtilsMod.num_enum_vals(ProteinAppAction)
-const app_action_digits = MiscUtilsMod.digits_needed(num_app_actions)
-const app_action_fs = Formatting.FormatSpec("0$(app_action_digits)d")
+#@enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
+CustomEnumMod.define_enum(
+    :ProteinAppAction,
+    Symbol[] #values will be added dynamically by ProteinAppActionsMod
+)
+ProteinAppActions = CustomEnumMod.ProteinAppActions()
+ProteinAppAction = CustomEnumMod.ProteinAppActionVal
 
 #note: must be only one field of each type
 mutable struct ProteinProps
     type::ProteinType
     target::ProteinTarget
     reg_action::ProteinRegAction
-    app_action::ProteinAppAction #index of action in app_actions array
+    app_action::ProteinAppAction
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)
     pairs = (
-        (type_fs, props.type),
-        (target_fs, props.target),
-        (reg_action_fs, props.reg_action),
-        (app_action_fs, props.app_action)
+        (ProteinTypes, props.type),
+        (ProteinTargets, props.target),
+        (ProteinRegActions, props.reg_action),
+        (ProteinAppActions, props.app_action)
     )
-    for (fs, val) in pairs
+    for (enum, val) in pairs
+        width = MiscUtilsMod.digits_needed(length(enum))
+        fs = Formatting.FormatSpec("0$(width)d")
         str = Formatting.fmt(fs, val)
         iprint(io, str, ilevel)
     end

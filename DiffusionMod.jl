@@ -58,7 +58,7 @@ end
 
 function diffuse_intra_cell_proteins_for_cell(cell::Cell)
     cols = cell.config.run.num_genes
-    intra_cell_proteins = ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Intra)
+    intra_cell_proteins = ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.ProteinTargets.Intra)
     
     for protein in intra_cell_proteins
         new_concs = zeros(Float64, cols)
@@ -76,7 +76,7 @@ function get_all_inter_cell_props(cell_tree::CellTree)
     CellTreeMod.traverse(
         cell -> map(
             p -> push!(inter_cell_props, p.props),
-            ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Inter)
+            ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.ProteinTargets.Inter)
         ),
         cell_tree
     )
