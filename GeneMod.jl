@@ -10,7 +10,16 @@ import Base.show
 
 export Gene
 
+CustomEnumMod.define_enum(
+    :RegSite,
+    [:IntraIntra, :IntraInter, :InterIntra, :InterInter]
+)
 RegSites = CustomEnumMod.RegSites()
+
+CustomEnumMod.define_enum(
+    :ProdSite,
+    [:Intra, :Inter]
+)
 ProdSites = CustomEnumMod.ProdSites()
 
 mutable struct Gene
