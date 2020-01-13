@@ -46,7 +46,7 @@ rng_seed = 1
 ############
 # Tracking #
 ############
-log_data = true
+log_data = false
 step_range = "1:5:100"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

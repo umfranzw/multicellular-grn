@@ -3,6 +3,7 @@ module CellMod
 using RunMod
 using GeneStateMod
 using GeneMod
+using ProteinMod
 using ProteinStoreMod
 using SymMod: Sym
 using MiscUtilsMod
@@ -34,6 +35,19 @@ mutable struct Cell
         cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), sym)
         
         cell
+    end
+end
+
+function insert_initial_proteins(cell::Cell, initial_proteins::Array{Protein, 1})
+    for protein in initial_proteins
+        #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
+        #However, we need to ensure that we only insert unique proteins into the root cell's store.
+        #note: this logic means some individual's root cells may have fewer initial proteins than others...
+        if !ProteinStoreMod.contains(cell.proteins, protein)
+            #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
+            #in the root cell
+            ProteinStoreMod.insert(cell.proteins, ProteinMod.copy(protein), false)
+        end
     end
 end
 

@@ -70,22 +70,9 @@ function rand_init(run::Run, seed::UInt64)
     end
     
     indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0)
-    insert_initial_proteins(indiv, root_cell)
+    CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv
-end
-
-function insert_initial_proteins(indiv::Individual, cell::Cell)
-    for protein in indiv.initial_cell_proteins
-        #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        #However, we need to ensure that we only insert unique proteins into the root cell's store.
-        #note: this logic means some individual's root cells may have fewer initial proteins than others...
-        if !ProteinStoreMod.contains(cell.proteins, protein)
-            #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
-            #in the root cell
-            ProteinStoreMod.insert(cell.proteins, ProteinMod.copy(protein), false)
-        end
-    end
 end
 
 #resets everything to the way it was before the reg sim (so
@@ -93,7 +80,7 @@ end
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
     indiv.cell_tree.root = Cell(indiv.config, indiv.genes, Sym(:x, SymMod.DataVar, 0))
-    insert_initial_proteins(indiv, indiv.cell_tree.root)
+    CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
 end
 
 function run_protein_app(indiv::Individual)
@@ -106,13 +93,13 @@ function run_protein_app(indiv::Individual)
     deleted_cells = Set{Cell}()
     for cell in bfs_list
         if cell.energy > indiv.config.run.cell_energy_threshold && cell ∉ deleted_cells
-            deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
+            deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes, indiv.initial_cell_proteins)
             deleted_cells = union(deleted_cells, deleted...)
         end
     end
 end
 
-function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
+function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1})
     #get all proteins (from this cell) that are eligible for application
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
@@ -138,7 +125,7 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     deleted_cells = Set{Cell}()
     for pair in pairs
         protein = pair[1]
-        deleted = ProteinAppActionsMod.run_app_action(tree, cell, genes, protein)
+        deleted = ProteinAppActionsMod.run_app_action(tree, cell, genes, initial_proteins, protein)
         deleted_cells = union(deleted_cells, deleted...)
     end
 

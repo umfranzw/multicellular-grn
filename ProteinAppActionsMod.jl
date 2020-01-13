@@ -19,6 +19,7 @@ struct AppArgs
     tree::CellTree
     cell::Cell
     genes::Array{Gene, 1}
+    initial_proteins::Array{Protein, 1}
     protein::Protein
 end
 
@@ -40,6 +41,7 @@ function make_parent_op(args::AppArgs, op::Symbol)
     if args.cell.parent == nothing
         #@info @sprintf("Applying protein: make_parent_op\n")
         parent = Cell(args.cell.config, args.genes, Sym(op, SymMod.FcnCall, -1))
+        CellMod.insert_initial_proteins(parent, args.initial_proteins)
         CellMod.add_parent(args.cell, parent)
         args.cell.energy /= 2
         args.tree.root = parent
@@ -53,14 +55,15 @@ function make_child_int(args::AppArgs, val::Int64)
         #@info @sprintf("Applying protein: make_child_int\n")
         child = Cell(args.cell.config, args.genes, Sym(val, SymMod.IntConst, 0))
         args.cell.energy /= 2
+        CellMod.insert_initial_proteins(child, args.initial_proteins)
         CellMod.add_child(args.cell, child)
     end
 
     Set{Cell}()
 end
 
-function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
-    args = AppArgs(tree, cell, genes, protein)
+function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1}, protein::Protein)
+    args = AppArgs(tree, cell, genes, initial_proteins, protein)
     action = app_actions[protein.props.app_action]
     action.fcn(args)
 end
