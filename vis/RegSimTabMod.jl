@@ -166,8 +166,8 @@ function build_bindings_tab(
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
-    num_reg_cols = length(GeneMod.RegSites)
-    num_prod_cols = length(GeneMod.ProdSites)
+    num_reg_cols = length(instances(GeneMod.RegSite))
+    num_prod_cols = length(instances(GeneMod.ProdSite))
     store = GtkListStore(Int64, repeat([String], num_reg_cols + num_prod_cols)...) #gene index, reg site bindings, prod site bindings
 
     populate_bindings_store(store, reg_trees, controls)
@@ -180,16 +180,16 @@ function build_bindings_tab(
     props_col = GtkTreeViewColumn("Gene", ren, Dict([("text", 0)]))
     push!(props_view, props_col)
 
-    for enum_val in GeneMod.RegSites
+    for enum_val in instances(GeneMod.RegSite)
         int_val = Int64(enum_val)
-        label = string(enum_val.name)
+        label = string(enum_val)
         concs_col = GtkTreeViewColumn(label, ren, Dict([("text", int_val)]))
         push!(props_view, concs_col)
     end
 
-    for enum_val in GeneMod.ProdSites
+    for enum_val in instances(GeneMod.ProdSite)
         int_val = Int64(enum_val)
-        label = string(enum_val.name)
+        label = string(enum_val)
         concs_col = GtkTreeViewColumn(label, ren, Dict([("text", num_reg_cols + int_val)]))
         push!(props_view, concs_col)
     end
@@ -259,14 +259,14 @@ function populate_bindings_store(
     for i in 1:length(cell.gene_states)
         row = Array{Any, 1}()
         push!(row, i)
-        for site_type in GeneMod.RegSites
+        for site_type in instances(GeneMod.RegSite)
             site_index = Int64(site_type)
             bound_protein = cell.gene_states[i].reg_site_bindings[site_index]
             bind_str = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
             push!(row, bind_str)
         end
 
-        for site_type in GeneMod.ProdSites
+        for site_type in instances(GeneMod.ProdSite)
             site_index = Int64(site_type)
             prod_protein = cell.gene_states[i].prod_site_bindings[site_index]
             bind_str = prod_protein == nothing ? "-" : ProteinPropsMod.to_str(prod_protein.props)

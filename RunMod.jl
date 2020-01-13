@@ -47,6 +47,7 @@ struct Run
     fix_rng_seed::Bool
     rng_seed::UInt64
 
+    log_data::Bool
     step_range::StepRange{Int64, Int64}
     data_output_file::String
 
@@ -82,6 +83,7 @@ struct Run
             run["fix_rng_seed"],
             run["rng_seed"],
 
+            run["log_data"],
             parse_step_range(run["step_range"]),
             run["data_output_file"]
         )

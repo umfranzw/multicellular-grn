@@ -41,7 +41,6 @@ function destroy_tracker()
 end
 
 function update_bests(pop::Array{Individual, 1})
-    global tracker
     global gen_best
     global run_best
     
@@ -85,23 +84,25 @@ end
 
 function save_ea_state(label::String, pop::Array{T, 1}) where T
     global tracker
-    
-    buf = IOBuffer()
-    Serialization.serialize(buf, pop)
-    #we'll compress the data *inside* the dictionary. This makes it small enough that it's reasonable to keep it
-    #in memory (avoiding a disk access) during the simulation
-    bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
-    
-    if label ∉ keys(tracker.ea_states)
-        tracker.ea_states[label] = Array{Array{UInt8, 1}, 1}()
+
+    if tracker.run.log_data
+        buf = IOBuffer()
+        Serialization.serialize(buf, pop)
+        #we'll compress the data *inside* the dictionary. This makes it small enough that it's reasonable to keep it
+        #in memory (avoiding a disk access) during the simulation
+        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+        
+        if label ∉ keys(tracker.ea_states)
+            tracker.ea_states[label] = Array{Array{UInt8, 1}, 1}()
+        end
+        push!(tracker.ea_states[label], bytes)
     end
-    push!(tracker.ea_states[label], bytes)
 end
 
 function save_ea_state_on_step(ea_iter::Int64, label::String, pop::Array{T, 1}) where T
     global tracker
 
-    if ea_iter in tracker.run.step_range
+    if tracker.run.log_data && ea_iter in tracker.run.step_range
         save_ea_state(label, pop)
     end
 end
@@ -109,26 +110,30 @@ end
 function save_reg_state(label::String, pop_trees::Array{Array{CellTree, 1}, 1})
     global tracker
 
-    buf = IOBuffer()
-    Serialization.serialize(buf, pop_trees)
-    bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+    if tracker.run.log_data
+        buf = IOBuffer()
+        Serialization.serialize(buf, pop_trees)
+        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
 
-    if label ∉ keys(tracker.reg_states)
-        tracker.reg_states[label] = Array{Array{UInt8, 1}, 1}()
+        if label ∉ keys(tracker.reg_states)
+            tracker.reg_states[label] = Array{Array{UInt8, 1}, 1}()
+        end
+        push!(tracker.reg_states[label], bytes)
     end
-    push!(tracker.reg_states[label], bytes)
 end
 
 function write_data(path::String)
     global tracker
 
-    #note: it's really not worth compressing the enclosing dictionaries here - since the data inside is already compressed,
-    #it's small enough...
-    out_stream = open(path, "w")
+    if tracker.run.log_data
+        #note: it's really not worth compressing the enclosing dictionaries here - since the data inside is already compressed,
+        #it's small enough...
+        out_stream = open(path, "w")
 
-    #save the run (no need to compress), ea state (compressed), and reg state (compressed)
-    Serialization.serialize(out_stream, (tracker.run, tracker.ea_states, tracker.reg_states))
-    close(out_stream)
+        #save the run (no need to compress), ea state (compressed), and reg state (compressed)
+        Serialization.serialize(out_stream, (tracker.run, tracker.ea_states, tracker.reg_states))
+        close(out_stream)
+    end
 end
 
 end
