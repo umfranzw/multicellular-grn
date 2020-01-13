@@ -25,13 +25,13 @@ mutable struct ProteinProps
     type::ProteinType
     target::ProteinTarget
     reg_action::ProteinRegAction
-    app_action::Int64
+    app_action::UInt8
 end
 
 function set_num_app_actions(num::Int64)
     global num_app_actions
     
-    num_app_actions = num
+    num_app_actions = UInt8(num)
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)
@@ -49,7 +49,7 @@ function show(io::IO, props::ProteinProps, ilevel::Int64=0)
         iprint(io, str, ilevel)
     end
     #app_action
-    width = MiscUtilsMod.digits_needed(num_app_actions)
+    width = MiscUtilsMod.digits_needed(Int64(num_app_actions))
     fs = Formatting.FormatSpec("0$(width)d")
     str = Formatting.fmt(fs, props.app_action)
     iprint(io, str, ilevel)

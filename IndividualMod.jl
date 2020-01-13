@@ -62,7 +62,7 @@ function rand_init(run::Run, seed::UInt64)
         type = ProteinPropsMod.Reg
         target = ProteinPropsMod.Intra
         reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
-        app_action = RandUtilsMod.rand_int(config, 1, ProteinPropsMod.num_app_actions)
+        app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
         
         protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true)
         push!(initial_proteins, protein)

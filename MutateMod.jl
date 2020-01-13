@@ -69,7 +69,7 @@ function mutate_props(config::Config, props::ProteinProps, enums::Array{DataType
     end
 
     if app_action
-        props.app_action = RandUtilsMod.rand_int(config, 1, ProteinPropsMod.num_app_actions)
+        props.app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
     end
 end
 
