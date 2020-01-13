@@ -4,25 +4,14 @@ using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
 
-import CustomEnumMod
 import RandUtilsMod
 import Base.show
 
 export Gene
 
-CustomEnumMod.define_enum(
-    :RegSite,
-    [:IntraIntra, :IntraInter, :InterIntra, :InterInter]
-)
-RegSites = CustomEnumMod.RegSites()
-RegSite = CustomEnumMod.RegSiteVal
+@enum RegSite::Int8 IntraIntra=1 IntraInter InterIntra InterInter
 
-CustomEnumMod.define_enum(
-    :ProdSite,
-    [:Intra, :Inter]
-)
-ProdSites = CustomEnumMod.ProdSites()
-ProdSite = CustomEnumMod.ProdSiteVal
+@enum ProdSite::Int8 Intra=1 Inter
 
 mutable struct Gene
     config::Config
@@ -36,15 +25,15 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
     iprintln(io, "reg_sites:", ilevel + 1)
-    for (sym, val) in RegSites
+    for val in instances(RegSites)
         iprint(io, "$(string(sym)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.reg_sites[val], 0)
+        ProteinPropsMod.show(io, gene.reg_sites[Int64(val)], 0)
     end
 
     iprintln(io, "prod_sites:", ilevel + 1)
-    for (sym, val) in instances(ProdSites)
+    for val in instances(ProdSites)
         iprint(io, "$(string(sym)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.prod_sites[val], 0)
+        ProteinPropsMod.show(io, gene.prod_sites[Int64(val)], 0)
     end
 end
 
@@ -53,19 +42,19 @@ function rand_site(
     type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
     target::Union{ProteinPropsMod.ProteinTarget, Nothing}=nothing,
     reg_action::Union{ProteinPropsMod.ProteinRegAction, Nothing}=nothing,
-    app_action::Union{ProteinPropsMod.ProteinAppAction, Nothing}=nothing
+    app_action::Union{Int64, Nothing}=nothing
 )
     if type == nothing
-        type = CustomEnumMod.rand(config, ProteinPropsMod.ProteinTypes)
+        type = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinType)
     end
     if target == nothing
-        target = CustomEnumMod.rand(config, ProteinPropsMod.ProteinTargets)
+        target = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinTarget)
     end
     if reg_action == nothing
-        reg_action = CustomEnumMod.rand(config, ProteinPropsMod.ProteinRegActions)
+        reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
     end
     if app_action == nothing
-        app_action = CustomEnumMod.rand(config, ProteinPropsMod.ProteinAppActions)
+        app_action = RandUtilsMod.rand_int(config, 1, ProteinPropsMod.num_app_actions)
     end
 
     ProteinProps(type, target, reg_action, app_action)
@@ -76,29 +65,29 @@ function rand_init(config::Config, genome_index::Int64)
     reg_sites = Array{ProteinProps, 1}()
     intra_intra = rand_site(
         config,
-        type=ProteinPropsMod.ProteinTypes.Reg,
-        target=ProteinPropsMod.ProteinTargets.Intra
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Intra
     )
     push!(reg_sites, intra_intra)
 
     intra_inter = rand_site(
         config,
-        type=ProteinPropsMod.ProteinTypes.Reg,
-        target=ProteinPropsMod.ProteinTargets.Intra
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Intra
     )
     push!(reg_sites, intra_inter)
 
     inter_intra = rand_site(
         config,
-        type=ProteinPropsMod.ProteinTypes.Reg,
-        target=ProteinPropsMod.ProteinTargets.Inter
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Inter
     )
     push!(reg_sites, inter_intra)
 
     inter_inter = rand_site(
         config,
-        type=ProteinPropsMod.ProteinTypes.Reg,
-        target=ProteinPropsMod.ProteinTargets.Inter
+        type=ProteinPropsMod.Reg,
+        target=ProteinPropsMod.Inter
     )
     push!(reg_sites, inter_inter)
 
@@ -106,13 +95,13 @@ function rand_init(config::Config, genome_index::Int64)
     prod_sites = Array{ProteinProps, 1}()
     intra = rand_site(
         config,
-        target=ProteinPropsMod.ProteinTargets.Intra
+        target=ProteinPropsMod.Intra
     )
     push!(prod_sites, intra)
 
     inter = rand_site(
         config,
-        target=ProteinPropsMod.ProteinTargets.Inter
+        target=ProteinPropsMod.Inter
     )
     push!(prod_sites, inter)
     

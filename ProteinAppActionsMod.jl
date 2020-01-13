@@ -31,10 +31,8 @@ const app_actions = Array{AppAction, 1}([
     AppAction("make_child_int_3", args -> make_child_int(args, 3)),
 ])
 
-function push_app_actions()
-    for action in app_actions
-        push!(ProteinProps.AppActions, action)
-    end
+function init_app_actions()
+    ProteinPropsMod.set_num_app_actions(length(app_actions))
 end
 
 #returns a set containing any deleted cells
@@ -63,7 +61,7 @@ end
 
 function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, protein::Protein)
     args = AppArgs(tree, cell, genes, protein)
-    action = app_actions[Int64(protein.props.app_action)]
+    action = app_actions[protein.props.app_action]
     action.fcn(args)
 end
 

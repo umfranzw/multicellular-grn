@@ -6,7 +6,6 @@ using GeneMod
 using ProteinMod
 using ProteinPropsMod
 using RandUtilsMod
-using CustomEnumMod
 
 function mutate(pop::Array{Individual, 1})
     for indiv in pop
@@ -28,19 +27,19 @@ function mutate_gene(gene::Gene)
     #Regulatory sites:
     #type & target must stay as they are, other attributes can mutate
     for site in gene.reg_sites
-        mutate_props(gene.config, site, [ProteinPropsMod.ProteinRegActions, ProteinPropsMod.ProteinAppActions])
+        mutate_props(gene.config, site, [ProteinPropsMod.ProteinRegAction], true)
     end
 
     #Production sites:
     #target must stay as it is, other attributes can mutate
     for site in gene.prod_sites
-        mutate_props(gene.config, site, [ProteinPropsMod.ProteinTypes, ProteinPropsMod.ProteinRegActions, ProteinPropsMod.ProteinAppActions])
+        mutate_props(gene.config, site, [ProteinPropsMod.ProteinType, ProteinPropsMod.ProteinRegAction], true)
     end
 end
 
 function mutate_initial_protein(protein::Protein)
     #type and target must stay the same, others can be mutated
-    mutate_props(protein.config, protein.props, [ProteinPropsMod.ProteinRegActions, ProteinPropsMod.ProteinAppActions])
+    mutate_props(protein.config, protein.props, [ProteinPropsMod.ProteinRegAction], true)
     
     #concs can also mutate
     for i in 1:length(protein.concs)
@@ -56,10 +55,10 @@ end
 
 #the enums in the given array are the ones that will be (potentially) mutated
 #use symbols instead!!!
-function mutate_props(config::Config, props::ProteinProps, enums::Array{CustomEnum, 1})
+function mutate_props(config::Config, props::ProteinProps, enums::Array{DataType, 1}, app_action::Bool)
     for enum in enums
         if RandUtilsMod.rand_float(config) < config.run.mut_prob
-            new_val = CustomEnumMod.rand(config, enum)
+            new_val = RandUtilsMod.rand_enum_val(config, enum)
 
             field_types = fieldtypes(ProteinProps)
             field_index = findfirst(e -> e == enum, field_types)
@@ -67,6 +66,10 @@ function mutate_props(config::Config, props::ProteinProps, enums::Array{CustomEn
             name = field_names[field_index]
             setfield!(props, name, new_val)
         end
+    end
+
+    if app_action
+        props.app_action = RandUtilsMod.rand_int(config, 1, ProteinPropsMod.num_app_actions)
     end
 end
 

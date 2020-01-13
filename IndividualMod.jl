@@ -13,7 +13,6 @@ using SymMod
 using DiffusionMod
 using CellTreeMod
 using MiscUtilsMod
-using CustomEnumMod
 using Printf
 
 import Random
@@ -60,10 +59,10 @@ function rand_init(run::Run, seed::UInt64)
     for i in 1:config.run.num_initial_proteins
         #all initial proteins will be type Reg, and have target Intra
         #this forces inter-cell communication and application proteins to be produced by a network
-        type = ProteinPropsMod.ProteinTypes.Reg
-        target = ProteinPropsMod.ProteinTargets.Intra
-        reg_action = CustomEnumMod.rand(config, ProteinPropsMod.ProteinRegActions)
-        app_action = CustomEnumMod.rand(config, ProteinPropsMod.ProteinAppActions)
+        type = ProteinPropsMod.Reg
+        target = ProteinPropsMod.Intra
+        reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
+        app_action = RandUtilsMod.rand_int(config, 1, ProteinPropsMod.num_app_actions)
         
         protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true)
         push!(initial_proteins, protein)
@@ -117,7 +116,7 @@ end
 
 function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
     #get all proteins (from this cell) that are eligible for application
-    app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.ProteinTypes.App)
+    app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
     #build a list of tuples of the form (protein, sum of concs), where each protein has a sum >= protein_app_threshold
     pairs = Array{Tuple{Protein, Float64}, 1}()
@@ -192,17 +191,17 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
 
         #For intra prod site
         if rates.intra != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.ProdSites.Intra, rates.intra)
+            run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
         end
         
         #For inter prod site
         if rates.inter != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.ProdSites.Inter, rates.inter)
+            run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
         end
     end
 end
 
-function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::CustomEnumMod.ProdSiteVal, rate::Float64)
+function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.ProdSite, rate::Float64)
     #get the props for the protein that will be produced
     gene = cell.gene_states[gene_index].gene
     props = gene.prod_sites[Int64(site_type)]
@@ -227,12 +226,12 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
         gene = indiv.genes[gene_index]
         
         #run binding for each of the regulatory sites
-        for site_type in GeneMod.RegSites
+        for site_type in instances(GeneMod.RegSite)
             site = gene.reg_sites[Int64(site_type)]
             
             #Get eligible_proteins proteins
             #for site types GeneMod.IntraIntra and GeneMod.IntraInter
-            if site.target == ProteinPropsMod.ProteinTargets.Intra
+            if site.target == ProteinPropsMod.Intra
                 eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
                 
             #for site types GeneMod.InterIntra and GeneMod.InterInter
@@ -254,7 +253,7 @@ function get_bind_eligible_proteins_for_intra_site(ps::ProteinStore, gene_index:
     #- protein's app action is irrelevant (since this is a reg protein & reg site)
 
     eligible_proteins = Array{Protein, 1}()
-    for protein in values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.ProteinTargetsIntra))
+    for protein in values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.Intra))
         if protein.concs[gene_index] >= bind_threshold && protein.props.type == site.type
             push!(eligible_proteins, protein)
         end
@@ -264,7 +263,7 @@ function get_bind_eligible_proteins_for_intra_site(ps::ProteinStore, gene_index:
 end
 
 function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    inter_cell_proteins = values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.ProteinTargets.Inter))
+    inter_cell_proteins = values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.Inter))
     eligible_proteins = Array{Protein, 1}()
 
     for protein in inter_cell_proteins
@@ -290,7 +289,7 @@ function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index:
     eligible_proteins
 end
 
-function run_bind_for_site(gs::GeneState, site::CustomVal, gene_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site(gs::GeneState, site::GeneMod.RegSite, gene_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)

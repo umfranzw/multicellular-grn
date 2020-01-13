@@ -15,7 +15,7 @@ mutable struct ProteinStore
         proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
         owned_intercell_proteins = Set{ProteinProps}()
         
-        for target in ProteinPropsMod.ProteinTargets
+        for target in instances(ProteinPropsMod.ProteinTarget)
             proteins[target] = Dict{ProteinProps, Protein}()
         end
         
@@ -24,7 +24,7 @@ mutable struct ProteinStore
 end
 
 function contains(ps::ProteinStore, protein::Protein)
-    for target in ProteinPropsMod.ProteinTargets
+    for target in instances(ProteinPropsMod.ProteinTarget)
         if protein.props in keys(ps.proteins[target])
             return true
         end
@@ -45,7 +45,7 @@ function insert(ps::ProteinStore, protein::Protein, owned::Bool)
         sub_dict[protein.props] = protein
     end
 
-    if owned && protein.props.target == ProteinPropsMod.ProteinTargets.Inter
+    if owned && protein.props.target == ProteinPropsMod.Inter
         #note: no need to check if it's already present since this is a Set
         push!(ps.owned_intercell_proteins, protein.props)
     end
@@ -57,7 +57,7 @@ function remove(ps::ProteinStore, protein::Protein)
         delete!(sub_dict, protein.props)
     end
     
-    if protein.props.target == ProteinPropsMod.ProteinTargets.Inter && protein.props in ps.owned_intercell_proteins
+    if protein.props.target == ProteinPropsMod.Inter && protein.props in ps.owned_intercell_proteins
         delete!(ps.owned_intercell_proteins, protein.props)
     end
 end
@@ -85,7 +85,7 @@ end
 
 function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
     proteins = Array{Protein, 1}()
-    for target in ProteinPropsMod.ProteinTargets
+    for target in instances(ProteinPropsMod.ProteinTarget)
         for protein in values(ps.proteins[target])
             if protein.props.type == type
                 push!(proteins, protein)
@@ -98,7 +98,7 @@ end
 
 function get_all(ps::ProteinStore)
     proteins = Array{Protein, 1}()
-    for target in ProteinPropsMod.ProteinTargets
+    for target in instances(ProteinPropsMod.ProteinTarget)
         push!(proteins, values(ps.proteins[target])...)
     end
 

@@ -5,59 +5,40 @@ import Base.==
 import Base.copy
 import Base.show
 import Formatting
-import CustomEnumMod
 using MiscUtilsMod
 
 export ProteinProps,
     hash, ==
 
-#@enum ProteinType::UInt8 Reg=0 App=1
-CustomEnumMod.define_enum(
-    :ProteinType,
-    [:Reg, :App]
-)
-ProteinTypes = CustomEnumMod.ProteinTypes() #instance (contains enum values)
-ProteinType = CustomEnumMod.ProteinTypeVal #value type (CustomEnumMod.ProteinTypeVal)
+@enum ProteinType::Int8 Reg=1 App
 
-#@enum ProteinTarget::UInt8 Intra=0 Inter=1
-CustomEnumMod.define_enum(
-    :ProteinTarget,
-    [:Intra, :Inter]
-)
-ProteinTargets = CustomEnumMod.ProteinTargets()
-ProteinTarget = CustomEnumMod.ProteinTargetVal
+@enum ProteinTarget::Int8 Intra=1 Inter
 
-#@enum ProteinRegAction::UInt8 Activate=0 Inhibit=1
-CustomEnumMod.define_enum(
-    :ProteinRegAction,
-    [:Activate, :Inhibit]
-)
-ProteinRegActions = CustomEnumMod.ProteinRegActions()
-ProteinRegAction = CustomEnumMod.ProteinRegActionVal
+@enum ProteinRegAction::Int8 Activate=1 Inhibit
 
 #note: these must match the values in the app_actions array in ProteinAppActionsMod
 #@enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
-CustomEnumMod.define_enum(
-    :ProteinAppAction,
-    Symbol[] #values will be added dynamically by ProteinAppActionsMod
-)
-ProteinAppActions = CustomEnumMod.ProteinAppActions()
-ProteinAppAction = CustomEnumMod.ProteinAppActionVal
+num_app_actions = 0
 
 #note: must be only one field of each type
 mutable struct ProteinProps
     type::ProteinType
     target::ProteinTarget
     reg_action::ProteinRegAction
-    app_action::ProteinAppAction
+    app_action::Int64
+end
+
+function set_num_app_actions(num::Int64)
+    global num_app_actions
+    
+    num_app_actions = num
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)
     pairs = (
         (ProteinTypes, props.type),
         (ProteinTargets, props.target),
-        (ProteinRegActions, props.reg_action),
-        (ProteinAppActions, props.app_action)
+        (ProteinRegActions, props.reg_action)
     )
     for (enum, val) in pairs
         width = MiscUtilsMod.digits_needed(length(enum))
@@ -65,6 +46,12 @@ function show(io::IO, props::ProteinProps, ilevel::Int64=0)
         str = Formatting.fmt(fs, val)
         iprint(io, str, ilevel)
     end
+    #app_action
+    width = MiscUtilsMod.digits_needed(num_app_actions)
+    fs = Formatting.FormatSpec("0$(width)d")
+    str = Formatting.fmt(fs, val)
+    iprint(io, str, ilevel)
+    
     println(io, "")
 end
 
