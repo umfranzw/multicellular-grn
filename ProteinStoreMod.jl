@@ -23,6 +23,15 @@ mutable struct ProteinStore
     end
 end
 
+function clear(ps::ProteinStore)
+    ps.proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
+    ps.owned_intercell_proteins = Set{ProteinProps}()
+    
+    for target in instances(ProteinPropsMod.ProteinTarget)
+        ps.proteins[target] = Dict{ProteinProps, Protein}()
+    end
+end
+
 function contains(ps::ProteinStore, protein::Protein)
     for target in instances(ProteinPropsMod.ProteinTarget)
         if protein.props in keys(ps.proteins[target])

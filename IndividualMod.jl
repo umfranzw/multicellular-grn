@@ -63,39 +63,37 @@ function rand_init(run::Run, seed::UInt64)
         target = ProteinPropsMod.Intra
         reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
         app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
-        
+
+        #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true)
         push!(initial_proteins, protein)
+    end
+    
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0)
+    insert_initial_proteins(indiv, root_cell)
 
+    indiv
+end
+
+function insert_initial_proteins(indiv::Individual, cell::Cell)
+    for protein in indiv.initial_cell_proteins
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         #However, we need to ensure that we only insert unique proteins into the root cell's store.
         #note: this logic means some individual's root cells may have fewer initial proteins than others...
-        if !ProteinStoreMod.contains(root_cell.proteins, protein)
+        if !ProteinStoreMod.contains(cell.proteins, protein)
             #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
             #in the root cell
-            ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
+            ProteinStoreMod.insert(cell.proteins, ProteinMod.copy(protein), false)
         end
     end
-
-    
-    
-    Individual(config, genes, cell_tree, initial_proteins, 1.0)
 end
 
 #resets everything to the way it was before the reg sim (so
 #we can run the reg sim again on the next ea_step)
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
-    root_cell = Cell(indiv.config, indiv.genes, Sym(:x, SymMod.DataVar, 0))
-    
-    #re-insert (copies of) the initial proteins
-    for protein in indiv.initial_cell_proteins
-        if !ProteinStoreMod.contains(root_cell.proteins, protein)
-            ProteinStoreMod.insert(root_cell.proteins, ProteinMod.copy(protein), false)
-        end
-    end
-    
-    indiv.cell_tree = CellTree(root_cell)
+    indiv.cell_tree.root = Cell(indiv.config, indiv.genes, Sym(:x, SymMod.DataVar, 0))
+    insert_initial_proteins(indiv, indiv.cell_tree.root)
 end
 
 function run_protein_app(indiv::Individual)
@@ -118,13 +116,20 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     #get all proteins (from this cell) that are eligible for application
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
 
-    #build a list of tuples of the form (protein, sum of concs), where each protein has a sum >= protein_app_threshold
+    #build a list of tuples of the form (protein, amount_above_threshold), where each protein has a conc >= protein_app_threshold
     pairs = Array{Tuple{Protein, Float64}, 1}()
     for protein in app_proteins
-        conc_sum = sum(protein.concs)
-        if conc_sum >= cell.config.run.protein_app_threshold
-            push!(pairs, (protein, conc_sum))
+        comp = repeat([cell.config.run.protein_app_threshold], length(protein.concs))
+        result = protein.concs .- comp
+        overflow = max(result...)
+        if overflow >= 0
+            push!(pairs, (protein, overflow))
         end
+        
+        # conc_sum = sum(protein.concs)
+        # if conc_sum >= cell.config.run.protein_app_threshold
+        #     push!(pairs, (protein, conc_sum))
+        # end
     end
     #sort in descending order by sum - we'll apply they in this order
     sort!(pairs; by=p -> p[2], rev=true)
