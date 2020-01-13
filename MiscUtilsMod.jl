@@ -17,7 +17,7 @@ function enum_val_to_str(val::Any)
 end
 
 function digits_needed(n::Int64)
-    Int64(ceil(log10(n)))
+    max(Int64(ceil(log10(n))), 1)
 end
 
 #indented print

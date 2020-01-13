@@ -290,10 +290,19 @@ function populate_concs_store(
     tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
     cell = CellTreeMod.get_bf_node(tree, cell_index)
     proteins = ProteinStoreMod.get_all(cell.proteins)
+    println("A: $(length(proteins))")
     for protein in proteins
-        props = ProteinPropsMod.to_str(protein.props)
-        push!(store, (props, protein.concs...))
+        try
+            println("B")
+            props = ProteinPropsMod.to_str(protein.props)
+            println("C")
+            push!(store, (props, protein.concs...))
+            println("D")
+        catch e
+            println(e)
+        end
     end
+    println("E: $(length(store))")
 end
 
 function build_tree_plot(

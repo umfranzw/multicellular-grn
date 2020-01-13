@@ -3,6 +3,7 @@ using Printf
 using RunMod
 using DataMod
 using RegSimTabMod
+using ProteinAppActionsMod
 
 function get_args()
     # if length(ARGS) != 1
@@ -15,6 +16,8 @@ function get_args()
 end
 
 function main()
+    ProteinAppActionsMod.init_app_actions()
+    
     datafile = get_args()
     run, ea_pops, reg_trees = DataMod.read_data(datafile)
     
