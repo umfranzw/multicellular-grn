@@ -33,7 +33,7 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     iprintln(io, "reg_site_bindings", ilevel + 1)
     iprint(io, "", ilevel + 2)
     for val in instances(GeneMod.RegSite)
-        print(io, "$(string(sym)): ")
+        print(io, "$(string(val)): ")
         
         site = gs.reg_site_bindings[Int64(val)]
         if site == nothing
@@ -48,7 +48,7 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     iprintln(io, "prod_site_bindings", ilevel + 1)
     iprint(io, "", ilevel + 2)
     for val in instances(GeneMod.ProdSite)
-        print(io, "$(string(sym)): ")
+        print(io, "$(string(val)): ")
         
         site = gs.prod_site_bindings[Int64(val)]
         if site == nothing

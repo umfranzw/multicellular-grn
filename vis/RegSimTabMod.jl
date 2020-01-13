@@ -275,6 +275,8 @@ function populate_bindings_store(
 
         push!(store, tuple(row...))
     end
+
+    println("populate_bindings_store")
 end
 
 function populate_concs_store(
@@ -294,6 +296,8 @@ function populate_concs_store(
         props = ProteinPropsMod.to_str(protein.props)
         push!(store, (props, protein.concs...))
     end
+
+    println("populate_concs_store")
 end
 
 function build_tree_plot(
@@ -308,6 +312,8 @@ function build_tree_plot(
 
     TreeVisMod.gen_graph(tree, tree_graph_path, cell_index)
     set_gtk_property!(graph, :file, tree_graph_path)
+
+    println("build_tree_plot")
 end
 
 function build_genome_plot(
@@ -334,6 +340,8 @@ function build_genome_plot(
     plot = groupedbar(concs, bar_position=:overlay, label=labels);
     savefig(plot, genome_graph_path);
     set_gtk_property!(graph, :file, genome_graph_path)
+
+    println("build_genome_plot")
 end
 
 function update_cell_range(controls::Controls, reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}})

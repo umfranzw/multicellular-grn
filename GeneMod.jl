@@ -25,14 +25,14 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
     iprintln(io, "reg_sites:", ilevel + 1)
-    for val in instances(RegSites)
-        iprint(io, "$(string(sym)): ", ilevel + 2)
+    for val in instances(RegSite)
+        iprint(io, "$(string(val)): ", ilevel + 2)
         ProteinPropsMod.show(io, gene.reg_sites[Int64(val)], 0)
     end
 
     iprintln(io, "prod_sites:", ilevel + 1)
-    for val in instances(ProdSites)
-        iprint(io, "$(string(sym)): ", ilevel + 2)
+    for val in instances(ProdSite)
+        iprint(io, "$(string(val)): ", ilevel + 2)
         ProteinPropsMod.show(io, gene.prod_sites[Int64(val)], 0)
     end
 end
