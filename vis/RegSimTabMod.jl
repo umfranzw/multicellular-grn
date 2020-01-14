@@ -38,7 +38,7 @@ function build(
     controls, controls_vbox, add_callbacks = build_control_area(run, reg_trees)
 
     #props area
-    props_notebook = build_props_area(run, reg_trees, controls, add_callbacks)
+    props_notebook = build_props_area(run, ea_pops, reg_trees, controls, add_callbacks)
 
     #tree graph
     tree_vbox = build_tree_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
@@ -114,16 +114,20 @@ end
 
 function build_props_area(
     run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
     reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
     notebook = GtkNotebook()
+    set_gtk_property!(notebook, :expand, true)
 
     concs_tab = build_concs_tab(run, reg_trees, controls, add_callbacks)
+    initial_proteins_tab = build_initial_proteins_tab(run, ea_pops, controls, add_callbacks)
     bindings_tab = build_bindings_tab(run, reg_trees, controls, add_callbacks)
     
     push!(notebook, concs_tab, "Protein Concs")
+    push!(notebook, initial_proteins_tab, "Initial Proteins")
     push!(notebook, bindings_tab, "Gene Bindings")
 
     notebook
@@ -141,6 +145,38 @@ function build_concs_tab(
     populate_concs_store(store, reg_trees, controls)
     for (sym, connector) in add_callbacks
         connector(button -> populate_concs_store(store, reg_trees, controls))
+    end
+
+    props_view = GtkTreeView(GtkTreeModel(store))
+    ren = GtkCellRendererText()
+    props_col = GtkTreeViewColumn("Props", ren, Dict([("text", 0)]))
+    push!(props_view, props_col)
+
+    for i in 1:run.num_genes
+        concs_col = GtkTreeViewColumn("Conc $i", ren, Dict([("text", i)]))
+        push!(props_view, concs_col)
+    end
+
+    props_win = GtkScrolledWindow()
+    set_gtk_property!(props_win, :hscrollbar_policy, Gtk.GConstants.GtkPolicyType.NEVER) #many Bothans died to bring us this information...
+    push!(props_win, props_view)
+
+    props_win
+end
+
+function build_initial_proteins_tab(
+    run::Run,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
+    conc_types = repeat([Float64], run.num_genes) #props, concs
+    store = GtkListStore(String, conc_types...)
+
+    populate_initial_proteins_store(store, ea_pops, controls)
+    for sym in (:indiv, :ea_step)
+        connector = add_callbacks[sym]
+        connector(button -> populate_initial_proteins_store(store, ea_pops, controls))
     end
 
     props_view = GtkTreeView(GtkTreeModel(store))
@@ -262,15 +298,17 @@ function populate_bindings_store(
         for site_type in instances(GeneMod.RegSite)
             site_index = Int64(site_type)
             bound_protein = cell.gene_states[i].reg_site_bindings[site_index]
-            bind_str = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
-            push!(row, bind_str)
+            gene_seq = ProteinPropsMod.to_str(cell.gene_states[i].gene.reg_sites[site_index])
+            protein_seq = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
+            push!(row, "$(gene_seq) : $(protein_seq)")
         end
 
         for site_type in instances(GeneMod.ProdSite)
             site_index = Int64(site_type)
-            prod_protein = cell.gene_states[i].prod_site_bindings[site_index]
-            bind_str = prod_protein == nothing ? "-" : ProteinPropsMod.to_str(prod_protein.props)
-            push!(row, bind_str)
+            bound_protein = cell.gene_states[i].prod_site_bindings[site_index]
+            gene_seq = ProteinPropsMod.to_str(cell.gene_states[i].gene.prod_sites[site_index])
+            protein_seq = bound_protein == nothing ? "-" : ProteinPropsMod.to_str(bound_protein.props)
+            push!(row, "$(gene_seq) : $(protein_seq)")
         end
 
         push!(store, tuple(row...))
@@ -298,6 +336,25 @@ function populate_concs_store(
     end
 
     println("populate_concs_store")
+end
+
+function populate_initial_proteins_store(
+    store::GtkListStore,
+    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    controls::Controls
+)
+    while length(store) > 0
+        pop!(store)
+    end
+    
+    indiv_index, ea_step = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step))
+    indiv = ea_pops["before_reg_sim"][ea_step][indiv_index]
+    for protein in indiv.initial_cell_proteins
+        props = ProteinPropsMod.to_str(protein.props)
+        push!(store, (props, protein.concs...))
+    end
+
+    println("populate_initial_proteins_store")
 end
 
 function build_tree_plot(

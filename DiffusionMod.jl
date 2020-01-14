@@ -107,7 +107,7 @@ function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, 
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
     if protein == nothing
-        protein = Protein(cell.config, ProteinPropsMod.copy(props), false)
+        protein = Protein(cell.config, deepcopy(props), false)
         ProteinStoreMod.insert(cell.proteins, protein, false)
     end
     

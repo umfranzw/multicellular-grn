@@ -34,7 +34,6 @@ struct Run
     max_proteins::Int64
     max_conc_mut::Float64
     max_mut_bits_change::Int64
-    binding_seq_play::Int64
 
     diff_alpha::Float64
     diff_h::Float64
@@ -70,7 +69,6 @@ struct Run
             run["max_proteins"],
             run["max_conc_mut"],
             run["max_mut_bits_change"],
-            run["binding_seq_play"],
 
             run["diff_alpha"],
             run["diff_h"],

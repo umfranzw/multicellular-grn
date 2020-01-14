@@ -9,6 +9,7 @@ using SymMod: Sym
 using MiscUtilsMod
 
 import Base.show
+#import Base.deepcopy
 
 export Cell
 
@@ -38,6 +39,15 @@ mutable struct Cell
     end
 end
 
+# function deepcopy(cell::Cell)
+#     new_cell = Cell(cell.config, deepcopy(cell.gene_states), deepcopy(cell.proteins), cell.energy, cell.parent, deepcopy(cell.children), sym)
+#     for child in new_cell.children
+#         child.parent = new_cell
+#     end
+
+#     new_cell
+# end
+
 function insert_initial_proteins(cell::Cell, initial_proteins::Array{Protein, 1})
     for protein in initial_proteins
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
@@ -46,7 +56,7 @@ function insert_initial_proteins(cell::Cell, initial_proteins::Array{Protein, 1}
         if !ProteinStoreMod.contains(cell.proteins, protein)
             #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
             #in the root cell
-            ProteinStoreMod.insert(cell.proteins, ProteinMod.copy(protein), false)
+            ProteinStoreMod.insert(cell.proteins, deepcopy(protein), false)
         end
     end
 end

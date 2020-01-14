@@ -149,16 +149,6 @@ function run_decay(indiv::Individual)
     CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.cell_tree)
 end
 
-function is_decayed(protein::Protein, thresh::Float64)
-    i = 1
-    while i <= length(protein.concs) && protein.concs[i] < thresh
-        i += 1
-    end
-
-    #if the loop index made it past the length of the protein, all the concs are below the threshold (i.e. the protein is decayed)
-    i > length(protein.concs)
-end
-
 function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
@@ -166,7 +156,7 @@ function run_decay_for_cell(cell::Cell)
         protein.concs = max.(protein.concs - protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
-        if is_decayed(protein, cell.config.run.protein_deletion_threshold)
+        if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
             #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
             #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
             #states to remove bindings

@@ -26,7 +26,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1})
             for op in reg_ops
                 op(indiv)
             end
-            push!(indiv_trees, indiv.cell_tree)
+            push!(indiv_trees, deepcopy(indiv.cell_tree)) #!!!!
         end
 
         push!(pop_trees, indiv_trees)

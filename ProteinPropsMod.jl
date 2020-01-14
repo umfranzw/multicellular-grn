@@ -2,7 +2,7 @@ module ProteinPropsMod
 
 import Base.hash
 import Base.==
-import Base.copy
+#import Base.copy
 import Base.show
 import Formatting
 using MiscUtilsMod
@@ -66,9 +66,9 @@ end
                                           p1.reg_action == p2.reg_action &&
                                           p1.app_action == p2.app_action)
 
-function copy(props::ProteinProps)
-    ProteinProps(props.type, props.target, props.reg_action, props.app_action)
-end
+# function copy(props::ProteinProps)
+#     ProteinProps(props.type, props.target, props.reg_action, props.app_action)
+# end
 
 function to_str(props::ProteinProps)
     buf = IOBuffer()

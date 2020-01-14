@@ -1,7 +1,6 @@
 module ProteinMod
 
 import RandUtilsMod
-import Base.copy
 import Base.show
 import Formatting
 
@@ -9,8 +8,7 @@ using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
 
-export Protein,
-    copy
+export Protein
 
 const conc_fs = Formatting.FormatSpec("0.3f")
 
@@ -34,10 +32,10 @@ mutable struct Protein
     end
 end
 
-function copy(protein::Protein)
-    #only the concs need to be deep copied
-    Protein(protein.config, protein.props, copy(protein.concs))
-end
+# function copy(protein::Protein)
+#     #only the concs need to be deep copied
+#     Protein(protein.config, protein.props, deepcopy(protein.concs))
+# end
 
 function show(io::IO, protein::Protein, ilevel::Int64=0)
     iprintln(io, "Protein:", ilevel)

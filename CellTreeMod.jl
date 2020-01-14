@@ -4,13 +4,18 @@ using CellMod
 using SymMod
 using DataStructures: Queue, enqueue!, dequeue!, isempty
 using Printf
+#import Base.deepcopy
 
 export CellTree,
-    traverse, find_empty, find
+    traverse, find_empty, find, copy
 
 mutable struct CellTree
     root::Union{Cell, Nothing}
 end
+
+# function deepcopy(tree::CellTree)
+#     CellTree(copy(tree.root))
+# end
 
 #depth-first traversal
 function traverse(f::Function, start_node::Cell)
