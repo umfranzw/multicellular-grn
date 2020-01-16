@@ -90,7 +90,15 @@ function save_ea_state(label::String, pop::Array{T, 1}) where T
         Serialization.serialize(buf, pop)
         #we'll compress the data *inside* the dictionary. This makes it small enough that it's reasonable to keep it
         #in memory (avoiding a disk access) during the simulation
-        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+        bytes = nothing
+        try
+            bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+        catch e
+            len = length(buf.data)
+            over = len - 2^32
+            println("ea_state\nsize: $len, ($over)")
+            exit(1)
+        end
         
         if label ∉ keys(tracker.ea_states)
             tracker.ea_states[label] = Array{Array{UInt8, 1}, 1}()
@@ -113,7 +121,15 @@ function save_reg_state(label::String, pop_trees::Array{Array{CellTree, 1}, 1})
     if tracker.run.log_data
         buf = IOBuffer()
         Serialization.serialize(buf, pop_trees)
-        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+        bytes = nothing
+        try
+            bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+        catch e
+            len = length(buf.data)
+            over = len - 2^32
+            println("reg_state\nsize: $len, ($over)")
+            exit(1)
+        end
 
         if label ∉ keys(tracker.reg_states)
             tracker.reg_states[label] = Array{Array{UInt8, 1}, 1}()
