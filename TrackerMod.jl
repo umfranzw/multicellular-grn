@@ -7,27 +7,26 @@ using Serialization
 using CellTreeMod
 using Printf
 
-@enum BestType RunBest GenBest
+@enum BestType::UInt8 RunBest GenBest
+@enum TagType::UInt8 EAState RegState
 
 export Tracker
 
 tracker = nothing
-run_best = nothing
-gen_best = nothing
 
 mutable struct Tracker
     run::Run
-    ea_states::Dict{String, Array{Array{UInt8, 1}, 1}}
-    reg_states::Dict{String, Array{Array{UInt8, 1}, 1}}
-
-    function Tracker(run::Run)
-        new(run, Dict{String, Array{Array{UInt8, 1}, 1}}(), Dict{String, Array{Array{UInt8, 1}, 1}}())
-    end
+    path::String
+    file_handle::IOStream
+    run_best::Union{Individual, Nothing}
+    gen_best::Union{Individual, Nothing}
 end
 
-function create_tracker(run::Run)
+function create_tracker(run::Run, path::String)
     global tracker
-    tracker = Tracker(run)
+
+    file_handle = open(path, "w")
+    tracker = Tracker(run, path, file_handle, nothing, nothing)
 end
 
 function get_tracker()
@@ -37,22 +36,23 @@ end
 
 function destroy_tracker()
     global tracker
+
+    close(tracker.file_handle)
     tracker = nothing
 end
 
 function update_bests(pop::Array{Individual, 1})
-    global gen_best
-    global run_best
+    global tracker
     
     rb_updated = false
     gb_updated = false
     for indiv in pop
-        if gen_best == nothing || indiv.fitness < gen_best.fitness
-            gen_best = deepcopy(indiv)
+        if tracker.gen_best == nothing || indiv.fitness < tracker.gen_best.fitness
+            tracker.gen_best = deepcopy(indiv)
             gb_updated = true
             
-            if run_best == nothing || indiv.fitness < run_best.fitness
-                run_best = gen_best #can just use the copy that was already made
+            if tracker.run_best == nothing || indiv.fitness < tracker.run_best.fitness
+                tracker.run_best = tracker.gen_best #can just use the copy that was already made
                 rb_updated = true
                 
             end
@@ -63,8 +63,8 @@ function update_bests(pop::Array{Individual, 1})
         # @info join(
         #     (
         #         "gen_best:",
-        #         @sprintf("fitness: %0.2f", gen_best.fitness),
-        #         CellTreeMod.to_expr_str(gen_best.cell_tree)
+        #         @sprintf("fitness: %0.2f", tracker.gen_best.fitness),
+        #         CellTreeMod.to_expr_str(tracker.gen_best.cell_tree)
         #     ),
         #     "\n"
         # )
@@ -73,8 +73,8 @@ function update_bests(pop::Array{Individual, 1})
             @info join(
                 (
                     "run_best:",
-                    @sprintf("fitness: %0.2f", run_best.fitness),
-                    CellTreeMod.to_expr_str(run_best.cell_tree)
+                    @sprintf("fitness: %0.2f", tracker.run_best.fitness),
+                    CellTreeMod.to_expr_str(tracker.run_best.cell_tree)
                 ),
                 "\n"
             )
@@ -82,73 +82,61 @@ function update_bests(pop::Array{Individual, 1})
     end
 end
 
-function save_ea_state(label::String, pop::Array{T, 1}) where T
+function save_run()
     global tracker
 
     if tracker.run.log_data
-        buf = IOBuffer()
-        Serialization.serialize(buf, pop)
-        #we'll compress the data *inside* the dictionary. This makes it small enough that it's reasonable to keep it
-        #in memory (avoiding a disk access) during the simulation
-        bytes = nothing
-        try
-            bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
-        catch e
-            len = length(buf.data)
-            over = len - 2^32
-            println("ea_state\nsize: $len, ($over)")
-            exit(1)
-        end
+        run_buf = IOBuffer()
+        Serialization.serialize(run_buf, tracker.run)
+
+        write(tracker.file_handle, Int64(run_buf.size))
+        write(tracker.file_handle, run_buf.data)
+    end
+end
+
+function save_ea_state(pop::Array{Individual, 1}, ea_step::Int64, force::Bool=false)
+    for i in 1:length(pop)
+        save_ea_state(pop[i], ea_step, i, force)
+    end
+end
+
+function save_ea_state(indiv::Individual, ea_step::Int64, index::Int64, force::Bool=false)
+    global tracker
+
+    if tracker.run.log_data && (ea_step in tracker.run.step_range || force)
+        indiv_buf = IOBuffer()
+        Serialization.serialize(indiv_buf, indiv)
+        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, indiv_buf.data)
         
-        if label ∉ keys(tracker.ea_states)
-            tracker.ea_states[label] = Array{Array{UInt8, 1}, 1}()
-        end
-        push!(tracker.ea_states[label], bytes)
+        #write tag
+        write(tracker.file_handle, UInt8(EAState))
+        write(tracker.file_handle, Int64(ea_step))
+        write(tracker.file_handle, Int64(0)) #reg_step
+        write(tracker.file_handle, Int64(index))
+        write(tracker.file_handle, Int64(length(bytes)))
+
+        #write individual
+        write(tracker.file_handle, bytes)
     end
 end
 
-function save_ea_state_on_step(ea_iter::Int64, label::String, pop::Array{T, 1}) where T
-    global tracker
-
-    if tracker.run.log_data && ea_iter in tracker.run.step_range
-        save_ea_state(label, pop)
-    end
-end
-
-function save_reg_state(label::String, pop_trees::Array{Array{CellTree, 1}, 1})
+function save_reg_state(tree::CellTree, ea_step::Int64, reg_step::Int64, index::Int64)
     global tracker
 
     if tracker.run.log_data
-        buf = IOBuffer()
-        Serialization.serialize(buf, pop_trees)
-        bytes = nothing
-        try
-            bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
-        catch e
-            len = length(buf.data)
-            over = len - 2^32
-            println("reg_state\nsize: $len, ($over)")
-            exit(1)
-        end
+        tree_buf = IOBuffer()
+        Serialization.serialize(tree_buf, tree)
+        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, tree_buf.data)
 
-        if label ∉ keys(tracker.reg_states)
-            tracker.reg_states[label] = Array{Array{UInt8, 1}, 1}()
-        end
-        push!(tracker.reg_states[label], bytes)
-    end
-end
+        #write tag
+        write(tracker.file_handle, UInt8(RegState))
+        write(tracker.file_handle, Int64(ea_step))
+        write(tracker.file_handle, Int64(reg_step))
+        write(tracker.file_handle, Int64(index))
+        write(tracker.file_handle, Int64(length(bytes)))
 
-function write_data(path::String)
-    global tracker
-
-    if tracker.run.log_data
-        #note: it's really not worth compressing the enclosing dictionaries here - since the data inside is already compressed,
-        #it's small enough...
-        out_stream = open(path, "w")
-
-        #save the run (no need to compress), ea state (compressed), and reg state (compressed)
-        Serialization.serialize(out_stream, (tracker.run, tracker.ea_states, tracker.reg_states))
-        close(out_stream)
+        #write tree
+        write(tracker.file_handle, bytes)
     end
 end
 

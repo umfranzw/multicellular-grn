@@ -13,7 +13,7 @@ reg_ops = (IndividualMod.run_bind,
            IndividualMod.run_protein_app,
            IndividualMod.run_decay)
 
-function reg_sim(run::Run, pop::Array{Individual, 1})
+function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
     pop_trees = Array{Array{CellTree, 1}, 1}()
     for pop_index in 1:length(pop)
         #@info @sprintf("Individual %d\n", pop_index)
@@ -26,14 +26,11 @@ function reg_sim(run::Run, pop::Array{Individual, 1})
             for op in reg_ops
                 op(indiv)
             end
-            push!(indiv_trees, deepcopy(indiv.cell_tree)) #!!!!
+            TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
         end
 
-        push!(pop_trees, indiv_trees)
         FitnessMod.eval(indiv)
     end
-
-    TrackerMod.save_reg_state("after_reg_step", pop_trees)
 end
 
 end

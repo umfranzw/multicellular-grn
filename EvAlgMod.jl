@@ -11,10 +11,11 @@ import Random
 gen_ops = (MutateMod.mutate,)
 
 function ev_alg(run::Run)
-    TrackerMod.create_tracker(run)
+    data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
+    TrackerMod.create_tracker(run, data_filename)
     pop = create_pop(run)
     #TrackerMod.save_ea_state("initial_pop", pop)
-    RegSimMod.reg_sim(run, pop)
+    RegSimMod.reg_sim(run, pop, -1)
     TrackerMod.update_bests(pop)
 
     ea_step = 1
@@ -25,10 +26,10 @@ function ev_alg(run::Run)
         for op in gen_ops
             op(pop)
         end
-        TrackerMod.save_ea_state_on_step(ea_step, "before_reg_sim", pop)
+        TrackerMod.save_ea_state(pop, ea_step)
         
         #the reg sim will update the fitnesses
-        RegSimMod.reg_sim(run, pop)
+        RegSimMod.reg_sim(run, pop, ea_step)
 
         TrackerMod.update_bests(pop)
 
@@ -38,12 +39,13 @@ function ev_alg(run::Run)
         ea_step += 1
     end
 
-    TrackerMod.write_data(join((RunMod.DATA_PATH, run.data_output_file), "/"))
     TrackerMod.destroy_tracker()
 end
 
 function terminate(run::Run)
-    TrackerMod.run_best != nothing && TrackerMod.run_best.fitness <= run.fitness_term_threshold
+    tracker = TrackerMod.get_tracker()
+    
+    tracker.run_best != nothing && tracker.run_best.fitness <= run.fitness_term_threshold
 end
 
 function create_pop(run::Run)
