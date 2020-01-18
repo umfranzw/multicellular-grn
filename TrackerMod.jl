@@ -8,11 +8,15 @@ using CellTreeMod
 using Printf
 
 @enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 EAState RegState
+@enum TagType::UInt8 EAState RegState RunState
 
 export Tracker
 
 tracker = nothing
+
+#in bytes (max that CodecZlib.GzipCompressor can handle is 2^32 - 1)
+#note: 2^20 bytes = 1MB
+const cache_size = 512 * 2^20
 
 mutable struct Tracker
     run::Run
@@ -20,13 +24,19 @@ mutable struct Tracker
     file_handle::IOStream
     run_best::Union{Individual, Nothing}
     gen_best::Union{Individual, Nothing}
+    cache::IOBuffer
 end
 
 function create_tracker(run::Run, path::String)
     global tracker
 
     file_handle = open(path, "w")
-    tracker = Tracker(run, path, file_handle, nothing, nothing)
+    cache = IOBuffer(maxsize=cache_size)
+    
+    tracker = Tracker(run, path, file_handle, nothing, nothing, cache)
+    save_run()
+
+    tracker
 end
 
 function get_tracker()
@@ -37,6 +47,7 @@ end
 function destroy_tracker()
     global tracker
 
+    flush_cache()
     close(tracker.file_handle)
     tracker = nothing
 end
@@ -82,15 +93,36 @@ function update_bests(pop::Array{Individual, 1})
     end
 end
 
+function write_to_cache(data::Array{UInt8, 1})
+    global tracker
+
+    bytes_needed = sizeof(Int64) + length(data) #we will need to write the size (Int64) and then data
+    if tracker.cache.size > cache_size
+        flush_cache()
+    end
+    write(tracker.cache, Int64(length(data)))
+    write(tracker.cache, data)
+end
+
+function flush_cache()
+    global tracker
+
+    println("flushing cache")
+    bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, take!(tracker.cache))
+
+    #write size, then compressed data
+    write(tracker.file_handle, Int64(length(bytes)))
+    write(tracker.file_handle, bytes)
+end
+
 function save_run()
     global tracker
 
     if tracker.run.log_data
-        run_buf = IOBuffer()
-        Serialization.serialize(run_buf, tracker.run)
-
-        write(tracker.file_handle, Int64(run_buf.size))
-        write(tracker.file_handle, run_buf.data)
+        state = (RunState, tracker.run)
+        buf = IOBuffer()
+        Serialization.serialize(buf, state)
+        write_to_cache(take!(buf))
     end
 end
 
@@ -104,19 +136,10 @@ function save_ea_state(indiv::Individual, ea_step::Int64, index::Int64, force::B
     global tracker
 
     if tracker.run.log_data && (ea_step in tracker.run.step_range || force)
-        indiv_buf = IOBuffer()
-        Serialization.serialize(indiv_buf, indiv)
-        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, indiv_buf.data)
-        
-        #write tag
-        write(tracker.file_handle, UInt8(EAState))
-        write(tracker.file_handle, Int64(ea_step))
-        write(tracker.file_handle, Int64(0)) #reg_step
-        write(tracker.file_handle, Int64(index))
-        write(tracker.file_handle, Int64(length(bytes)))
-
-        #write individual
-        write(tracker.file_handle, bytes)
+        state = (EAState, ea_step, index, indiv)
+        buf = IOBuffer()
+        Serialization.serialize(buf, state)
+        write_to_cache(take!(buf))
     end
 end
 
@@ -124,19 +147,10 @@ function save_reg_state(tree::CellTree, ea_step::Int64, reg_step::Int64, index::
     global tracker
 
     if tracker.run.log_data
-        tree_buf = IOBuffer()
-        Serialization.serialize(tree_buf, tree)
-        bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, tree_buf.data)
-
-        #write tag
-        write(tracker.file_handle, UInt8(RegState))
-        write(tracker.file_handle, Int64(ea_step))
-        write(tracker.file_handle, Int64(reg_step))
-        write(tracker.file_handle, Int64(index))
-        write(tracker.file_handle, Int64(length(bytes)))
-
-        #write tree
-        write(tracker.file_handle, bytes)
+        state = (RegState, ea_step, reg_step, index, tree)
+        buf = IOBuffer()
+        Serialization.serialize(buf, state)
+        write_to_cache(take!(buf))
     end
 end
 

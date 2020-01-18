@@ -3,11 +3,10 @@ module DataMod
 using IndividualMod
 using CellTreeMod
 using RunMod
+import TrackerMod
 import Serialization
 import CodecZlib
 
-#default to reading the first run for now...
-#later it might be useful to give the user a way to choose
 function read_data(filename::String)
     println("Reading data...")
     
@@ -15,44 +14,63 @@ function read_data(filename::String)
 
     #read in the data and deserialize it. This gives a 3-tuple of the form (run, ea_states, reg_states), where
     #to first item is a Run struct and the following two are dictionaries
-    in_stream = open(file_path, "r")
-    run, ea_states, reg_states = Serialization.deserialize(in_stream)
-    close(in_stream)
+    file_in = open(file_path, "r")
 
-    #decompress and deserialize the state dictionaries
-    #ea_states:
-    ea_pops = Dict{String, Array{Array{Individual, 1}, 1}}()
-    for (label, pops) in ea_states
-        #label is a string, and pops is an array of arrays of UInt8 (bytes)
-        for comp_pop in pops
-            decomp_pop = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_pop)
-            buf = IOBuffer(decomp_pop; read=true)
-            deserial_pop = Serialization.deserialize(buf)
+    run = nothing
+    #ea_step, index, reg_step
+    trees = Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}()
+    #ea_step, index
+    indivs = Dict{Int64, Dict{Int64, Individual}}()
+    while !eof(file_in)
+        comp_chunk_size = read(file_in, Int64)
+        comp_chunk = read(file_in, comp_chunk_size)
+        decomp_chunk = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_chunk)
+
+        chunk_buf = IOBuffer(decomp_chunk)
+        while !eof(chunk_buf)
+            serial_obj_size = read(chunk_buf, Int64)
+            serial_obj_chunk = read(chunk_buf, serial_obj_size)
+            obj_buf = IOBuffer(serial_obj_chunk)
+
+            #this is always a tuple, the first element of which is a value from the TrackerMod.TagType enum
+            obj = Serialization.deserialize(obj_buf)
+            tag_type = obj[1]
+            println(tag_type)
             
-            if label ∉ keys(ea_pops)
-                ea_pops[label] = Array{Array{Individual, 1}, 1}()
+            if tag_type == TrackerMod.RunState
+                run = obj[2]
+            elseif tag_type == TrackerMod.RegState
+                insert_tree(trees, obj)
+            elseif tag_type == TrackerMod.EAState
+                insert_indiv(indivs, obj)
             end
-            push!(ea_pops[label], deserial_pop)
         end
     end
-
-    #reg_states:
-    reg_trees = Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}()
-    for (label, trees) in reg_states
-        for comp_trees in trees
-            decomp = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_trees)
-            buf = IOBuffer(decomp; read=true)
-            deserial = Serialization.deserialize(buf)
-
-            if label ∉ keys(reg_trees)
-                reg_trees[label] = Array{Array{Array{CellTree, 1}, 1}, 1}()
-            end
-            push!(reg_trees[label], deserial)
-        end
-    end
-    println("Done.")
     
-    (run, ea_pops, reg_trees)
+    close(file_in)
+
+    run, indivs, trees
+end
+
+function insert_tree(trees::Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}, obj::Tuple{TrackerMod.TagType, Int64, Int64, Int64, CellTree})
+    _, ea_step, reg_step, index, tree = obj
+    #dictionary order is ea_step, index, reg_step
+    if ea_step ∉ keys(trees)
+        trees[ea_step] = Dict{Int64, Dict{Int64, CellTree}}()
+    end
+    if index ∉ keys(trees[ea_step])
+        trees[ea_step][index] = Dict{Int64, CellTree}()
+    end
+    trees[ea_step][index][reg_step] = tree
+end
+
+function insert_indiv(indivs::Dict{Int64, Dict{Int64, Individual}}, obj::Tuple{TrackerMod.TagType, Int64, Int64, Individual})
+    _, ea_step, index, indiv = obj
+    #dictionary order is ea_step, index
+    if ea_step ∉ keys(indivs)
+        indivs[ea_step] = Dict{Int64, Individual}()
+    end
+    indivs[ea_step][index] = indiv
 end
 
 end
