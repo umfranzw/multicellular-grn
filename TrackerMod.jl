@@ -97,7 +97,7 @@ function write_to_cache(data::Array{UInt8, 1})
     global tracker
 
     bytes_needed = sizeof(Int64) + length(data) #we will need to write the size (Int64) and then data
-    if tracker.cache.size > cache_size
+    if tracker.cache.size + bytes_needed > cache_size
         flush_cache()
     end
     write(tracker.cache, Int64(length(data)))

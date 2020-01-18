@@ -30,12 +30,13 @@ function read_data(filename::String)
         while !eof(chunk_buf)
             serial_obj_size = read(chunk_buf, Int64)
             serial_obj_chunk = read(chunk_buf, serial_obj_size)
+
             obj_buf = IOBuffer(serial_obj_chunk)
 
             #this is always a tuple, the first element of which is a value from the TrackerMod.TagType enum
             obj = Serialization.deserialize(obj_buf)
             tag_type = obj[1]
-            println(tag_type)
+            #println(tag_type)
             
             if tag_type == TrackerMod.RunState
                 run = obj[2]
