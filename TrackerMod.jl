@@ -25,6 +25,8 @@ mutable struct Tracker
     run_best::Union{Individual, Nothing}
     gen_best::Union{Individual, Nothing}
     cache::IOBuffer
+    chunk_min_ea_step::Union{Int64, Nothing}
+    chunk_max_ea_step::Union{Int64, Nothing}
 end
 
 function create_tracker(run::Run, path::String)
@@ -33,7 +35,7 @@ function create_tracker(run::Run, path::String)
     file_handle = open(path, "w")
     cache = IOBuffer(maxsize=cache_size)
     
-    tracker = Tracker(run, path, file_handle, nothing, nothing, cache)
+    tracker = Tracker(run, path, file_handle, nothing, nothing, cache, nothing, nothing)
     save_run()
 
     tracker
@@ -93,7 +95,7 @@ function update_bests(pop::Array{Individual, 1})
     end
 end
 
-function write_to_cache(data::Array{UInt8, 1})
+function write_to_cache(data::Array{UInt8, 1}, ea_step::Union{Int64, Nothing}=nothing)
     global tracker
 
     bytes_needed = sizeof(Int64) + length(data) #we will need to write the size (Int64) and then data
@@ -102,6 +104,15 @@ function write_to_cache(data::Array{UInt8, 1})
     end
     write(tracker.cache, Int64(length(data)))
     write(tracker.cache, data)
+
+    if ea_step != nothing
+        if tracker.chunk_min_ea_step == nothing || ea_step < tracker.chunk_min_ea_step
+            tracker.chunk_min_ea_step = ea_step
+        end
+        if tracker.chunk_max_ea_step == nothing || ea_step > tracker.chunk_max_ea_step
+            tracker.chunk_max_ea_step = ea_step
+        end
+    end
 end
 
 function flush_cache()
@@ -110,7 +121,9 @@ function flush_cache()
     println("flushing cache")
     bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, take!(tracker.cache))
 
-    #write size, then compressed data
+    #write min_ea_step, max_ea_step, size, then compressed data
+    write(tracker.file_handle, Int64(tracker.chunk_min_ea_step))
+    write(tracker.file_handle, Int64(tracker.chunk_max_ea_step))
     write(tracker.file_handle, Int64(length(bytes)))
     write(tracker.file_handle, bytes)
 end
@@ -139,7 +152,7 @@ function save_ea_state(indiv::Individual, ea_step::Int64, index::Int64, force::B
         state = (EAState, ea_step, index, indiv)
         buf = IOBuffer()
         Serialization.serialize(buf, state)
-        write_to_cache(take!(buf))
+        write_to_cache(take!(buf), ea_step)
     end
 end
 
@@ -150,7 +163,7 @@ function save_reg_state(tree::CellTree, ea_step::Int64, reg_step::Int64, index::
         state = (RegState, ea_step, reg_step, index, tree)
         buf = IOBuffer()
         Serialization.serialize(buf, state)
-        write_to_cache(take!(buf))
+        write_to_cache(take!(buf), ea_step)
     end
 end
 
