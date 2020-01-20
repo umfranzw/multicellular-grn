@@ -95,13 +95,14 @@ function update_bests(pop::Array{Individual, 1})
     end
 end
 
-function write_to_cache(data::Array{UInt8, 1}, ea_step::Union{Int64, Nothing}=nothing)
+function write_to_cache(tag_type::TagType, data::Array{UInt8, 1}, ea_step::Union{Int64, Nothing}=nothing)
     global tracker
 
-    bytes_needed = sizeof(Int64) + length(data) #we will need to write the size (Int64) and then data
+    bytes_needed = sizeof(TagType) + sizeof(Int64) + length(data) #we will need to write the tag type (UInt8), the size (Int64), and then data
     if tracker.cache.size + bytes_needed > cache_size
         flush_cache()
     end
+    write(tracker.cache, UInt8(tag_type))
     write(tracker.cache, Int64(length(data)))
     write(tracker.cache, data)
 
@@ -132,10 +133,10 @@ function save_run()
     global tracker
 
     if tracker.run.log_data
-        state = (RunState, tracker.run)
+        state = tracker.run
         buf = IOBuffer()
         Serialization.serialize(buf, state)
-        write_to_cache(take!(buf))
+        write_to_cache(RunState, take!(buf))
     end
 end
 
@@ -149,10 +150,10 @@ function save_ea_state(indiv::Individual, ea_step::Int64, index::Int64, force::B
     global tracker
 
     if tracker.run.log_data && (ea_step in tracker.run.step_range || force)
-        state = (EAState, ea_step, index, indiv)
+        state = (ea_step, index, indiv)
         buf = IOBuffer()
         Serialization.serialize(buf, state)
-        write_to_cache(take!(buf), ea_step)
+        write_to_cache(EAState, take!(buf), ea_step)
     end
 end
 
@@ -160,10 +161,10 @@ function save_reg_state(tree::CellTree, ea_step::Int64, reg_step::Int64, index::
     global tracker
 
     if tracker.run.log_data
-        state = (RegState, ea_step, reg_step, index, tree)
+        state = (ea_step, reg_step, index, tree)
         buf = IOBuffer()
         Serialization.serialize(buf, state)
-        write_to_cache(take!(buf), ea_step)
+        write_to_cache(RegState, take!(buf), ea_step)
     end
 end
 
