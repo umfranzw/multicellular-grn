@@ -20,6 +20,22 @@ mutable struct Gene
     prod_sites::Array{ProteinProps, 1}
 end
 
+function get_sites_str(gene::Gene)
+    buf = IOBuffer()
+    for i in 1:length(gene.reg_sites)
+        print(buf, ProteinPropsMod.to_str(gene.reg_sites[i]))
+        print(buf, "\n")
+    end
+    print(buf, "|")
+
+    for i in 1:length(gene.prod_sites)
+        print(buf, ProteinPropsMod.to_str(gene.prod_sites[i]))
+        print(buf, "\n")
+    end
+        
+    String(take!(buf))
+end
+
 function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "Gene:", ilevel)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)

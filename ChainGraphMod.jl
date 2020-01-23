@@ -9,6 +9,12 @@ using GraphVizMod
 mutable struct ChainGraph
     graph::MetaGraph
     label_to_id::Dict{String, Int64}
+
+    function ChainGraph()
+        graph = MetaGraph(DiGraph())
+        
+        new(graph, Dict{String, Int64}())
+    end
 end
 
 function add_node(graph::ChainGraph, type::NodeType, label::String)
