@@ -4,6 +4,7 @@ using CellTreeMod
 using CellMod
 using DataStructures
 using SymMod
+using GraphVizMod
 
 function gen_dot_code(tree::CellTree, cell_index::Int64)
     buf = IOBuffer()
@@ -46,20 +47,9 @@ function sym_str(sym::Sym)
     String(take!(buf))
 end
 
-function gen_graph(tree::CellTree, filename::String, cell_index::Int64)
+function plot(tree::CellTree, filename::String, cell_index::Int64)
     dot_code = gen_dot_code(tree, cell_index)
-    
-    stdout_buf = IOBuffer()
-    stdin_buf = IOBuffer()
-    write(stdin_buf, dot_code)
-    seek(stdin_buf, 0)
-    cmd = `dot -Tpng`
-    run(pipeline(ignorestatus(cmd), stdin=stdin_buf, stdout=stdout_buf))
-    seek(stdout_buf, 0)
-    
-    file = open(filename, "w")
-    write(file, stdout_buf)
-    close(file)
+    GraphVizMod.gen_graph(dot_code, filename)
 end
 
 end

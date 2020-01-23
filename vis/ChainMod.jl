@@ -3,6 +3,7 @@ module ChainMod
 using DataMod
 using CellTreeMod
 using ProteinPropsMod
+using GeneMod
 using CellMod
 
 function find_chains(data::Data, ea_step::Int64, index::Int64, cell_index::Int64)
@@ -30,7 +31,7 @@ function find_links(data::Data, ea_step::Int64, index::Int64, cell_index::Int64)
     links
 end
 
-function find_links(cell::Cell)
+function find_links(cell::Cell, graph::ChainGraph)
     #gene_index, (gene, bindings, products)
     links = Array{Tuple{Gene, Array{ProteinProps, 1}, Array{ProteinProps, 1}}}()
     for gene_index in 1:length(cell.gene_states)

@@ -367,7 +367,7 @@ function build_tree_plot(
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
     tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
 
-    TreeVisMod.gen_graph(tree, tree_graph_path, cell_index)
+    TreeVisMod.plot(tree, tree_graph_path, cell_index)
     set_gtk_property!(graph, :file, tree_graph_path)
 
     println("build_tree_plot")
