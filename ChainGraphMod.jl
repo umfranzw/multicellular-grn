@@ -18,12 +18,15 @@ mutable struct ChainGraph
 end
 
 function add_node(graph::ChainGraph, type::NodeType, label::String)
-    add_vertex!(graph.graph)
-    last_id = MetaGraphs.nv(graph.graph)
-    set_prop!(graph.graph, last_id, :type, type)
-    set_prop!(graph.graph, last_id, :label, label)
+    if label ∉ keys(graph.label_to_id)
+        add_vertex!(graph.graph)
+        last_id = MetaGraphs.nv(graph.graph)
+        set_prop!(graph.graph, last_id, :type, type)
+        set_prop!(graph.graph, last_id, :label, label)
+    end
 end
 
+#note - adding the same edge twice is fine - LightGraphs will handle it
 function add_edge(graph::ChainGraph, src::String, dest::String)
     src_id = graph.label_to_id[src]
     dest_id = graph.label_to_id[dest]

@@ -37,6 +37,7 @@ function create_tracker(run::Run, path::String)
     
     tracker = Tracker(run, path, file_handle, nothing, nothing, cache, nothing, nothing)
     save_run()
+    flush_cache()
 
     tracker
 end
@@ -123,8 +124,8 @@ function flush_cache()
     bytes = CodecZlib.transcode(CodecZlib.GzipCompressor, take!(tracker.cache))
 
     #write min_ea_step, max_ea_step, size, then compressed data
-    write(tracker.file_handle, Int64(tracker.chunk_min_ea_step))
-    write(tracker.file_handle, Int64(tracker.chunk_max_ea_step))
+    write(tracker.file_handle, Int64(tracker.chunk_min_ea_step == nothing ? 0 : tracker.chunk_min_ea_step))
+    write(tracker.file_handle, Int64(tracker.chunk_max_ea_step == nothing ? 0 : tracker.chunk_max_ea_step))
     write(tracker.file_handle, Int64(length(bytes)))
     write(tracker.file_handle, bytes)
 end

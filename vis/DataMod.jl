@@ -19,7 +19,9 @@ mutable struct IndexEntry
 end
 
 mutable struct Data
+    #dictionary order is ea_step, index, reg_step
     trees::Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}
+    #dictionary order is ea_step, index
     indivs::Dict{Int64, Dict{Int64, Individual}}
     index::Dict{Int64, IndexEntry}
     file_handle::IOStream
@@ -39,6 +41,7 @@ mutable struct Data
         index = Dict{Int64, IndexEntry}()
 
         data = new(trees, indivs, index, file_handle, nothing)
+        read_next_chunk(data) #first chunk contains run
         create_index(data)
 
         data
@@ -49,12 +52,23 @@ function close(data::Data)
     close(data.file_handle)
 end
 
+function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
+    read_chunks_for_step(data, ea_step)
+
+    data.indivs[ea_step][pop_index]
+end
+
+function get_tree(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
+    read_chunks_for_step(data, ea_step)
+
+    data.trees[ea_step][pop_index][reg_step]
+end
+
 function create_index(data::Data)
-    seek(data.file_handle, 0)
     while !eof(data.file_handle)
         chunk_start = position(data.file_handle)
         chunk_min_ea_step, chunk_max_ea_step, comp_chunk_size = read_next_header(data)
-        for step in chunk_min_ea_step : chunk_max_ea_step
+        for step in chunk_min_ea_step : data.run.step_range.step : chunk_max_ea_step
             if step != 0 #initial save is given ea_step of -1. The ea_steps start at 1. There is no iteration 0, but min_step can be set to -1.
                 if step ∉ keys(data.index)
                     data.index[step] = IndexEntry()
@@ -82,7 +96,6 @@ function read_chunks_for_step(data::Data, ea_step::Int64)
 end
 
 function read_all(data::Data)
-    seek(data.file_handle, 0)
     while !eof(data.file_handle)
         read_next_chunk(data)
     end

@@ -8,6 +8,7 @@ using CellTreeMod
 using ProteinStoreMod
 using ProteinPropsMod
 using TreeVisMod
+using DataMod
 import GeneMod
 import MiscUtilsMod
 
@@ -28,23 +29,21 @@ mutable struct Controls
 end
 
 function build(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+    data::Data
 )
     outer_vbox = GtkBox(:v)
 
     #control area
-    controls, controls_vbox, add_callbacks = build_control_area(run, reg_trees)
+    controls, controls_vbox, add_callbacks = build_control_area(data)
 
     #props area
-    props_notebook = build_props_area(run, ea_pops, reg_trees, controls, add_callbacks)
+    props_notebook = build_props_area(data, controls, add_callbacks)
 
     #tree graph
-    tree_vbox = build_tree_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
+    tree_vbox = build_tree_graph_area(data, controls, add_callbacks)
 
     #genome_graph
-    genome_vbox = build_genome_graph_area(run, ea_pops, reg_trees, controls, add_callbacks)
+    genome_vbox = build_genome_graph_area(data, controls, add_callbacks)
 
     #paned container for graphs
     paned = GtkPaned(:h)
@@ -63,13 +62,12 @@ function build(
 end
 
 function build_control_area(
-    run::Run,
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}}
+    data::Data
 )
     controls = Controls(
-        Control("Individual: ", GtkEntry(), 1:1:run.pop_size), #indiv
-        Control("EA Step: ", GtkEntry(), run.step_range), #ea
-        Control("Reg Step: ", GtkEntry(), 1:1:run.reg_steps), #reg
+        Control("Individual: ", GtkEntry(), 1:1:data.run.pop_size), #indiv
+        Control("EA Step: ", GtkEntry(), data.run.step_range), #ea
+        Control("Reg Step: ", GtkEntry(), 1:1:data.run.reg_steps), #reg
         Control("Cell: ", GtkEntry(), 1:1:1) #cell
     )
     controls_vbox = GtkBox(:v)
@@ -95,7 +93,7 @@ function build_control_area(
 
         up_callback = button -> adjust_control_val(control, 1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
         down_callback = button -> adjust_control_val(control, -1, map(sym -> getfield(controls, sym), control_syms[i + 1 : end]))
-        update_cell_range_callback = button -> update_cell_range(controls, reg_trees)
+        update_cell_range_callback = button -> update_cell_range(controls, data)
         
         signal_connect(up_callback, up_button, :clicked)
         signal_connect(update_cell_range_callback, up_button, :clicked)
@@ -107,24 +105,22 @@ function build_control_area(
         
         push!(controls_vbox, grid)
     end
-    update_cell_range(controls, reg_trees)
+    update_cell_range(controls, data)
 
     controls, controls_vbox, add_callbacks
 end
 
 function build_props_area(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
     notebook = GtkNotebook()
     set_gtk_property!(notebook, :expand, true)
 
-    concs_tab = build_concs_tab(run, reg_trees, controls, add_callbacks)
-    initial_proteins_tab = build_initial_proteins_tab(run, ea_pops, controls, add_callbacks)
-    bindings_tab = build_bindings_tab(run, reg_trees, controls, add_callbacks)
+    concs_tab = build_concs_tab(data, controls, add_callbacks)
+    initial_proteins_tab = build_initial_proteins_tab(data, controls, add_callbacks)
+    bindings_tab = build_bindings_tab(data, controls, add_callbacks)
     
     push!(notebook, concs_tab, "Protein Concs")
     push!(notebook, initial_proteins_tab, "Initial Proteins")
@@ -134,17 +130,16 @@ function build_props_area(
 end
 
 function build_concs_tab(
-    run::Run,
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
-    conc_types = repeat([Float64], run.num_genes) #props, concs
+    conc_types = repeat([Float64], data.run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
-    populate_concs_store(store, reg_trees, controls)
+    populate_concs_store(store, data, controls)
     for (sym, connector) in add_callbacks
-        connector(button -> populate_concs_store(store, reg_trees, controls))
+        connector(button -> populate_concs_store(store, data, controls))
     end
 
     props_view = GtkTreeView(GtkTreeModel(store))
@@ -152,7 +147,7 @@ function build_concs_tab(
     props_col = GtkTreeViewColumn("Props", ren, Dict([("text", 0)]))
     push!(props_view, props_col)
 
-    for i in 1:run.num_genes
+    for i in 1:data.run.num_genes
         concs_col = GtkTreeViewColumn("Conc $i", ren, Dict([("text", i)]))
         push!(props_view, concs_col)
     end
@@ -165,18 +160,17 @@ function build_concs_tab(
 end
 
 function build_initial_proteins_tab(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
-    conc_types = repeat([Float64], run.num_genes) #props, concs
+    conc_types = repeat([Float64], data.run.num_genes) #props, concs
     store = GtkListStore(String, conc_types...)
 
-    populate_initial_proteins_store(store, ea_pops, controls)
+    populate_initial_proteins_store(store, data, controls)
     for sym in (:indiv, :ea_step)
         connector = add_callbacks[sym]
-        connector(button -> populate_initial_proteins_store(store, ea_pops, controls))
+        connector(button -> populate_initial_proteins_store(store, data, controls))
     end
 
     props_view = GtkTreeView(GtkTreeModel(store))
@@ -184,7 +178,7 @@ function build_initial_proteins_tab(
     props_col = GtkTreeViewColumn("Props", ren, Dict([("text", 0)]))
     push!(props_view, props_col)
 
-    for i in 1:run.num_genes
+    for i in 1:data.run.num_genes
         concs_col = GtkTreeViewColumn("Conc $i", ren, Dict([("text", i)]))
         push!(props_view, concs_col)
     end
@@ -197,8 +191,7 @@ function build_initial_proteins_tab(
 end
 
 function build_bindings_tab(
-    run::Run,
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
@@ -206,9 +199,9 @@ function build_bindings_tab(
     num_prod_cols = length(instances(GeneMod.ProdSite))
     store = GtkListStore(Int64, repeat([String], num_reg_cols + num_prod_cols)...) #gene index, reg site bindings, prod site bindings
 
-    populate_bindings_store(store, reg_trees, controls)
+    populate_bindings_store(store, data, controls)
     for (sym, connector) in add_callbacks
-        connector(button -> populate_bindings_store(store, reg_trees, controls))
+        connector(button -> populate_bindings_store(store, data, controls))
     end
 
     props_view = GtkTreeView(GtkTreeModel(store))
@@ -238,42 +231,38 @@ function build_bindings_tab(
 end
 
 function build_tree_graph_area(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
     tree_vbox = GtkBox(:v)
     push!(tree_vbox, GtkLabel("Tree"))
     tree_graph = GtkImage()
-    build_tree_plot(run, ea_pops, reg_trees, controls, tree_graph)
+    build_tree_plot(data, controls, tree_graph)
     push!(tree_vbox, tree_graph)
     show(tree_graph)
 
     for (sym, connector) in add_callbacks
-        connector(button -> build_tree_plot(run, ea_pops, reg_trees, controls, tree_graph))
+        connector(button -> build_tree_plot(data, controls, tree_graph))
     end
 
     tree_vbox
 end
 
 function build_genome_graph_area(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
     genome_vbox = GtkBox(:v)
     push!(genome_vbox, GtkLabel("Genome"))
     genome_graph = GtkImage()
-    build_genome_plot(run, ea_pops, reg_trees, controls, genome_graph)
+    build_genome_plot(data, controls, genome_graph)
     push!(genome_vbox, genome_graph)
     show(genome_graph)
 
     for (sym, connector) in add_callbacks
-        connector(button -> build_genome_plot(run, ea_pops, reg_trees, controls, genome_graph))
+        connector(button -> build_genome_plot(data, controls, genome_graph))
     end
 
     genome_vbox
@@ -281,7 +270,7 @@ end
 
 function populate_bindings_store(
     store::GtkListStore,
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls
 )
     while length(store) > 0
@@ -289,7 +278,7 @@ function populate_bindings_store(
     end
     
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
     cell = CellTreeMod.get_bf_node(tree, cell_index)
 
     for i in 1:length(cell.gene_states)
@@ -319,7 +308,7 @@ end
 
 function populate_concs_store(
     store::GtkListStore,
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls
 )
     while length(store) > 0
@@ -327,7 +316,7 @@ function populate_concs_store(
     end
     
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
     cell = CellTreeMod.get_bf_node(tree, cell_index)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
@@ -340,7 +329,7 @@ end
 
 function populate_initial_proteins_store(
     store::GtkListStore,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
+    data::Data,
     controls::Controls
 )
     while length(store) > 0
@@ -348,7 +337,7 @@ function populate_initial_proteins_store(
     end
     
     indiv_index, ea_step = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step))
-    indiv = ea_pops["before_reg_sim"][ea_step][indiv_index]
+    indiv = DataMod.get_indiv(data, ea_step, indiv_index)
     for protein in indiv.initial_cell_proteins
         props = ProteinPropsMod.to_str(protein.props)
         push!(store, (props, protein.concs...))
@@ -358,14 +347,12 @@ function populate_initial_proteins_store(
 end
 
 function build_tree_plot(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     graph::GtkImage
 )
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
 
     TreeVisMod.plot(tree, tree_graph_path, cell_index)
     set_gtk_property!(graph, :file, tree_graph_path)
@@ -374,19 +361,17 @@ function build_tree_plot(
 end
 
 function build_genome_plot(
-    run::Run,
-    ea_pops::Dict{String, Array{Array{Individual, 1}, 1}},
-    reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}},
+    data::Data,
     controls::Controls,
     graph::GtkImage
 )
-    #reg_trees: ea_step, indiv, reg_step
+    #data: ea_step, indiv, reg_step
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
     cell = CellTreeMod.get_bf_node(tree, cell_index)
     proteins = ProteinStoreMod.get_all(cell.proteins)
 
-    concs = zeros(run.num_genes, length(proteins))
+    concs = zeros(data.run.num_genes, length(proteins))
     labels = fill("", (1, length(proteins)))
     for i in 1:length(proteins)
         label = ProteinPropsMod.to_str(proteins[i].props)
@@ -401,14 +386,21 @@ function build_genome_plot(
     println("build_genome_plot")
 end
 
-function update_cell_range(controls::Controls, reg_trees::Dict{String, Array{Array{Array{CellTree, 1}, 1}, 1}})
+function update_cell_range(
+    controls::Controls,
+    data::Data
+)
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
-    tree = reg_trees["after_reg_step"][ea_step][indiv_index][reg_step]
+    tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
     size = CellTreeMod.size(tree)
     controls.cell.range = StepRange(controls.cell.range.start, controls.cell.range.step, size) # note: must construct a new range, since they're immutable
 end
 
-function adjust_control_val(control::Control, dir::Int64, reset::Array{Control, 1})
+function adjust_control_val(
+    control::Control,
+    dir::Int64,
+    reset::Array{Control, 1}
+)
     cur = parse(Int64, get_gtk_property(control.entry, :text, String))
     cur = clamp(cur + dir * control.range.step, control.range.start, control.range.stop)
     set_gtk_property!(control.entry, :text, string(cur))

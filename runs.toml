@@ -2,8 +2,8 @@
 ######
 # GA #
 ######
-pop_size = 50
-ea_steps = 2
+pop_size = 10
+ea_steps = 10
 mut_prob = 0.3
 num_genes = 4
 #GA will terminate when best fitness drops below this value
@@ -15,7 +15,7 @@ prod_rate_incr = 0.1
 #########################
 # Regulatory Simulation #
 #########################
-reg_steps = 20
+reg_steps = 40
 #note: this must be < reg_bind_threshold
 protein_deletion_threshold = 0.04
 
@@ -46,6 +46,6 @@ rng_seed = 1
 # Tracking #
 ############
 log_data = true
-step_range = "1:5:100"
+step_range = "1:2:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

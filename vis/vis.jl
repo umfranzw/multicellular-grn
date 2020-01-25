@@ -19,20 +19,20 @@ function main()
     ProteinAppActionsMod.init_app_actions()
     
     datafile = get_args()
-    run, ea_pops, reg_trees = DataMod.read_data(datafile)
+    data = Data(datafile)
     
     win = GtkWindow("Vis", 1100, 600)
     vbox = GtkBox(:v)
     push!(win, vbox)
     
-    reg_sim_tab = RegSimTabMod.build(run, ea_pops, reg_trees)
+    reg_sim_tab = RegSimTabMod.build(data)
     push!(vbox, reg_sim_tab)
 
-    condition = Condition()
-    endit(w) = notify(condition)
-    signal_connect(endit, win, :destroy)
+    end_condition = Condition()
+    signal_connect(w -> DataMod.close(data), win, :destroy)
+    signal_connect(w -> notify(end_condition), win, :destroy)
     showall(win)
-    wait(condition)
+    wait(end_condition)
 end
 
 main()
