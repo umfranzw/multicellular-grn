@@ -24,13 +24,17 @@ function get_sites_str(gene::Gene)
     buf = IOBuffer()
     for i in 1:length(gene.reg_sites)
         print(buf, ProteinPropsMod.to_str(gene.reg_sites[i]))
-        print(buf, "\n")
+        if i < length(gene.reg_sites)
+            print(buf, ", ")
+        end
     end
-    print(buf, "|")
+    print(buf, "\n")
 
     for i in 1:length(gene.prod_sites)
         print(buf, ProteinPropsMod.to_str(gene.prod_sites[i]))
-        print(buf, "\n")
+        if i < length(gene.prod_sites)
+            print(buf, ", ")
+        end
     end
         
     String(take!(buf))

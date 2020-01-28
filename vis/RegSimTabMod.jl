@@ -9,11 +9,14 @@ using ProteinStoreMod
 using ProteinPropsMod
 using TreeVisMod
 using DataMod
+using ChainMod
+using ChainGraphMod
 import GeneMod
 import MiscUtilsMod
 
 genome_graph_path = "/tmp/genome_graph.png"
 tree_graph_path = "/tmp/tree_graph.png"
+chain_graph_path = "/tmp/chain_graph.png"
 
 mutable struct Control
     title::String
@@ -39,23 +42,15 @@ function build(
     #props area
     props_notebook = build_props_area(data, controls, add_callbacks)
 
-    #tree graph
-    tree_vbox = build_tree_graph_area(data, controls, add_callbacks)
-
-    #genome_graph
-    genome_vbox = build_genome_graph_area(data, controls, add_callbacks)
-
-    #paned container for graphs
-    paned = GtkPaned(:h)
-    push!(paned, genome_vbox)
-    push!(paned, tree_vbox)
+    #graphs area
+    graphs_notebook = build_graphs_area(data, controls, add_callbacks)
 
     #hbox for control and props areas
     hbox = GtkBox(:h)
     push!(hbox, controls_vbox)
     push!(hbox, props_notebook)
     
-    push!(outer_vbox, paned)
+    push!(outer_vbox, graphs_notebook)
     push!(outer_vbox, hbox)
 
     outer_vbox
@@ -108,6 +103,25 @@ function build_control_area(
     update_cell_range(controls, data)
 
     controls, controls_vbox, add_callbacks
+end
+
+function build_graphs_area(
+    data::Data,
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
+    notebook = GtkNotebook()
+    set_gtk_property!(notebook, :expand, true)
+
+    tree_tab = build_tree_graph_area(data, controls, add_callbacks)
+    genome_tab = build_genome_graph_area(data, controls, add_callbacks)
+    chains_tab = build_chains_graph_area(data, controls, add_callbacks)
+
+    push!(notebook, tree_tab, "Cell Tree")
+    push!(notebook, genome_tab, "Genome")
+    push!(notebook, chains_tab, "Interaction Chains")
+
+    notebook
 end
 
 function build_props_area(
@@ -268,6 +282,25 @@ function build_genome_graph_area(
     genome_vbox
 end
 
+function build_chain_graph_area(
+    data::Data,
+    controls::Controls,
+    add_callbacks::Dict{Symbol, Function}
+)
+    chain_vbox = GtkBox(:v)
+    push!(chain_vbox, GtkLabel("Interaction Chains"))
+    chain_graph = GtkImage()
+    build_chain_plot(data, controls, chain_graph)
+    push!(chain_vbox, chain_graph)
+    show(chain_graph)
+
+    for (sym, connector) in add_callbacks
+        connector(button -> build_chain_plot(data, controls, chain_graph))
+    end
+
+    chain_vbox
+end
+
 function populate_bindings_store(
     store::GtkListStore,
     data::Data,
@@ -384,6 +417,20 @@ function build_genome_plot(
     set_gtk_property!(graph, :file, genome_graph_path)
 
     println("build_genome_plot")
+end
+
+function build_chain_plot(
+    data::Data,
+    controls::Controls,
+    graph::GtkImage
+)
+    indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
+    chains = ChainMod.build_chain_graph(data, ea_step, indiv_index, cell_index)
+
+    ChainGraphMod.plot(chains, chain_graph_path)
+    set_gtk_property!(graph, :file, chain_graph_path)
+
+    println("build_chain_plot")
 end
 
 function update_cell_range(

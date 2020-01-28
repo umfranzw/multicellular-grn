@@ -1,6 +1,6 @@
 module GraphVizMod
 
-function gen_graph(dot_code::String, filename::String)
+function plot(dot_code::String, filename::String)
     stdout_buf = IOBuffer()
     stdin_buf = IOBuffer()
     write(stdin_buf, dot_code)

@@ -1,82 +1,83 @@
 module ChainGraphMod
 
 using LightGraphs
-using MetaGraphs
 using GraphVizMod
 
-@enum NodeType::UInt8 ProteinNode GeneNod
+export ChainGraph, NodeType
+
+@enum NodeType::UInt8 ProteinNode GeneNode
+
+struct NodeInfo
+    label::String
+    type::NodeType
+    id::Int64
+end
 
 mutable struct ChainGraph
-    graph::MetaGraph
-    label_to_id::Dict{String, Int64}
+    graph::DiGraph
+    node_info::Dict{String, NodeInfo}
 
     function ChainGraph()
-        graph = MetaGraph(DiGraph())
+        graph = DiGraph()
         
-        new(graph, Dict{String, Int64}())
+        new(graph, Dict{String, NodeInfo}())
     end
 end
 
 function add_node(graph::ChainGraph, type::NodeType, label::String)
-    if label ∉ keys(graph.label_to_id)
+    if label ∉ keys(graph.node_info)
         add_vertex!(graph.graph)
-        last_id = MetaGraphs.nv(graph.graph)
-        set_prop!(graph.graph, last_id, :type, type)
-        set_prop!(graph.graph, last_id, :label, label)
+        last_id = LightGraphs.nv(graph.graph)
+        graph.node_info[label] = NodeInfo(label, type, last_id)
     end
 end
 
 #note - adding the same edge twice is fine - LightGraphs will handle it
-function add_edge(graph::ChainGraph, src::String, dest::String)
-    src_id = graph.label_to_id[src]
-    dest_id = graph.label_to_id[dest]
+function add_edge(graph::ChainGraph, src_label::String, dest_label::String)
+    src_id = graph.node_info[src_label].id
+    dest_id = graph.node_info[dest_label].id
     add_edge!(graph.graph, src_id, dest_id)
 end
 
-function get_types(graph::ChainGraph)
-    protein_nodes = Array{Node, 1}()
-    gene_nodes = Array{Node, 1}()
-
-    for node_id in vertices(graph.graph)
-        type = get_prop(graph.graph, node_id, :type)
-        if type == ProteinNode
-            push!(protein_nodes, node_id)
-        elseif type == GeneNode
-            push!(gene_nodes, node_id)
-        end
-    end
-
-    (protein_nodes, gene_nodes)
-end
-
 function gen_dot_code(graph::ChainGraph)
-    protein_ids, gene_ids = get_types(graph)
-    buf = IOBuffer()
-    print(buf, "digraph G {\n")
+    graph_buf = IOBuffer()
+    print(graph_buf, "digraph G {\n")
 
-    #nodes
-    for ids in (protein_ids, gene_ids)
-        print(buf, "{rank = same; ")
-        for id in ids
-            label = get_prop(graph.graph, id, :label)
-            print(buf, "$(id) [label=\"$(label)\"]; ")
+    #generate code for nodes
+    protein_buf = IOBuffer()
+    gene_buf = IOBuffer()
+    print(protein_buf, "{rank = same; ")
+    print(gene_buf, "{rank = same; ")
+
+    for (label, info) in graph.node_info
+        if info.type == ProteinNode
+            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=lightblue,shape=circle];\n")
+            
+        elseif info.type == GeneNode
+            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=lightgreen,shape=box];\n")
         end
-        print(buf, "}\n")
+    end
+    print(protein_buf, "}\n")
+    print(gene_buf, "}\n")
+    
+    #generate code for edges
+    edge_buf = IOBuffer()
+    for edge in edges(graph.graph)
+        print(edge_buf, "$(edge.src) -> $(edge.dst);\n")
     end
 
-    #edges
-    for edge in edges(graph.graph)
-        print(buf, "$(edge.src) -> $(edge.dst);\n")
-    end
-    
-    print(buf, "}\n")
-    
-    String(take!(buf))
+    #put it all together
+    print(graph_buf, String(take!(protein_buf)))
+    print(graph_buf, String(take!(gene_buf)))
+    print(graph_buf, String(take!(edge_buf)))
+    print(graph_buf, "}")
+
+    String(take!(graph_buf))
 end
 
 function plot(graph::ChainGraph, filename::String)
     dot_code = gen_dot_code(graph)
-    GraphVizMod.gen_graph(dot_code, filename)
+    GraphVizMod.plot(dot_code, filename)
 end
 
 end

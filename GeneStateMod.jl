@@ -91,7 +91,7 @@ end
 function calc_rate_for_reg_sites(gs::GeneState, sites::Array{GeneMod.RegSite, 1})
     producing = false
     weight = 0.0
-    for site in instances(GeneMod.RegSite)
+    for site in sites
         protein = get_binding_state(gs, site)
         if protein != nothing && protein.props.reg_action != ProteinPropsMod.Inhibit
             producing = true
@@ -100,7 +100,7 @@ function calc_rate_for_reg_sites(gs::GeneState, sites::Array{GeneMod.RegSite, 1}
     end
 
     if producing
-        return weight / length(instances(GeneMod.RegSite)) #take the average (this will be a value in [0.0, 1.0])
+        return weight / length(sites) #take the average (this will be a value in [0.0, 1.0])
     else
         return nothing
     end

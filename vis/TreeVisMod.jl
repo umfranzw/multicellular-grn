@@ -49,7 +49,7 @@ end
 
 function plot(tree::CellTree, filename::String, cell_index::Int64)
     dot_code = gen_dot_code(tree, cell_index)
-    GraphVizMod.gen_graph(dot_code, filename)
+    GraphVizMod.plot(dot_code, filename)
 end
 
 end
