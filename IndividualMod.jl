@@ -65,7 +65,7 @@ function rand_init(run::Run, seed::UInt64)
         app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true)
+        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true, true)
         push!(initial_proteins, protein)
     end
     
@@ -193,7 +193,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     if protein == nothing
         #note: protein will be initialized with conc values of zero
         #@info @sprintf("Produced protein: %s", props)
-        protein = Protein(cell.config, props, false)
+        protein = Protein(cell.config, props, false, false)
         ProteinStoreMod.insert(cell.proteins, protein, true)
     end
     

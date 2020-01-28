@@ -16,19 +16,20 @@ mutable struct Protein
     config::Config
     props::ProteinProps
     concs::Array{Float64, 1}
+    is_initial::Bool
 
-    function Protein(config::Config, props::ProteinProps, rand_concs::Bool)
+    function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool)
         if rand_concs
             concs = RandUtilsMod.rand_floats(config, config.run.num_genes)
         else
             concs = zeros(Float64, config.run.num_genes)
         end
         
-        new(config, props, concs)
+        new(config, props, concs, is_initial)
     end
 
-    function Protein(config::Config,  props::ProteinProps, concs::Array{Float64, 1})
-        new(config, props, concs)
+    function Protein(config::Config,  props::ProteinProps, concs::Array{Float64, 1}, is_initial::Bool)
+        new(config, props, concs, is_initial)
     end
 end
 
@@ -39,6 +40,7 @@ end
 
 function show(io::IO, protein::Protein, ilevel::Int64=0)
     iprintln(io, "Protein:", ilevel)
+    iprint(io, "is_initial: $(string(protein.is_initial))", ilevel + 1)
     iprint(io, "props: $(protein.props)", ilevel + 1)
     
     iprint(io, "concs: [", ilevel + 1)

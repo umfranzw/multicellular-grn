@@ -11,6 +11,7 @@ struct NodeInfo
     label::String
     type::NodeType
     id::Int64
+    is_initial_protein::Bool
 end
 
 #note: may add more to this later...
@@ -30,11 +31,11 @@ mutable struct ChainGraph
     end
 end
 
-function add_node(graph::ChainGraph, type::NodeType, label::String)
+function add_node(graph::ChainGraph, type::NodeType, label::String, is_initial_protein::Bool=false)
     if label ∉ keys(graph.node_info)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
-        graph.node_info[label] = NodeInfo(label, type, last_id)
+        graph.node_info[label] = NodeInfo(label, type, last_id, is_initial_protein)
     end
 end
 
@@ -61,7 +62,12 @@ function gen_dot_code(graph::ChainGraph)
 
     for (label, info) in graph.node_info
         if info.type == ProteinNode
-            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#ADD8E6\",shape=circle];\n")
+            if info.is_initial_protein
+                colour = "#FF0000"
+            else
+                colour = "#000000"
+            end
+            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
             
         elseif info.type == GeneNode
             print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",shape=box];\n")
