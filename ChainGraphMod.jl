@@ -70,7 +70,7 @@ function gen_dot_code(graph::ChainGraph)
             print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
             
         elseif info.type == GeneNode
-            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",shape=box];\n")
+            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",penwidth=4,shape=box];\n")
         end
     end
     print(protein_buf, "}\n")
