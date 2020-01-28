@@ -48,7 +48,7 @@ function build_chain_graph(data::Data, ea_step::Int64, index::Int64, cell_index:
                     ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein_label)
 
                     #add incoming protein edge
-                    ChainGraphMod.add_edge(graph, protein_label, gene_label)
+                    ChainGraphMod.add_edge(graph, protein_label, gene_label, string(reg_step))
                 end
 
                 for protein_label in prod_proteins
@@ -56,7 +56,7 @@ function build_chain_graph(data::Data, ea_step::Int64, index::Int64, cell_index:
                     ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein_label)
 
                     #add outgoing protein edge
-                    ChainGraphMod.add_edge(graph, gene_label, protein_label)
+                    ChainGraphMod.add_edge(graph, gene_label, protein_label, string(reg_step))
                 end
             end
         end

@@ -95,6 +95,14 @@ function read_chunks_for_step(data::Data, ea_step::Int64)
     end
 end
 
+function delete_chunks_for_step(data::Data, ea_step::Int64)
+    if data.index[ea_step].loaded
+        delete!(data.trees, ea_step)
+        delete!(data.indivs, ea_step)
+        data.index[ea_step].loaded = false
+    end
+end
+
 function read_all(data::Data)
     while !eof(data.file_handle)
         read_next_chunk(data)

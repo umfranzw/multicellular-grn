@@ -14,7 +14,7 @@ using ChainGraphMod
 import GeneMod
 import MiscUtilsMod
 
-genome_graph_path = "/tmp/genome_graph.png"
+protein_graph_path = "/tmp/protein_graph.png"
 tree_graph_path = "/tmp/tree_graph.png"
 chain_graph_path = "/tmp/chain_graph.png"
 
@@ -113,12 +113,12 @@ function build_graphs_area(
     notebook = GtkNotebook()
     set_gtk_property!(notebook, :expand, true)
 
+    protein_tab = build_protein_graph_area(data, controls, add_callbacks)
     tree_tab = build_tree_graph_area(data, controls, add_callbacks)
-    genome_tab = build_genome_graph_area(data, controls, add_callbacks)
-    chains_tab = build_chains_graph_area(data, controls, add_callbacks)
+    chains_tab = build_chain_graph_area(data, controls, add_callbacks)
 
+    push!(notebook, protein_tab, "Protein Concentrations")
     push!(notebook, tree_tab, "Cell Tree")
-    push!(notebook, genome_tab, "Genome")
     push!(notebook, chains_tab, "Interaction Chains")
 
     notebook
@@ -254,32 +254,35 @@ function build_tree_graph_area(
     tree_graph = GtkImage()
     build_tree_plot(data, controls, tree_graph)
     push!(tree_vbox, tree_graph)
-    show(tree_graph)
 
     for (sym, connector) in add_callbacks
         connector(button -> build_tree_plot(data, controls, tree_graph))
     end
 
-    tree_vbox
+    win = GtkScrolledWindow()
+    push!(win, tree_vbox)
+    show(tree_graph)
+    
+    win
 end
 
-function build_genome_graph_area(
+function build_protein_graph_area(
     data::Data,
     controls::Controls,
     add_callbacks::Dict{Symbol, Function}
 )
-    genome_vbox = GtkBox(:v)
-    push!(genome_vbox, GtkLabel("Genome"))
-    genome_graph = GtkImage()
-    build_genome_plot(data, controls, genome_graph)
-    push!(genome_vbox, genome_graph)
-    show(genome_graph)
+    protein_vbox = GtkBox(:v)
+    push!(protein_vbox, GtkLabel("Protein Concentrations"))
+    protein_graph = GtkImage()
+    build_protein_plot(data, controls, protein_graph)
+    push!(protein_vbox, protein_graph)
+    show(protein_graph)
 
     for (sym, connector) in add_callbacks
-        connector(button -> build_genome_plot(data, controls, genome_graph))
+        connector(button -> build_protein_plot(data, controls, protein_graph))
     end
 
-    genome_vbox
+    protein_vbox
 end
 
 function build_chain_graph_area(
@@ -292,13 +295,16 @@ function build_chain_graph_area(
     chain_graph = GtkImage()
     build_chain_plot(data, controls, chain_graph)
     push!(chain_vbox, chain_graph)
-    show(chain_graph)
 
     for (sym, connector) in add_callbacks
         connector(button -> build_chain_plot(data, controls, chain_graph))
     end
+    
+    win = GtkScrolledWindow()
+    push!(win, chain_vbox)
+    show(chain_graph)
 
-    chain_vbox
+    win
 end
 
 function populate_bindings_store(
@@ -393,7 +399,7 @@ function build_tree_plot(
     println("build_tree_plot")
 end
 
-function build_genome_plot(
+function build_protein_plot(
     data::Data,
     controls::Controls,
     graph::GtkImage
@@ -413,10 +419,10 @@ function build_genome_plot(
     end
 
     plot = groupedbar(concs, bar_position=:overlay, label=labels);
-    savefig(plot, genome_graph_path);
-    set_gtk_property!(graph, :file, genome_graph_path)
+    savefig(plot, protein_graph_path);
+    set_gtk_property!(graph, :file, protein_graph_path)
 
-    println("build_genome_plot")
+    println("build_protein_plot")
 end
 
 function build_chain_plot(

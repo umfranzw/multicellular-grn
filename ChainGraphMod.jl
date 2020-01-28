@@ -13,14 +13,20 @@ struct NodeInfo
     id::Int64
 end
 
+#note: may add more to this later...
+struct EdgeInfo
+    label::Union{String, Nothing}
+end
+
 mutable struct ChainGraph
     graph::DiGraph
     node_info::Dict{String, NodeInfo}
+    edge_info::Dict{Tuple{Int64, Int64}, EdgeInfo}
 
     function ChainGraph()
         graph = DiGraph()
         
-        new(graph, Dict{String, NodeInfo}())
+        new(graph, Dict{String, NodeInfo}(), Dict{Tuple{Int64, Int64}, EdgeInfo}())
     end
 end
 
@@ -33,10 +39,14 @@ function add_node(graph::ChainGraph, type::NodeType, label::String)
 end
 
 #note - adding the same edge twice is fine - LightGraphs will handle it
-function add_edge(graph::ChainGraph, src_label::String, dest_label::String)
+function add_edge(graph::ChainGraph, src_label::String, dest_label::String, edge_label::Union{String, Nothing}=nothing)
     src_id = graph.node_info[src_label].id
     dest_id = graph.node_info[dest_label].id
     add_edge!(graph.graph, src_id, dest_id)
+    key = (src_id, dest_id)
+    if key ∉ keys(graph.edge_info)
+        graph.edge_info[key] = EdgeInfo(edge_label)
+    end
 end
 
 function gen_dot_code(graph::ChainGraph)
@@ -51,10 +61,10 @@ function gen_dot_code(graph::ChainGraph)
 
     for (label, info) in graph.node_info
         if info.type == ProteinNode
-            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=lightblue,shape=circle];\n")
+            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#ADD8E6\",shape=circle];\n")
             
         elseif info.type == GeneNode
-            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=lightgreen,shape=box];\n")
+            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",shape=box];\n")
         end
     end
     print(protein_buf, "}\n")
@@ -63,7 +73,8 @@ function gen_dot_code(graph::ChainGraph)
     #generate code for edges
     edge_buf = IOBuffer()
     for edge in edges(graph.graph)
-        print(edge_buf, "$(edge.src) -> $(edge.dst);\n")
+        info = graph.edge_info[(edge.src, edge.dst)]
+        print(edge_buf, "$(edge.src) -> $(edge.dst) [label=\"$(info.label)\"];\n")
     end
 
     #put it all together
