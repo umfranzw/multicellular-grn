@@ -14,7 +14,7 @@ function ev_alg(run::Run)
     data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
     TrackerMod.create_tracker(run, data_filename)
     pop = create_pop(run)
-    TrackerMod.save_ea_state(pop, -1)
+    TrackerMod.save_ea_state(pop, -1, true)
     RegSimMod.reg_sim(run, pop, -1)
     TrackerMod.update_bests(pop)
 

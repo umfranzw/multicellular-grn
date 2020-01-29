@@ -21,9 +21,12 @@ end
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
     trees::Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}
+    #(ea_step, index, reg_step) => position in file
+    trees_index::Dict{Tuple{Int64, Int64, Int64}, Int64}
     #dictionary order is ea_step, index
     indivs::Dict{Int64, Dict{Int64, Individual}}
-    index::Dict{Int64, IndexEntry}
+    #(ea_step, index) => position in file
+    indivs_index::Dict{Tuple{Int64, Int64}, Int64}
     file_handle::IOStream
     run::Union{Run, Nothing}
 
@@ -33,15 +36,14 @@ mutable struct Data
         
         #ea_step, index, reg_step
         trees = Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}()
+        trees_index = Dict{Tuple{Int64, Int64, Int64}, Int64}()
         
         #ea_step, index
         indivs = Dict{Int64, Dict{Int64, Individual}}()
+        indivs_index = Dict{Tuple{Int64, Int64}, Int64}()
         
-        #ea_step => IndexEntry([chunk_start_positions], loaded?)
-        index = Dict{Int64, IndexEntry}()
-
-        data = new(trees, indivs, index, file_handle, nothing)
-        read_next_chunk(data) #first chunk contains run
+        data = new(trees, trees_index, indivs, indivs_index, file_handle, nothing)
+        read_run(data)
         create_index(data)
 
         data
@@ -53,9 +55,30 @@ function close(data::Data)
 end
 
 function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
-    read_chunks_for_step(data, ea_step)
+    indiv = nothing
+    key = (ea_step, pop_index)
+    
+    if key in keys(data.indivs)
+        indiv = data.indivs[key]
+    else
+        
+        
+    end    
+    
+    indiv
+end
 
-    data.indivs[ea_step][pop_index]
+function read_obj(data::Data, pos::Int64)
+    seek(data.file_handle, pos)
+    tag_type = read(data.file_handle, TrackerMod.TagType)
+    
+    if tag_type == TrackerMod.RunState
+        size = read(data.file_handle, Int64)
+        obj = read(data.file_handle, size)
+        
+    elseif tag_type == TrackerMod.IndivState
+        pos = data.indivs_index[key]
+        
 end
 
 function get_tree(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
