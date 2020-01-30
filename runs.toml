@@ -15,7 +15,7 @@ prod_rate_incr = 0.1
 #########################
 # Regulatory Simulation #
 #########################
-reg_steps = 40
+reg_steps = 20
 #note: this must be < reg_bind_threshold
 protein_deletion_threshold = 0.04
 

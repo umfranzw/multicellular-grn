@@ -9,24 +9,15 @@ import CodecZlib
 
 export Data
 
-mutable struct IndexEntry
-    positions::Array{Int64, 1}
-    loaded::Bool
-
-    function IndexEntry()
-        new(Array{Int64, 1}(), false)
-    end
-end
-
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
-    trees::Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}
-    #(ea_step, index, reg_step) => position in file
-    trees_index::Dict{Tuple{Int64, Int64, Int64}, Int64}
+    trees::Dict{Tuple{Int64, Int64, Int64}, CellTree}
+    #(ea_step, index, reg_step) => (position, size)
+    trees_index::Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}
     #dictionary order is ea_step, index
-    indivs::Dict{Int64, Dict{Int64, Individual}}
-    #(ea_step, index) => position in file
-    indivs_index::Dict{Tuple{Int64, Int64}, Int64}
+    indivs::Dict{Tuple{Int64, Int64}, Individual}
+    #(ea_step, index) => (position, size)
+    indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
     file_handle::IOStream
     run::Union{Run, Nothing}
 
@@ -35,15 +26,15 @@ mutable struct Data
         file_handle = open(file_path, "r")
         
         #ea_step, index, reg_step
-        trees = Dict{Int64, Dict{Int64, Dict{Int64, CellTree}}}()
-        trees_index = Dict{Tuple{Int64, Int64, Int64}, Int64}()
+        trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
+        trees_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
         
         #ea_step, index
-        indivs = Dict{Int64, Dict{Int64, Individual}}()
-        indivs_index = Dict{Tuple{Int64, Int64}, Int64}()
+        indivs = Dict{Tuple{Int64, Int64}, Individual}()
+        indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
         data = new(trees, trees_index, indivs, indivs_index, file_handle, nothing)
-        read_run(data)
+        data.run = get_run(data)
         create_index(data)
 
         data
@@ -54,142 +45,82 @@ function close(data::Data)
     close(data.file_handle)
 end
 
-function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
-    indiv = nothing
-    key = (ea_step, pop_index)
-    
-    if key in keys(data.indivs)
-        indiv = data.indivs[key]
-    else
-        
-        
-    end    
-    
-    indiv
-end
-
-function read_obj(data::Data, pos::Int64)
-    seek(data.file_handle, pos)
+function get_run(data::Data)
+    seek(data.file_handle, 0)
     tag_type = read(data.file_handle, TrackerMod.TagType)
     
-    if tag_type == TrackerMod.RunState
-        size = read(data.file_handle, Int64)
-        obj = read(data.file_handle, size)
-        
-    elseif tag_type == TrackerMod.IndivState
-        pos = data.indivs_index[key]
-        
+    if tag_type != TrackerMod.RunState
+        println("Error - the run is not the first thing in the data file.")
+        close(data)
+        exit(1)
+    end
+    
+    size = read(data.file_handle, Int64)
+
+    read_obj(data, position(data.file_handle), size)
+end
+
+function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
+    key = (ea_step,  pop_index)
+    get_obj(data, key, :indivs, :indivs_index)
 end
 
 function get_tree(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
-    read_chunks_for_step(data, ea_step)
+    key = (ea_step, pop_index, reg_step)
+    get_obj(data, key, :trees, :trees_index)
+end
 
-    data.trees[ea_step][pop_index][reg_step]
+function get_obj(data::Data, key::Any, store_field::Symbol, index_field::Symbol)
+    store = getfield(data, store_field)
+    index = getfield(data, index_field)
+    
+    if key ∉ keys(store)
+        pos, size = index[key]
+        store[key] = read_obj(data, pos, size)
+    end    
+    
+    store[key]
+end
+
+function read_obj(data::Data, pos::Int64, size::Int64)
+    seek(data.file_handle, pos)
+
+    comp_obj = read(data.file_handle, size)
+    ser_obj = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_obj)
+    ser_buf = IOBuffer(ser_obj)
+
+    Serialization.deserialize(ser_buf)
 end
 
 function create_index(data::Data)
     while !eof(data.file_handle)
-        chunk_start = position(data.file_handle)
-        chunk_min_ea_step, chunk_max_ea_step, comp_chunk_size = read_next_header(data)
-        for step in chunk_min_ea_step : data.run.step_range.step : chunk_max_ea_step
-            if step != 0 #initial save is given ea_step of -1. The ea_steps start at 1. There is no iteration 0, but min_step can be set to -1.
-                if step ∉ keys(data.index)
-                    data.index[step] = IndexEntry()
-                end
-                push!(data.index[step].positions, chunk_start)
-            end
-        end
-
-        #go to next chunk
-        seek(data.file_handle, position(data.file_handle) + comp_chunk_size)
-    end
-end
-
-function read_chunks_for_step(data::Data, ea_step::Int64)
-    already_read = data.index[ea_step].loaded
-    if !already_read
-        positions = data.index[ea_step].positions
-        for pos in positions
-            seek(data.file_handle, pos)
-            read_next_chunk(data)
-        end
-        #mark as loaded
-        data.index[ea_step].loaded = true
-    end
-end
-
-function delete_chunks_for_step(data::Data, ea_step::Int64)
-    if data.index[ea_step].loaded
-        delete!(data.trees, ea_step)
-        delete!(data.indivs, ea_step)
-        data.index[ea_step].loaded = false
-    end
-end
-
-function read_all(data::Data)
-    while !eof(data.file_handle)
-        read_next_chunk(data)
-    end
-
-    #mark all as loaded
-    for ea_step in keys(data.index)
-        data.index[ea_step].loaded = true
-    end
-end
-
-function read_next_header(data::Data)
-    chunk_min_ea_step = read(data.file_handle, Int64)
-    chunk_max_ea_step = read(data.file_handle, Int64)
-    comp_chunk_size = read(data.file_handle, Int64)
-
-    return (chunk_min_ea_step, chunk_max_ea_step, comp_chunk_size)
-end
-
-function read_next_chunk(data::Data)
-    chunk_min_ea_step, chunk_max_ea_step, comp_chunk_size = read_next_header(data)
-    comp_chunk = read(data.file_handle, comp_chunk_size)
-    decomp_chunk = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_chunk)
-
-    chunk_buf = IOBuffer(decomp_chunk)
-    while !eof(chunk_buf)
-        tag_type = TrackerMod.TagType(read(chunk_buf, UInt8))
-        serial_obj_size = read(chunk_buf, Int64)
-        serial_obj_chunk = read(chunk_buf, serial_obj_size)
-
-        obj_buf = IOBuffer(serial_obj_chunk)
-
-        #this is always a tuple, the first element of which is a value from the TrackerMod.TagType enum
-        obj = Serialization.deserialize(obj_buf)
-        
+        tag_type = read(data.file_handle, TrackerMod.TagType)
         if tag_type == TrackerMod.RunState
-            data.run = obj
-        elseif tag_type == TrackerMod.RegState
-            insert_tree(data, obj)
-        elseif tag_type == TrackerMod.EAState
-            insert_indiv(data, obj)
+            #note: no tag here
+            size = read(data.file_handle, Int64)
+            #no need to add this to an index - it's always at the start of the data file
+            
+        elseif tag_type == TrackerMod.IndivState
+            ea_step = read(data.file_handle, Int64)
+            pop_index = read(data.file_handle, Int64)
+            size = read(data.file_handle, Int64)
+            
+            key = (ea_step, pop_index)
+            data.indivs_index[key] = (position(data.file_handle), size)
+
+        elseif tag_type == TrackerMod.CellTreeState
+            ea_step = read(data.file_handle, Int64)
+            reg_step = read(data.file_handle, Int64)
+            pop_index = read(data.file_handle, Int64)
+            size = read(data.file_handle, Int64)
+
+            key = (ea_step, pop_index, reg_step)
+            data.trees_index[key] = (position(data.file_handle), size)
         end
-    end
-end
 
-function insert_tree(data::Data, obj::Tuple{Int64, Int64, Int64, CellTree})
-    ea_step, reg_step, index, tree = obj
-    #dictionary order is ea_step, index, reg_step
-    if ea_step ∉ keys(data.trees)
-        data.trees[ea_step] = Dict{Int64, Dict{Int64, CellTree}}()
+        #go to next item
+        seek(data.file_handle, position(data.file_handle) + size)
     end
-    if index ∉ keys(data.trees[ea_step])
-        data.trees[ea_step][index] = Dict{Int64, CellTree}()
-    end
-    data.trees[ea_step][index][reg_step] = tree
-end
-
-function insert_indiv(data::Data, obj::Tuple{Int64, Int64, Individual})
-    ea_step, index, indiv = obj
-    #dictionary order is ea_step, index
-    if ea_step ∉ keys(data.indivs)
-        data.indivs[ea_step] = Dict{Int64, Individual}()
-    end
-    data.indivs[ea_step][index] = indiv
 end
 
 end

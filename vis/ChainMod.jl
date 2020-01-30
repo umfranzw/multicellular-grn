@@ -11,9 +11,8 @@ using ChainGraphMod
 function build_chain_graph(data::Data, ea_step::Int64, index::Int64, cell_index::Int64)
     graph = ChainGraph()
     
-    DataMod.read_chunks_for_step(data, ea_step)
     for reg_step in 1:data.run.reg_steps
-        tree = data.trees[ea_step][index][reg_step]
+        tree = DataMod.get_tree(data, ea_step, index, reg_step)
         cell = CellTreeMod.get_bf_node(tree, cell_index)
         if cell != nothing
             for gene_index in 1:length(cell.gene_states)
