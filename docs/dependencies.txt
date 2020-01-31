@@ -1,0 +1,14 @@
+---------
+Packages:
+---------
+CodecZlib
+DataStructures
+LightGraphs
+Mustache
+Formatting
+TOML
+
+-------
+Others:
+-------
+(GraphViz - called via command line)
