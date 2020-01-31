@@ -3,19 +3,24 @@ module DataMod
 using IndividualMod
 using CellTreeMod
 using RunMod
+using CacheMod
 import TrackerMod
 import Serialization
 import CodecZlib
 
 export Data
 
+cache_size = 10
+
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
-    trees::Dict{Tuple{Int64, Int64, Int64}, CellTree}
+    #trees::Dict{Tuple{Int64, Int64, Int64}, CellTree}
+    trees::Cache{Tuple{Int64, Int64, Int64}, CellTree}
     #(ea_step, index, reg_step) => (position, size)
     trees_index::Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}
     #dictionary order is ea_step, index
-    indivs::Dict{Tuple{Int64, Int64}, Individual}
+    #indivs::Dict{Tuple{Int64, Int64}, Individual}
+    indivs::Cache{Tuple{Int64, Int64}, Individual}
     #(ea_step, index) => (position, size)
     indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
     file_handle::IOStream
@@ -26,11 +31,13 @@ mutable struct Data
         file_handle = open(file_path, "r")
         
         #ea_step, index, reg_step
-        trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
+        #trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
+        trees = Cache{Tuple{Int64, Int64, Int64}, CellTree}(DataMod.cache_size)
         trees_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
         
         #ea_step, index
-        indivs = Dict{Tuple{Int64, Int64}, Individual}()
+        #indivs = Dict{Tuple{Int64, Int64}, Individual}()
+        indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.cache_size)
         indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
         data = new(trees, trees_index, indivs, indivs_index, file_handle, nothing)
