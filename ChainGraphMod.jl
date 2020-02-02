@@ -92,9 +92,10 @@ function gen_dot_code(graph::ChainGraph)
     String(take!(graph_buf))
 end
 
-function plot(graph::ChainGraph, filename::String)
+function plot(graph::ChainGraph)
     dot_code = gen_dot_code(graph)
-    GraphVizMod.plot(dot_code, filename)
+    
+    GraphVizMod.plot(dot_code)
 end
 
 end

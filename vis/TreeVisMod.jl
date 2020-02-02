@@ -47,9 +47,10 @@ function sym_str(sym::Sym)
     String(take!(buf))
 end
 
-function plot(tree::CellTree, filename::String, cell_index::Int64)
+function plot(tree::CellTree, cell_index::Int64)
     dot_code = gen_dot_code(tree, cell_index)
-    GraphVizMod.plot(dot_code, filename)
+    
+    GraphVizMod.plot(dot_code)
 end
 
 end

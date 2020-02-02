@@ -1,17 +1,16 @@
 module GraphVizMod
 
-function plot(dot_code::String, filename::String)
+import GtkUtilsMod
+
+function plot(dot_code::String)
     stdout_buf = IOBuffer()
     stdin_buf = IOBuffer()
     write(stdin_buf, dot_code)
     seek(stdin_buf, 0)
     cmd = `dot -Tpng`
     run(pipeline(ignorestatus(cmd), stdin=stdin_buf, stdout=stdout_buf))
-    seek(stdout_buf, 0)
-    
-    file = open(filename, "w")
-    write(file, stdout_buf)
-    close(file)
+
+    GtkUtilsMod.pixbuf_from_data(stdout_buf.data)
 end
 
 end

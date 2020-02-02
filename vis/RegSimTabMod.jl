@@ -13,10 +13,7 @@ using ChainMod
 using ChainGraphMod
 import GeneMod
 import MiscUtilsMod
-
-protein_graph_path = "/tmp/protein_graph.png"
-tree_graph_path = "/tmp/tree_graph.png"
-chain_graph_path = "/tmp/chain_graph.png"
+import GtkUtilsMod
 
 mutable struct Control
     title::String
@@ -393,8 +390,8 @@ function build_tree_plot(
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
     tree = DataMod.get_tree(data, ea_step, indiv_index, reg_step)
 
-    TreeVisMod.plot(tree, tree_graph_path, cell_index)
-    set_gtk_property!(graph, :file, tree_graph_path)
+    pixbuf = TreeVisMod.plot(tree, cell_index)
+    set_gtk_property!(graph, :pixbuf, pixbuf)
 
     println("build_tree_plot")
 end
@@ -419,9 +416,9 @@ function build_protein_plot(
     end
 
     plot = groupedbar(concs, bar_position=:overlay, label=labels);
-    savefig(plot, protein_graph_path);
-    set_gtk_property!(graph, :file, protein_graph_path)
-
+    pixbuf = GtkUtilsMod.plot_to_pixbuf(plot)
+    set_gtk_property!(graph, :pixbuf, pixbuf)
+    
     println("build_protein_plot")
 end
 
@@ -433,8 +430,8 @@ function build_chain_plot(
     indiv_index, ea_step, reg_step, cell_index = map(sym -> get_control_val(getfield(controls, sym)), (:indiv, :ea_step, :reg_step, :cell))
     chains = ChainMod.build_chain_graph(data, ea_step, indiv_index, cell_index)
 
-    ChainGraphMod.plot(chains, chain_graph_path)
-    set_gtk_property!(graph, :file, chain_graph_path)
+    pixbuf = ChainGraphMod.plot(chains)
+    set_gtk_property!(graph, :pixbuf, pixbuf)
 
     println("build_chain_plot")
 end
