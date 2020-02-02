@@ -34,4 +34,6 @@ end
 
 keys(cache::Cache{K, V}) where K where V = keys(cache.data)
 
+contains(cache::Cache{K, V}, key::K) where K where V = key in keys(cache.data)
+
 end
