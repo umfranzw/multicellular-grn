@@ -236,7 +236,8 @@ function get_bind_eligible_proteins_for_intra_site(ps::ProteinStore, gene_index:
 
     eligible_proteins = Array{Protein, 1}()
     for protein in values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.Intra))
-        if protein.concs[gene_index] >= bind_threshold && protein.props.type == site.type
+        #if protein.concs[gene_index] >= bind_threshold && protein.props.type == site.type
+        if protein.props.type == site.type
             push!(eligible_proteins, protein)
         end
     end
@@ -254,7 +255,7 @@ function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index:
         #note: it's possible that the store owns the protein, AND the protein was ALSO produced by another cell.
         #Since we can't differentiate between the two cases, we still don't allow the protein to bind if both are true.
         is_self_binding = ProteinStoreMod.is_owned_intercell_protein(ps, protein)
-        above_thresh = protein.concs[gene_index] >= bind_threshold
+        #above_thresh = protein.concs[gene_index] >= bind_threshold
 
         #for props:
         #- need to ensure that protein's type matches site type (Reg)
@@ -263,7 +264,8 @@ function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index:
         #- protein's app action is irrelevant (since this is a reg protein & reg site)
         seq_matches = protein.props.type == site.type
 
-        if !is_self_binding && above_thresh && seq_matches
+        #if !is_self_binding && above_thresh && seq_matches
+        if !is_self_binding && seq_matches
             push!(eligible_proteins, protein)
         end
     end
