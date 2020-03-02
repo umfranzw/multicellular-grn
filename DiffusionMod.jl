@@ -57,7 +57,7 @@ function diffuse_intra_cell_proteins(cell_tree::CellTree)
 end
 
 function diffuse_intra_cell_proteins_for_cell(cell::Cell)
-    cols = cell.config.run.num_genes
+    cols = length(cell.gene_states)
     intra_cell_proteins = ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Intra)
     
     for protein in intra_cell_proteins
@@ -102,12 +102,12 @@ function diffuse_inter_cell_proteins(cell_tree::CellTree)
 end
 
 function diffuse_inter_cell_proteins_for_props(cell::Cell, props::ProteinProps, results::Dict{Cell, Dict{ProteinProps, Array{Float64, 1}}})
-    cols = cell.config.run.num_genes
+    cols = length(cell.gene_states)
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
     if protein == nothing
-        protein = Protein(cell.config, deepcopy(props), false, false)
+        protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states))
         ProteinStoreMod.insert(cell.proteins, protein, false)
     end
     

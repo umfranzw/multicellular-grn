@@ -50,7 +50,7 @@ function rand_init(run::Run, seed::UInt64)
     rng = Random.MersenneTwister(seed)
     config = Config(run, rng)
     
-    genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_genes)
+    genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_initial_genes)
     root_cell = Cell(config, genes, Sym(:x, SymMod.DataVar, 0))
     cell_tree = CellTree(root_cell)
     
@@ -65,7 +65,7 @@ function rand_init(run::Run, seed::UInt64)
         app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true, true)
+        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true, true, length(root_cell.gene_states))
         push!(initial_proteins, protein)
     end
     
@@ -166,7 +166,7 @@ function run_decay_for_cell(cell::Cell)
 end
 
 function run_produce_for_cell(indiv::Individual, cell::Cell)
-    for gene_index in 1:indiv.config.run.num_genes
+    for gene_index in 1:length(cell.gene_states)
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
         rates = GeneStateMod.get_prod_rates(gene_state)
@@ -193,7 +193,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
     if protein == nothing
         #note: protein will be initialized with conc values of zero
         #@info @sprintf("Produced protein: %s", props)
-        protein = Protein(cell.config, props, false, false)
+        protein = Protein(cell.config, props, false, false, length(cell.gene_states))
         ProteinStoreMod.insert(cell.proteins, protein, true)
     end
     
@@ -204,7 +204,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
 end
 
 function run_bind_for_cell(indiv::Individual, cell::Cell)
-    for gene_index in 1:indiv.config.run.num_genes
+    for gene_index in 1:length(cell.gene_states)
         gene = indiv.genes[gene_index]
         
         #run binding for each of the regulatory sites

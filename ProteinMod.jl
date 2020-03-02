@@ -18,7 +18,7 @@ mutable struct Protein
     concs::Array{Float64, 1}
     is_initial::Bool
 
-    function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool)
+    function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool, num_genes::Int64)
         if rand_concs
             concs = RandUtilsMod.rand_floats(config, config.run.num_genes)
         else
@@ -28,15 +28,10 @@ mutable struct Protein
         new(config, props, concs, is_initial)
     end
 
-    function Protein(config::Config,  props::ProteinProps, concs::Array{Float64, 1}, is_initial::Bool)
-        new(config, props, concs, is_initial)
+    function Protein(config::Config, props::ProteinProps, concs::Array{Float64, 1}, is_initial::Bool, num_genes::Int64)
+        new(config, props, concs, is_initial, num_genes)
     end
 end
-
-# function copy(protein::Protein)
-#     #only the concs need to be deep copied
-#     Protein(protein.config, protein.props, deepcopy(protein.concs))
-# end
 
 function show(io::IO, protein::Protein, ilevel::Int64=0)
     iprintln(io, "Protein:", ilevel)

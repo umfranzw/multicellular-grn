@@ -20,7 +20,7 @@ struct Run
     pop_size::Int64
     ea_steps::Int64
     mut_prob::Float64
-    num_genes::Int64
+    num_initial_genes::Int64
     fitness_term_threshold::Float64
     reg_bind_threshold::Float64
     protein_app_threshold::Float64
@@ -55,7 +55,7 @@ struct Run
             run["pop_size"],
             run["ea_steps"],
             run["mut_prob"],
-            run["num_genes"],
+            run["num_initial_genes"],
             run["fitness_term_threshold"],
             run["reg_bind_threshold"],
             run["protein_app_threshold"],
