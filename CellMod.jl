@@ -9,7 +9,6 @@ using SymMod: Sym
 using MiscUtilsMod
 
 import Base.show
-#import Base.deepcopy
 
 export Cell
 
@@ -38,15 +37,6 @@ mutable struct Cell
         cell
     end
 end
-
-# function deepcopy(cell::Cell)
-#     new_cell = Cell(cell.config, deepcopy(cell.gene_states), deepcopy(cell.proteins), cell.energy, cell.parent, deepcopy(cell.children), sym)
-#     for child in new_cell.children
-#         child.parent = new_cell
-#     end
-
-#     new_cell
-# end
 
 function insert_initial_proteins(cell::Cell, initial_proteins::Array{Protein, 1})
     for protein in initial_proteins
