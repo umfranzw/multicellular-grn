@@ -20,9 +20,9 @@ mutable struct Protein
 
     function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool, num_genes::Int64)
         if rand_concs
-            concs = RandUtilsMod.rand_floats(config, config.run.num_genes)
+            concs = RandUtilsMod.rand_floats(config, num_genes)
         else
-            concs = zeros(Float64, config.run.num_genes)
+            concs = zeros(Float64, num_genes)
         end
         
         new(config, props, concs, is_initial)

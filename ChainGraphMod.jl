@@ -6,13 +6,10 @@ using GeneMod
 using ProteinMod
 using ProteinPropsMod
 
-export ChainGraph, NodeType
-
-@enum NodeType::UInt8 ProteinNode GeneNode
+export ChainGraph
 
 struct NodeInfo
     label::Union{Gene, Protein}
-    type::NodeType
     id::Int64
     is_initial_protein::Bool
 end
@@ -34,11 +31,11 @@ mutable struct ChainGraph
     end
 end
 
-function add_node(graph::ChainGraph, type::NodeType, label::Union{Gene, Protein}, is_initial_protein::Bool=false)
+function add_node(graph::ChainGraph, label::Union{Gene, Protein}, is_initial_protein::Bool=false)
     if label ∉ keys(graph.node_info)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
-        graph.node_info[label] = NodeInfo(label, type, last_id, is_initial_protein)
+        graph.node_info[label] = NodeInfo(label, last_id, is_initial_protein)
     end
 end
 
@@ -64,7 +61,7 @@ function gen_dot_code(graph::ChainGraph)
     print(gene_buf, "{rank = same; ")
 
     for (obj, info) in graph.node_info
-        if info.type == ProteinNode
+        if obj isa Protein
             label = ProteinPropsMod.to_str(protein.props)
             
             if info.is_initial_protein
@@ -74,7 +71,7 @@ function gen_dot_code(graph::ChainGraph)
             end
             print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
             
-        elseif info.type == GeneNode
+        elseif obj isa Gene
             sites_str = GeneMod.get_sites_str(obj)
             label = "$(sites_str)\n($(obj.genome_index))"
             
@@ -106,15 +103,14 @@ function plot(graph::ChainGraph)
     GraphVizMod.plot(dot_code)
 end
 
-function append_for_tree(graph::ChainGraph, tree::CellTree)
+function append_for_tree(graph::ChainGraph, tree::CellTree, reg_step::Int64)
     graph = ChainGraph()
-    CellTreeMod.traverse(cell -> append_for_cell(graph, cell), tree.root)
+    CellTreeMod.traverse(cell -> append_for_cell(graph, cell, reg_step), tree.root)
 end
 
-function append_for_cell(graph::ChainGraph, cell::Cell)
+function append_for_cell(graph::ChainGraph, cell::Cell, reg_step::Int64)
     for gene_index in 1:length(cell.gene_states)
         gs = cell.gene_states[gene_index]
-        
 
         bound_proteins = Set{Tuple{Protein, Bool}}() #(label, is_initial)
         for protein in gs.reg_site_bindings
