@@ -2,36 +2,39 @@ module ChainGraphMod
 
 using LightGraphs
 using GraphVizMod
+using GeneMod
+using ProteinMod
+using ProteinPropsMod
 
 export ChainGraph, NodeType
 
 @enum NodeType::UInt8 ProteinNode GeneNode
 
-struct NodeInfo{L}
-    label::L
+struct NodeInfo
+    label::Union{Gene, Protein}
     type::NodeType
     id::Int64
     is_initial_protein::Bool
 end
 
 #note: may add more to this later...
-struct EdgeInfo{L}
-    label::Union{L, Nothing}
+struct EdgeInfo
+    label::Union{String, Nothing}
 end
 
-mutable struct ChainGraph{L}
+mutable struct ChainGraph
     graph::DiGraph
-    node_info::Dict{String, NodeInfo{L}}
-    edge_info::Dict{Tuple{Int64, Int64}, EdgeInfo{L}}
+    node_info::Dict{Union{Gene, Protein}, NodeInfo}
+    edge_info::Dict{Tuple{Int64, Int64}, EdgeInfo}
 
-    function ChainGraph{L}() where L
+    function ChainGraph()
         graph = DiGraph()
         
-        new(graph, Dict{String, NodeInfo{L}}(), Dict{Tuple{Int64, Int64}, EdgeInfo{L}}())
+        new(graph, Dict{Union{Gene, Protein}, NodeInfo}(), Dict{Tuple{Int64, Int64}, EdgeInfo}())
     end
 end
 
-function add_node(graph::ChainGraph, type::NodeType, label::String, is_initial_protein::Bool=false)
+function add_node(graph::ChainGraph, type::NodeType, label::Union{Gene, Protein}, is_initial_protein::Bool=false)
     if label ∉ keys(graph.node_info)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
@@ -40,7 +43,7 @@ function add_node(graph::ChainGraph, type::NodeType, label::String, is_initial_p
 end
 
 #note - adding the same edge twice is fine - LightGraphs will handle it
-function add_edge(graph::ChainGraph, src_label::String, dest_label::String, edge_label::Union{String, Nothing}=nothing)
+function add_edge(graph::ChainGraph, src_label::Union{Gene, Protein}, dest_label::Union{Gene, Protein}, edge_label::Union{String, Nothing}=nothing)
     src_id = graph.node_info[src_label].id
     dest_id = graph.node_info[dest_label].id
     add_edge!(graph.graph, src_id, dest_id)
@@ -60,8 +63,10 @@ function gen_dot_code(graph::ChainGraph)
     print(protein_buf, "{rank = same; ")
     print(gene_buf, "{rank = same; ")
 
-    for (label, info) in graph.node_info
+    for (obj, info) in graph.node_info
         if info.type == ProteinNode
+            label = ProteinPropsMod.to_str(protein.props)
+            
             if info.is_initial_protein
                 colour = "#FF0000"
             else
@@ -70,6 +75,9 @@ function gen_dot_code(graph::ChainGraph)
             print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
             
         elseif info.type == GeneNode
+            sites_str = GeneMod.get_sites_str(obj)
+            label = "$(sites_str)\n($(obj.genome_index))"
+            
             print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",penwidth=4,shape=box];\n")
         end
     end
@@ -106,29 +114,27 @@ end
 function append_for_cell(graph::ChainGraph, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gs = cell.gene_states[gene_index]
-        sites_str = GeneMod.get_sites_str(gs.gene)
-        gene_label = "$(sites_str)\n($(gs.gene.genome_index))"
+        
 
-        bound_proteins = Set{Tuple{String, Bool}}() #(label, is_initial)
+        bound_proteins = Set{Tuple{Protein, Bool}}() #(label, is_initial)
         for protein in gs.reg_site_bindings
             if protein != nothing
-                label = ProteinPropsMod.to_str(protein.props)
-                push!(bound_proteins, (label, protein.is_initial))
+                push!(bound_proteins, (protein, protein.is_initial))
             end
         end
 
-        prod_proteins = Set{String}() #note: produced proteins cannot be initial (so no need to track that here)
+        prod_proteins = Set{Protein}() #note: produced proteins cannot be initial (so no need to track that here)
         prod_rates = GeneStateMod.get_prod_rates(gs)
         for (rate, props) in zip(prod_rates, gs.gene.prod_sites)
             if rate != nothing
-                label = ProteinPropsMod.to_str(props)
-                push!(prod_proteins, label)
+                protein = ProteinStoreMod.get(cell.proteins, props)
+                push!(prod_proteins, protein)
             end
         end
         
         if !isempty(bound_proteins) || !isempty(prod_proteins)
             #add gene node
-            ChainGraphMod.add_node(graph, ChainGraphMod.GeneNode, gene_label)
+            ChainGraphMod.add_node(graph, ChainGraphMod.GeneNode, gs.gene)
         end
 
         for (protein_label, is_initial) in bound_proteins
@@ -136,7 +142,7 @@ function append_for_cell(graph::ChainGraph, cell::Cell)
             ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein_label, is_initial)
 
             #add incoming protein edge
-            ChainGraphMod.add_edge(graph, protein_label, gene_label, string(reg_step))
+            ChainGraphMod.add_edge(graph, protein_label, gs.gene, string(reg_step))
         end
 
         for protein_label in prod_proteins
