@@ -14,6 +14,7 @@ using DiffusionMod
 using CellTreeMod
 using MiscUtilsMod
 using Printf
+using ChainGraphMod
 
 import Random
 import RandUtilsMod
@@ -30,6 +31,7 @@ mutable struct Individual
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
+    chain_graph::ChainGraph
 end
 
 function show(io::IO, indiv::Individual, ilevel::Int64=0)
@@ -130,6 +132,10 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     end
 
     deleted_cells
+end
+
+function update_chains(indiv::Individual, reg_step::Int64)
+    ChainGraphMod.append_for_tree(indiv.chain_graph, indiv.cell_tree, reg_step)
 end
 
 function run_bind(indiv::Individual)

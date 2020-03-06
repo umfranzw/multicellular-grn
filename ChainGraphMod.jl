@@ -5,49 +5,97 @@ using GraphVizMod
 using GeneMod
 using ProteinMod
 using ProteinPropsMod
+using CellTreeMod
 
 export ChainGraph
 
-struct NodeInfo
-    label::Union{Gene, Protein}
-    id::Int64
-    is_initial_protein::Bool
-end
-
-#note: may add more to this later...
-struct EdgeInfo
-    label::Union{String, Nothing}
-end
-
 mutable struct ChainGraph
     graph::DiGraph
-    node_info::Dict{Union{Gene, Protein}, NodeInfo}
-    edge_info::Dict{Tuple{Int64, Int64}, EdgeInfo}
+    id_to_obj::Dict{Int64, Union{Gene, Protein}}
+    obj_to_id::Dict{Union{Gene, Protein}, Int64}
+    #note: it's possible for unlabelled edges to exist.
+    #In that case, the edge will be in graph, but not in this dict.
+    edge_labels::Dict{Tuple{Int64, Int64}, String}
 
     function ChainGraph()
         graph = DiGraph()
         
-        new(graph, Dict{Union{Gene, Protein}, NodeInfo}(), Dict{Tuple{Int64, Int64}, EdgeInfo}())
+        new(
+            graph,
+            Dict{Int64, Union{Gene, Protein}}(),
+            Dict{Union{Gene, Protein}, Int64}(),
+            Dict{Tuple{Int64, Int64}, String}()
+        )
     end
 end
 
-function add_node(graph::ChainGraph, label::Union{Gene, Protein}, is_initial_protein::Bool=false)
-    if label ∉ keys(graph.node_info)
+function add_node(graph::ChainGraph, node::Union{Gene, Protein})
+    if node ∉ keys(graph.obj_to_id)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
-        graph.node_info[label] = NodeInfo(label, last_id, is_initial_protein)
+        graph.id_to_obj[last_id] = obj
+        graph.obj_to_id[obj] = last_id
     end
 end
 
-#note - adding the same edge twice is fine - LightGraphs will handle it
-function add_edge(graph::ChainGraph, src_label::Union{Gene, Protein}, dest_label::Union{Gene, Protein}, edge_label::Union{String, Nothing}=nothing)
-    src_id = graph.node_info[src_label].id
-    dest_id = graph.node_info[dest_label].id
+function add_edge(graph::ChainGraph, src::Union{Gene, Protein}, dest::Union{Gene, Protein}, edge_label::Union{String, Nothing}=nothing)
+    src_id = graph.obj_to_id[src]
+    dest_id = graph.obj_to_id[dest]
+
+    #note - adding the same edge twice is fine - LightGraphs will handle it
     add_edge!(graph.graph, src_id, dest_id)
-    key = (src_id, dest_id)
-    if key ∉ keys(graph.edge_info)
-        graph.edge_info[key] = EdgeInfo(edge_label)
+    if edge_label != nothing
+        graph.edge_labels[(src_id, dest_id)] = edge_label
     end
+end
+
+function get_app_contributing_genes(graph::ChainGraph)
+    #Work backwards, starting from the app proteins and going up to the initial_proteins.
+    #Record all genes involved along the way.
+    #Don't forget to account for cycles!
+    app_contrib_genes = Set{Gene}()
+    
+    #note: we start and end with protein ids
+    #grab all of the app protein ids
+    protein_ids = Set{Int64}()
+    for (id, obj) in graph.id_to_obj
+        if obj isa Protein && obj.props.type == ProteinPropsMod.App
+            push!(protein_ids, id)
+        end
+    end
+
+    #go back one step at a time (from protein -> gene -> protein)
+    while !isempty(protein_ids)
+        gene_ids = Set{Int64}()
+        for protein_id in protein_ids
+            #get ids of all (gene) nodes with an edge to node with protein_id
+            src_ids = LightGraphs.inneighbors(protein_id)
+
+            #avoid cycles - filter out all app-contributing genes that we've already encountered
+            for id in src_ids
+                gene = graph.id_to_obj[id]
+                if gene ∉ app_contrib_genes
+                    push!(gene_ids, id)
+                    push!(app_contrib_genes, gene)
+                end
+            end
+        end
+
+        protein_ids = Set{Int64}()
+        for gene_id in gene_ids
+            #get ids of all (protein) nodes with an edge to node with gene_id
+            src_ids = LightGraph.inneighbors(gene_id)
+            
+            #filter out all the initial proteins (since there's nothing before them)
+            for id in src_ids
+                if !graph.id_to_obj[id].is_initial
+                    push!(protein_ids, id)
+                end
+            end
+        end
+    end
+
+    app_contrib_genes
 end
 
 function gen_dot_code(graph::ChainGraph)
@@ -60,11 +108,11 @@ function gen_dot_code(graph::ChainGraph)
     print(protein_buf, "{rank = same; ")
     print(gene_buf, "{rank = same; ")
 
-    for (obj, info) in graph.node_info
+    for obj in keys(graph.obj_to_id)
         if obj isa Protein
-            label = ProteinPropsMod.to_str(protein.props)
+            label = ProteinPropsMod.to_str(obj.props)
             
-            if info.is_initial_protein
+            if obj.is_initial
                 colour = "#FF0000"
             else
                 colour = "#000000"
@@ -84,8 +132,13 @@ function gen_dot_code(graph::ChainGraph)
     #generate code for edges
     edge_buf = IOBuffer()
     for edge in edges(graph.graph)
-        info = graph.edge_info[(edge.src, edge.dst)]
-        print(edge_buf, "$(edge.src) -> $(edge.dst) [label=\"$(info.label)\"];\n")
+        print(edge_buf, "$(edge.src) -> $(edge.dst)")
+        key = (edge.src, edge.dst)
+        if key in keys(graph.edge_labels)
+            label = graph.edge_labels[key]
+            print(edge_buf, " [label=\"$(label)\"]")
+        end
+        print(edge_buf, ";\n")
     end
 
     #put it all together
@@ -112,10 +165,10 @@ function append_for_cell(graph::ChainGraph, cell::Cell, reg_step::Int64)
     for gene_index in 1:length(cell.gene_states)
         gs = cell.gene_states[gene_index]
 
-        bound_proteins = Set{Tuple{Protein, Bool}}() #(label, is_initial)
+        bound_proteins = Set{Protein}()
         for protein in gs.reg_site_bindings
             if protein != nothing
-                push!(bound_proteins, (protein, protein.is_initial))
+                push!(bound_proteins, protein)
             end
         end
 
@@ -133,20 +186,20 @@ function append_for_cell(graph::ChainGraph, cell::Cell, reg_step::Int64)
             ChainGraphMod.add_node(graph, ChainGraphMod.GeneNode, gs.gene)
         end
 
-        for (protein_label, is_initial) in bound_proteins
+        for protein in bound_proteins
             #add protein node
-            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein_label, is_initial)
+            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein)
 
             #add incoming protein edge
-            ChainGraphMod.add_edge(graph, protein_label, gs.gene, string(reg_step))
+            ChainGraphMod.add_edge(graph, protein, gs.gene, string(reg_step))
         end
 
-        for protein_label in prod_proteins
+        for protein in prod_proteins
             #add protein node
-            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein_label)
+            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein)
 
             #add outgoing protein edge
-            ChainGraphMod.add_edge(graph, gene_label, protein_label, string(reg_step))
+            ChainGraphMod.add_edge(graph, gs.gene, protein, string(reg_step))
         end
     end
 end
