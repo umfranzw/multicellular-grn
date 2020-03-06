@@ -71,7 +71,7 @@ function rand_init(run::Run, seed::UInt64)
         push!(initial_proteins, protein)
     end
     
-    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0)
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, ChainGraph())
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv

@@ -14,16 +14,49 @@ function mutate(pop::Array{Individual, 1})
 end
 
 function mutate_indiv(indiv::Individual)
-    for gene in indiv.genes
-        mutate_gene(gene)
+    app_contrib_genes = ChainGraphMod.get_app_contributing_genes(indiv.chain_graph)
+
+    copy_locations = Array{Int64, 1}()
+    i = 1
+    while i <= length(indiv.genes)
+        if indiv.genes[i] in app_contrib_genes
+            mut_copy = dup_mutate_gene(indiv.genes[i])
+            if mut_copy != nothing
+                insert!(indiv.genes, i + 1, mut_copy) #insert mutated copy after the src gene
+                push!(copy_locations, i + 1)
+                i += 1 #skip over the copy
+            end
+        else
+            point_mutate_gene(indiv.genes[i])
+        end
+        
+        i += 1
+    end
+
+    #insert values into the initial protein concs over the spots where the duplicated genes were inserted
+    for loc in copy_locations
+        for protein in indiv.initial_cell_proteins
+            insert!(protein.concs, loc, RandUtilsMod.rand_float(indiv.config))
+        end
     end
     
-    for protein in indiv.initial_cell_proteins
-        mutate_initial_protein(protein)
-    end
+    #Commented out because this creates two moving targets that need to be aligned
+    # for protein in indiv.initial_cell_proteins
+    #     mutate_initial_protein(protein)
+    # end
 end
 
-function mutate_gene(gene::Gene)
+function dup_mutate_gene(gene::Gene)
+    copy = nothing
+    if RandUtilsMod.rand_float(gene.config) < config.run.mut_prob
+        copy = deepcopy(gene)
+        point_mutate_gene(copy)
+    end
+
+    copy
+end
+
+function point_mutate_gene(gene::Gene)
     #Regulatory sites:
     #type & target must stay as they are, other attributes can mutate
     for site in gene.reg_sites
