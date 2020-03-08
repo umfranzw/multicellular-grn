@@ -6,6 +6,7 @@ using MutateMod
 using RegSimMod
 using TrackerMod
 using Printf
+using ChainGraphMod
 import Random
 
 gen_ops = (MutateMod.mutate,)
@@ -26,6 +27,7 @@ function ev_alg(run::Run)
         for op in gen_ops
             op(pop)
         end
+        reset_chain_graphs(pop)
         TrackerMod.save_ea_state(pop, ea_step)
         
         #the reg sim will update the fitnesses
@@ -40,6 +42,12 @@ function ev_alg(run::Run)
     end
 
     TrackerMod.destroy_tracker()
+end
+
+function reset_chain_graphs(pop::Array{Individual, 1})
+    for indiv in pop:
+        indiv.chain_graph = ChainGraph()
+    end
 end
 
 function terminate(run::Run)

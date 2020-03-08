@@ -13,10 +13,6 @@ mutable struct CellTree
     root::Union{Cell, Nothing}
 end
 
-# function deepcopy(tree::CellTree)
-#     CellTree(copy(tree.root))
-# end
-
 #depth-first traversal
 function traverse(f::Function, start_node::Cell)
     f(start_node)

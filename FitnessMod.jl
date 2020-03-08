@@ -2,9 +2,27 @@ module FitnessMod
 
 using IndividualMod
 using CellTreeMod
+using SymMod
 using Printf
 
 function eval(indiv::Individual)
+    accuracy = get_accuracy(indiv)
+    evolvability = get_evolvability(indiv)
+    indiv.fitness = indiv.run.accuracy_weight * accuracy + indiv.run.evolvability_weight * evolvability
+end
+
+function get_evolvability(indiv::Individual)
+    #number of leaves containing non-terminal symbols
+    is_non_term(cell) = cell.sym != nothing && cell.sym.type == SymMod.FcnCall
+    num_non_term = 0
+    CellTreeMod.traverse(cell -> num_non_term += Int64(is_non_term(cell)), indiv.cell_tree)
+
+    #number of non-app-contributing genes
+    app_contrib_genes = ChainGraphMod.get_app_contributing_genes(indiv.chain_graph)
+    num_non_contrib = length(indiv.genes) - length(app_contrib_genes)
+end
+
+function get_accuracy(inidv::Individual)
     expr_str = "f(x) = "
     expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 
@@ -35,8 +53,7 @@ function eval(indiv::Individual)
         end
     end
 
-    #@info @sprintf("expr_str: %s\nFitness: %0.2f\n\n", expr_str, fitness)
-    indiv.fitness = fitness
+    fitness
 end
 
 end
