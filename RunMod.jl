@@ -39,6 +39,9 @@ struct Run
     diff_h::Float64
     diff_dt::Float64
 
+    accuracy_weight::Float64
+    evolvability_weight::Float64
+
     cell_energy_threshold::Float64
 
     initial_cell_energy::Float64
@@ -73,6 +76,9 @@ struct Run
             run["diff_alpha"],
             run["diff_h"],
             run["diff_dt"],
+
+            run["accuracy_weight"],
+            run["evolvability_weight"],
             
             run["cell_energy_threshold"],
             
