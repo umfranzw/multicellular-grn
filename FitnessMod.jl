@@ -5,21 +5,29 @@ using CellTreeMod
 using SymMod
 using Printf
 
-function eval(indiv::Individual)
+function eval(indiv::Individual, ea_step::Int64)
     accuracy = get_accuracy(indiv)
     evolvability = get_evolvability(indiv)
-    indiv.fitness = indiv.run.accuracy_weight * accuracy + indiv.run.evolvability_weight * evolvability
+    run = indiv.config.run
+    completeness = ea_step / run.ea_steps
+    acc_weight = max(run.initial_acc_weight + completeness * run.weight_shift, run.max_acc_weight)
+    ev_weight = max(run.initial_ev_weight - completeness * run.weight_shift, run.min_ev_weight)
+    
+    indiv.fitness = accuracy * acc_weight + evolvability * ev_weight
 end
 
 function get_evolvability(indiv::Individual)
     #number of leaves containing non-terminal symbols
-    is_non_term(cell) = cell.sym != nothing && cell.sym.type == SymMod.FcnCall
     num_non_term = 0
     CellTreeMod.traverse(cell -> num_non_term += Int64(is_non_term(cell)), indiv.cell_tree)
 
     #number of non-app-contributing genes
     app_contrib_genes = ChainGraphMod.get_app_contributing_genes(indiv.chain_graph)
     num_non_contrib = length(indiv.genes) - length(app_contrib_genes)
+end
+
+function is_non_term(cell::Cell)
+    cell.sym != nothing && cell.sym.type == SymMod.FcnCall
 end
 
 function get_accuracy(inidv::Individual)

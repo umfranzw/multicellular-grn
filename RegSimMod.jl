@@ -29,7 +29,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
             IndividualMod.run_decay(indiv)
         end
 
-        FitnessMod.eval(indiv)
+        FitnessMod.eval(indiv, ea_step)
     end
 end
 
