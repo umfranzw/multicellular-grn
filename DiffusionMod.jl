@@ -8,6 +8,39 @@ using CellTreeMod
 using CellMod
 using Printf
 
+function get_level_dict()
+    levels = Dict{Cell, Int64}
+    if cell_tree.root != nothing
+        build_level_dict(cell_tree, cell_tree.root, levels, 0)
+    end
+
+    levels
+end
+
+function build_level_dict(cur::Cell, levels::Dict{Cell, Int64}, depth::Int64)
+    levels[cur] = depth
+    
+    for child in cur.children
+        build_level_dict(child, levels, depth + 1)
+    end
+end
+
+function dist(src::Cell, dest::Cell, levels::Dict{Cell, Int64})
+    distance = 0
+    if levels[src] == levels[dest] #if they are siblings or are the same node
+        #note that in this case, 
+         distance
+
+    elseif levels[src] < levels[dest] #if src is higher in the tree
+        distance = 1 + dist(src, dest.parent, levels)
+
+    elseif levels[src] > levels[dest] #dest is higher in the tree
+        distance = 1 + dist(src.parent, dest, levels)
+    end
+
+    distance
+end
+
 #note: row_offset must be in [-1, 0, 1]
 function get_2D(cell::Cell, protein::Protein, row_offset::Int64, col::Int64, width::Int64)
     outside = col < 1 || col > width
