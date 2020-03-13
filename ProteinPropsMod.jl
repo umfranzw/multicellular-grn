@@ -12,7 +12,7 @@ export ProteinProps,
 
 @enum ProteinType::Int8 Reg=1 App
 
-@enum ProteinTarget::Int8 Intra=1 Inter
+@enum ProteinTarget::Int8 Intra=1 InterLocal InterDistant
 
 @enum ProteinRegAction::Int8 Activate=1 Inhibit
 

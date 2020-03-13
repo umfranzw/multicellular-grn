@@ -76,7 +76,9 @@ function get_all_inter_cell_props(cell_tree::CellTree)
     CellTreeMod.traverse(
         cell -> map(
             p -> push!(inter_cell_props, p.props),
-            ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.Inter)
+            vcat(ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.InterLocal),
+                 ProteinStoreMod.get_by_target(cell.proteins, ProteinPropsMod.InterDistant)
+                 )
         ),
         cell_tree
     )

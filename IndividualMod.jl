@@ -223,7 +223,7 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
                 eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
                 
             #for site types GeneMod.InterIntra and GeneMod.InterInter
-            else
+            elseif site.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant)
                 eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
             end
             
@@ -252,7 +252,7 @@ function get_bind_eligible_proteins_for_intra_site(ps::ProteinStore, gene_index:
 end
 
 function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    inter_cell_proteins = values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.Inter))
+    inter_cell_proteins = values(ProteinStoreMod.get_by_target(ps, site.target))
     eligible_proteins = Array{Protein, 1}()
 
     for protein in inter_cell_proteins

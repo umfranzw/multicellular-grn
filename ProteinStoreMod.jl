@@ -54,7 +54,7 @@ function insert(ps::ProteinStore, protein::Protein, owned::Bool)
         sub_dict[protein.props] = protein
     end
 
-    if owned && protein.props.target == ProteinPropsMod.Inter
+    if owned && protein.props.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant)
         #note: no need to check if it's already present since this is a Set
         push!(ps.owned_intercell_proteins, protein.props)
     end
@@ -66,7 +66,7 @@ function remove(ps::ProteinStore, protein::Protein)
         delete!(sub_dict, protein.props)
     end
     
-    if protein.props.target == ProteinPropsMod.Inter && protein.props in ps.owned_intercell_proteins
+    if protein.props.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant) && protein.props in ps.owned_intercell_proteins
         delete!(ps.owned_intercell_proteins, protein.props)
     end
 end

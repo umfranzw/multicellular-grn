@@ -5,6 +5,7 @@ using ProteinPropsMod
 using MiscUtilsMod
 
 import RandUtilsMod
+import Random
 import Base.show
 
 export Gene
@@ -59,25 +60,33 @@ end
 
 function rand_site(
     config::Config;
-    type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
-    target::Union{ProteinPropsMod.ProteinTarget, Nothing}=nothing,
-    reg_action::Union{ProteinPropsMod.ProteinRegAction, Nothing}=nothing,
-    app_action::Union{UInt8, Nothing}=nothing
+    type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    target::Union{Array{ProteinPropsMod.ProteinTarget, 1}, Nothing}=nothing,
+    reg_action::Union{Array{ProteinPropsMod.ProteinRegAction, 1}, Nothing}=nothing,
+    app_action::Union{Array{UInt8, 1}, Nothing}=nothing
 )
     if type == nothing
-        type = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinType)
+        type_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinType)
+    else
+        type_val = Random.rand(config.rng, type)
     end
     if target == nothing
-        target = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinTarget)
+        target_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinTarget)
+    else
+        target_val = Random.rand(config.rng, target)
     end
     if reg_action == nothing
-        reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
+        reg_action_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
+    else
+        reg_action_val = Random.rand(config.rng, reg_action)
     end
     if app_action == nothing
-        app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
+        app_action_val = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
+    else
+        app_action_val = Random.rand(config.rng, app_action)
     end
 
-    ProteinProps(type, target, reg_action, app_action)
+    ProteinProps(type_val, target_val, reg_action_val, app_action_val)
 end
 
 function rand_init(config::Config, genome_index::Int64)
@@ -100,14 +109,14 @@ function rand_init(config::Config, genome_index::Int64)
     inter_intra = rand_site(
         config,
         type=ProteinPropsMod.Reg,
-        target=ProteinPropsMod.Inter
+        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
     )
     push!(reg_sites, inter_intra)
 
     inter_inter = rand_site(
         config,
         type=ProteinPropsMod.Reg,
-        target=ProteinPropsMod.Inter
+        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
     )
     push!(reg_sites, inter_inter)
 
@@ -121,7 +130,7 @@ function rand_init(config::Config, genome_index::Int64)
 
     inter = rand_site(
         config,
-        target=ProteinPropsMod.Inter
+        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
     )
     push!(prod_sites, inter)
     
