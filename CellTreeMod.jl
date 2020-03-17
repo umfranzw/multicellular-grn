@@ -4,13 +4,18 @@ using CellMod
 using SymMod
 using DataStructures: Queue, enqueue!, dequeue!, isempty
 using Printf
-#import Base.deepcopy
+using InterProteinMod
 
 export CellTree,
     traverse, find_empty, find, copy
 
 mutable struct CellTree
     root::Union{Cell, Nothing}
+    inter_proteins::Dict{ProteinProps, InterProtein}
+
+    function CellTree(root::Union{Cell, Nothing})
+        new(root, Array{InterProtein, 1}())
+    end
 end
 
 #depth-first traversal
