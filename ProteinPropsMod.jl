@@ -2,45 +2,73 @@ module ProteinPropsMod
 
 import Base.hash
 import Base.==
-#import Base.copy
 import Base.show
 import Formatting
+import Random
 using MiscUtilsMod
+using RunMod
 
 export ProteinProps,
     hash, ==
 
-@enum ProteinType::Int8 Reg=1 App
+@enum ProteinType::Int8 Internal=1 Neighbour Diffusion Application
 
-@enum ProteinTarget::Int8 Intra=1 InterLocal InterDistant
+@enum ProteinFcn::Int8 Inhibit=1 Activate
 
-@enum ProteinRegAction::Int8 Activate=1 Inhibit
+@enum ProteinAction::Int8 SymProb=1 Divide Sensor
 
-#note: these must match the values in the app_actions array in ProteinAppActionsMod
-#@enum ProteinAppAction::UInt8 P1=1 P2=2 P3=3 P4=4 P5=5 P6=6
-num_app_actions = 0
+@enum ProteinLoc::Int8 Top=1 Bottom Left Right
 
 #note: must be only one field of each type
 mutable struct ProteinProps
     type::ProteinType
-    target::ProteinTarget
-    reg_action::ProteinRegAction
-    app_action::UInt8
+    fcn::ProteinFcn
+    action::ProteinAction
+    loc::ProteinLoc
+    arg::Int8
 end
 
-function set_num_app_actions(num::Int64)
-    global num_app_actions
-    
-    num_app_actions = UInt8(num)
+function rand_init(
+    config::Config,
+    type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    fcn::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    action::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    arg::Union{UInt8, Nothing}=nothing
+)
+    pairs = (
+        (type, ProteinType),
+        (fcn, ProteinFcn),
+        (action, ProteinAction),
+        (loc, ProteinLoc)
+    )
+
+    vals = Array{Any, 1}()
+    for (val, enum) in pairs
+        if val == nothing
+            instance = RandUtilsMod.rand_enum_val(config, enum)
+        else
+            instance = Random.rand(config.rng, val)
+        end
+        push!(vals, instance)
+    end
+
+    if typeof(arg) == nothing
+        arg_val = Random.rand(config.rng, Int8)
+    else
+        arg_val = arg
+    end
+    push!(vals, arg_val)
+
+    ProteinProps(vals...)
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)
-    global num_app_actions
-    
     pairs = (
         (ProteinType, props.type),
-        (ProteinTarget, props.target),
-        (ProteinRegAction, props.reg_action)
+        (ProteinFcn, props.fcn),
+        (ProteinAction, props.action),
+        (ProteinLoc, props.loc)
     )
     for (enum, val) in pairs
         width = MiscUtilsMod.digits_needed(length(instances(enum)))
@@ -48,27 +76,20 @@ function show(io::IO, props::ProteinProps, ilevel::Int64=0)
         str = Formatting.fmt(fs, Int64(val))
         iprint(io, str, ilevel)
     end
-    #app_action
-    width = MiscUtilsMod.digits_needed(Int64(num_app_actions))
-    fs = Formatting.FormatSpec("0$(width)d")
-    str = Formatting.fmt(fs, props.app_action)
-    iprint(io, str, ilevel)
+    iprint(io, string(props.arg), ilevel)
     
     println(io, "")
 end
 
 function hash(props::ProteinProps)
-    hash((props.type, props.target, props.reg_action, props.app_action))
+    hash((props.type, props.fcn, props.action, props.loc, props.arg))
 end
 
 ==(p1::ProteinProps, p2::ProteinProps) = (p1.type == p2.type &&
-                                          p1.target == p2.target &&
-                                          p1.reg_action == p2.reg_action &&
-                                          p1.app_action == p2.app_action)
-
-# function copy(props::ProteinProps)
-#     ProteinProps(props.type, props.target, props.reg_action, props.app_action)
-# end
+                                          p1.fcn == p2.fcn &&
+                                          p1.loc == p2.loc &&
+                                          p1.action == p2.action &&
+                                          p1.arg == p2.arg)
 
 function to_str(props::ProteinProps)
     buf = IOBuffer()

@@ -7,24 +7,45 @@ using MiscUtilsMod
 import RandUtilsMod
 import Random
 import Base.show
+import Formatting
 
 export Gene
 
-@enum RegSite::Int8 IntraIntra=1 IntraInter InterIntra InterInter
+@enum BindLogic::Int8 Id=1 And Or Xor
 
-@enum ProdSite::Int8 Intra=1 Inter
+mutable struct BindSite
+    #from the protein
+    type::ProteinProps.ProteinType
+    loc::ProteinProps.ProteinLoc
+    #additional binding params
+    threshold::Float64
+    consum_rate::Float64
+end
 
 mutable struct Gene
     config::Config
     genome_index::Int64
-    reg_sites::Array{ProteinProps, 1}
+    bind_logic::BindLogic
+    bind_sites::Array{BindSite, 1}
     prod_sites::Array{ProteinProps, 1}
 end
 
 function get_sites_str(gene::Gene)
     buf = IOBuffer()
-    for i in 1:length(gene.reg_sites)
-        print(buf, ProteinPropsMod.to_str(gene.reg_sites[i]))
+    for i in 1:length(gene.bind_sites)
+        pairs = (
+            (ProteinProps.ProteinType, gene.bind_sites[i].type),
+            (ProteinProps.ProteinLoc, gene.bind_sites[i].loc)
+        )
+        for (enum, val) in pairs
+            width = MiscUtilsMod.digits_needed(length(instances(enum)))
+            fs = Formatting.FormatSpec("0$(width)d")
+            str = Formatting.fmt(fs, Int64(val))
+            print(buf, str)
+        end
+        @printf(buf, " %0.1f", gene.binding_sites[i].threshold)
+        @printf(buf, " %0.1f", gene.binding_sites[i].consum_rate)
+        
         if i < length(gene.reg_sites)
             print(buf, ", ")
         end
@@ -45,99 +66,65 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "Gene:", ilevel)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
-    iprintln(io, "reg_sites:", ilevel + 1)
-    for val in instances(RegSite)
-        iprint(io, "$(string(val)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.reg_sites[Int64(val)], 0)
-    end
-
-    iprintln(io, "prod_sites:", ilevel + 1)
-    for val in instances(ProdSite)
-        iprint(io, "$(string(val)): ", ilevel + 2)
-        ProteinPropsMod.show(io, gene.prod_sites[Int64(val)], 0)
+    iprintln(io, "sites:", ilevel + 1)
+        iprint(io, get_sites_str(gene), ilevel + 2)
     end
 end
 
-function rand_site(
+function rand_bind_site(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    target::Union{Array{ProteinPropsMod.ProteinTarget, 1}, Nothing}=nothing,
-    reg_action::Union{Array{ProteinPropsMod.ProteinRegAction, 1}, Nothing}=nothing,
-    app_action::Union{Array{UInt8, 1}, Nothing}=nothing
+    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    threshold::Union{Array{Float64, 1}, Nothing}=nothing,
+    consum_rate::Union{Array{Float64, 1}, Nothing}=nothing
 )
     if type == nothing
         type_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinType)
     else
         type_val = Random.rand(config.rng, type)
     end
-    if target == nothing
-        target_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinTarget)
+    if loc == nothing
+        loc_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinLoc)
     else
-        target_val = Random.rand(config.rng, target)
+        loc_val = Random.rand(config.rng, loc)
     end
-    if reg_action == nothing
-        reg_action_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
+    if threshold == nothing
+        threshold_val = RandUtilsMod.rand_float(config.rng)
     else
-        reg_action_val = Random.rand(config.rng, reg_action)
+        threshold_val = Random.rand(config.rng, threshold)
     end
-    if app_action == nothing
-        app_action_val = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
+    if consum_rate == nothing
+        consum_rate_val = RandUtilsMod.rand_float(config.rng)
     else
-        app_action_val = Random.rand(config.rng, app_action)
+        consum_rate_val = Random.rand(config.rng, consum_rate)
     end
 
-    ProteinProps(type_val, target_val, reg_action_val, app_action_val)
+    BindSite(type_val, loc_val, threshold_val, consum_rate_val)
 end
 
 function rand_init(config::Config, genome_index::Int64)
-    #reg_sites
-    reg_sites = Array{ProteinProps, 1}()
-    intra_intra = rand_site(
-        config,
-        type=ProteinPropsMod.Reg,
-        target=ProteinPropsMod.Intra
-    )
-    push!(reg_sites, intra_intra)
-
-    intra_inter = rand_site(
-        config,
-        type=ProteinPropsMod.Reg,
-        target=ProteinPropsMod.Intra
-    )
-    push!(reg_sites, intra_inter)
-
-    inter_intra = rand_site(
-        config,
-        type=ProteinPropsMod.Reg,
-        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
-    )
-    push!(reg_sites, inter_intra)
-
-    inter_inter = rand_site(
-        config,
-        type=ProteinPropsMod.Reg,
-        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
-    )
-    push!(reg_sites, inter_inter)
-
-    #prod_sites
+    bind_sites = Array{BindSite, 1}()
     prod_sites = Array{ProteinProps, 1}()
-    intra = rand_site(
-        config,
-        target=ProteinPropsMod.Intra
-    )
-    push!(prod_sites, intra)
+    for i in 1:config.run.num_bind_sites
+        bind_site = rand_bind_site(
+            config,
+            type=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion]
+        )
+        push!(bind_sites, bind_site)
 
-    inter = rand_site(
-        config,
-        target=[ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant]
-    )
-    push!(prod_sites, inter)
+        prod_site = ProteinPropsMod.rand_init(
+            config
+        )
+        push!(prod_sites, prod_site)
+    end
+
+    bind_logic = RandUtilsMod.rand_enum_val(config, BindLogic)
     
     Gene(
         config,
         genome_index,
-        reg_sites,
+        bind_logic,
+        bind_sites,
         prod_sites
     )
 end
