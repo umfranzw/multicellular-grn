@@ -286,7 +286,7 @@ function run_bind_for_site(gs::GeneState, site::GeneMod.RegSite, gene_index::Int
         next_bound = 0.0
         wheel = []
         for protein in eligible_proteins
-            next_bound = protein.concs[gene_index] / conc_sum
+            next_bound += protein.concs[gene_index] / conc_sum
             push!(wheel, next_bound)
         end
 

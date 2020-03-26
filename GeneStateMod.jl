@@ -83,9 +83,10 @@ function get_prod_rates(gs::GeneState)
     if logic == Gene.Id
         for site_index in 1:length(gs.bindings)
             rate = 0
+            protein = gs.bindings[i]
             if protein != nothing
                 protein_conc = protein.concs[col]
-                excess = protein_conc - thresh #will be >= 0, since it's already bound
+                excess = protein_conc - threshold #will be >= 0, since it's already bound
 
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
                 rate = excess * (config.run.max_prod_rate / (1 - threshold))
@@ -99,8 +100,8 @@ function get_prod_rates(gs::GeneState)
         sum = 0
         i = 1
         while i <= length(gs.bindings) && gs.bindings[i] != nothing
-            protein_conc = protein.concs[col]
-            excess = protein_conc - thresh
+            protein_conc = gs.bindings[i].concs[col]
+            excess = protein_conc - threshold
             sum += excess
             i += 1
         end
@@ -117,11 +118,50 @@ function get_prod_rates(gs::GeneState)
     #if at least one site is active, first prod site is activated
     #rate is determined by the average excess across all binding sites that are active    
     elseif logic == Gene.Or
+        count = 0
+        sum = 0
+        for protein in gs.bindings
+            if protein != nothing
+                count += 1
+                protein_conc = gs.bindings[i].concs[col]
+                excess = protein_conc - threshold
+                sum += excess
+            end
+            i += 1
+        end
+
+        if count > 0
+            avg = sum / count
+            #scale it from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
+            rate = excess * (config.run.max_prod_rate / (1 - threshold))
+        else
+            rate = 0
+        end
+        push!(rates, (prod_index=1, rate=rate))
 
     #if exactly one site is active, first prod site is activated
     #rate is determined by the excess on the binding site that is active
     elseif logic == Gene.Xor
-        
+        count = 0
+        excess = 0
+        i = 0
+        while i <= length(gs.bindings) && count < 2
+            protein = gs.bindings[i]
+            if protein != nothing
+                count += 1
+                protein_conc = protein.concs[col]
+                excess = protein_conc - threshold
+            end
+            i += 1
+        end
+
+        if count == 1
+            #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
+            rate = excess * (config.run.max_prod_rate / (1 - threshold))
+        else
+            rate = 0
+        end
+        push!(rates, (prod_index=1, rate=rate))
     end
 
     rates

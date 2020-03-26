@@ -9,7 +9,15 @@ export Sym, SymType
 struct Sym
     val::Any
     type::SymType
-    args_needed::Int64 #for fcns. Use -1 to indicate a variable number
+    arg_range::UnitRange #for fcns. Use -1 to indicate a variable number
+
+    function Sym(val::Any, type::SymType, arg_range::UnitRange=0:0)
+        new(val, type, arg_range)
+    end
+
+    function Sym(val::Any, type::SymType, arg_range::Int64)
+        new(val, type, arg_range:arg_range)
+    end
 end
 
 function show(io::IO, sym::Sym)
