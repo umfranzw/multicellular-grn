@@ -8,107 +8,93 @@ export ProteinStore
 
 mutable struct ProteinStore
     config::Config
-    proteins::Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}
-    owned_intercell_proteins::Set{ProteinProps} #set of inter-cell proteins that the cell that owns this store has produced
+    proteins::Dict{ProteinPropsMod.ProteinType, Dict{ProteinProps, Protein}}
+    #note: these are also stored in proteins (above) - this is just for efficiency since they'll be accessed by location a lot
+    loc_to_sensor::Dict{ProteinPropsMod.ProteinLoc, Dict{ProteinProps, Protein}}
     
     function ProteinStore(config::Config)
-        proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
-        owned_intercell_proteins = Set{ProteinProps}()
-        
-        for target in instances(ProteinPropsMod.ProteinTarget)
-            proteins[target] = Dict{ProteinProps, Protein}()
-        end
-        
-        new(config, proteins, owned_intercell_proteins)
+        new(config, build_dicts()...)
     end
+end
+
+function build_dicts()
+    proteins = Dict{ProteinPropsMod.ProteinType, Dict{ProteinProps, Protein}}()
+    
+    for type in instances(ProteinPropsMod.ProteinType)
+        proteins[type] = Dict{ProteinProps, Protein}()
+    end
+    
+    loc_to_sensor = Dict{ProteinPropsMod.ProteinLoc, Dict{ProteinProps, Protein}}()
+    for loc in instances(ProteinPropsMod.ProteinLoc)
+        loc_to_sensor[loc] = Dict{ProteinProps, Protein}()
+    end
+
+    (proteins, loc_to_sensor)
 end
 
 function clear(ps::ProteinStore)
-    ps.proteins = Dict{ProteinPropsMod.ProteinTarget, Dict{ProteinProps, Protein}}()
-    ps.owned_intercell_proteins = Set{ProteinProps}()
-    
-    for target in instances(ProteinPropsMod.ProteinTarget)
-        ps.proteins[target] = Dict{ProteinProps, Protein}()
-    end
+    ps.proteins, ps.loc_to_sensor = build_dicts()
 end
 
 function contains(ps::ProteinStore, protein::Protein)
-    for target in instances(ProteinPropsMod.ProteinTarget)
-        if protein.props in keys(ps.proteins[target])
-            return true
-        end
+    types = instances(ProteinPropsMode.ProteinType)
+    i = 0
+    found = false
+    while !found && i < length(types)
+        found = protein.props in keys(ps.proteins[types[i]])
+        i += 1
     end
 
-    return false
+    found
 end
 
-#owned should be set to true if the cell that's inserting the protein produced it
-function insert(ps::ProteinStore, protein::Protein, owned::Bool)
-    sub_dict = ps.proteins[protein.props.target]
-    if protein.props in keys(sub_dict)
-        #add new protein concs to existing ones
-        for i in 1:length(protein.concs)
-            sub_dict[protein.props].concs[i] = min(sub_dict[protein.props].concs[i] + protein.concs[i], 1.0)
-        end
-    else
-        sub_dict[protein.props] = protein
-    end
+function insert(ps::ProteinStore, protein::Protein)
+    sub_dict = ps.proteins[protein.props.type]
+    sub_dict[protein.props] = protein
 
-    if owned && protein.props.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant)
-        #note: no need to check if it's already present since this is a Set
-        push!(ps.owned_intercell_proteins, protein.props)
+    if protein.props.action == ProteinPropsMod.Sensor
+        ps.loc_to_sensor[protein.props.loc][protein.props] = protein
     end
+end
+
+function alter_concs(ps::ProteinStore, delta::Array{Float64, 1})
+    protein = ps.proteins[protein.props.type][protein.props]
+    protein.concs = clamp.(protein.concs .+ delta, 0.0, 1.0)
 end
 
 function remove(ps::ProteinStore, protein::Protein)
-    sub_dict = ps.proteins[protein.props.target]
+    sub_dict = ps.proteins[protein.props.type]
     if protein.props in keys(sub_dict)
         delete!(sub_dict, protein.props)
     end
-    
-    if protein.props.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant) && protein.props in ps.owned_intercell_proteins
-        delete!(ps.owned_intercell_proteins, protein.props)
+
+    if protein.action == ProteinPropsMod.Sensor
+        delete!(ps.loc_to_sensor[protein.props.loc], protein.props)
     end
-end
-
-function is_owned_intercell_protein(ps::ProteinStore, protein::Protein)
-    protein.props in ps.owned_intercell_proteins
-end
-
-function get_owned_intercell_proteins(ps::ProteinStore, protein::Protein)
-    map(props -> ps.proteins[props.target][props], ps.owned_intercell_proteins)
 end
 
 function get(ps::ProteinStore, props::ProteinProps)
-    sub_dict = ps.proteins[props.target]
+    result = nothing
+    sub_dict = ps.proteins[props.type]
     if props in keys(sub_dict)
-        return sub_dict[props]
-    else
-        return nothing
+        result = sub_dict[props]
     end
-end
 
-function get_by_target(ps::ProteinStore, target::ProteinPropsMod.ProteinTarget)
-    values(ps.proteins[target])
+    result
 end
 
 function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
-    proteins = Array{Protein, 1}()
-    for target in instances(ProteinPropsMod.ProteinTarget)
-        for protein in values(ps.proteins[target])
-            if protein.props.type == type
-                push!(proteins, protein)
-            end
-        end
-    end
+    values(ps.proteins[type])
+end
 
-    proteins
+function get_sensors_at(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc)
+    values(ps.loc_to_sensor[loc])
 end
 
 function get_all(ps::ProteinStore)
     proteins = Array{Protein, 1}()
-    for target in instances(ProteinPropsMod.ProteinTarget)
-        push!(proteins, values(ps.proteins[target])...)
+    for type in instances(ProteinPropsMod.ProteinType)
+        push!(proteins, values(ps.proteins[type])...)
     end
 
     proteins

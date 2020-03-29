@@ -53,21 +53,17 @@ function rand_init(run::Run, seed::UInt64)
     config = Config(run, rng)
     
     genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_initial_genes)
-    root_cell = Cell(config, genes, Sym(:x, SymMod.DataVar, 0))
+    root_cell = Cell(config, genes)
     cell_tree = CellTree(root_cell)
     
     initial_proteins = Array{Protein, 1}()
     
     for i in 1:config.run.num_initial_proteins
-        #all initial proteins will be type Reg, and have target Intra
-        #this forces inter-cell communication and application proteins to be produced by a network
-        type = ProteinPropsMod.Reg
-        target = ProteinPropsMod.Intra
-        reg_action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinRegAction)
-        app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
+        #all initial proteins will be type of type Internal
+        props = ProteinPropsMod.rand_init(config, type=ProteinPropsMod.Internal)
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, ProteinProps(type, target, reg_action, app_action), true, true, length(root_cell.gene_states))
+        protein = Protein(config, props, true, true, length(root_cell.gene_states))
         push!(initial_proteins, protein)
     end
     
@@ -81,7 +77,7 @@ end
 #we can run the reg sim again on the next ea_step)
 function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
-    indiv.cell_tree.root = Cell(indiv.config, indiv.genes, Sym(:x, SymMod.DataVar, 0))
+    indiv.cell_tree.root = Cell(indiv.config, indiv.genes)
     CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
 end
 
@@ -158,14 +154,22 @@ end
 function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
-        #decrease the concentration using decay_rate
-        protein.concs = max.(protein.concs - protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
+        #decrease the concentration using deca_rate
+        protein.concs = 
+        protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
         if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
-            #note: as long as the decay_threshold < reg_decay_threshold, and run_bind() executes before run_decay(),
-            #no decayed protein will be bound to anything at this point, so we don't need to go through the gene
-            #states to remove bindings
+            #clear any bindings that this protein has
+            for gs in cell.gene_states
+                for i in 1:length(gs.bindings)
+                    if gs.bindings[i] == protein
+                        gs.bindings[i] = nothing
+                    end
+                end
+            end
+
+            #remove it from the cell
             ProteinStoreMod.remove(cell.proteins, protein)
         end
     end
@@ -175,24 +179,19 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
+        #note: rates is an array of the form [(prod_site_index, rate), ...]
         rates = GeneStateMod.get_prod_rates(gene_state)
 
-        #For intra prod site
-        if rates.intra != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.Intra, rates.intra)
-        end
-        
-        #For inter prod site
-        if rates.inter != nothing
-            run_produce_for_site(cell, gene_index, GeneMod.Inter, rates.inter)
+        for (prod_index, rate) in rates
+            run_produce_for_site(cell, gene_index, prod_index, rate)
         end
     end
 end
 
-function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.ProdSite, rate::Float64)
+function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, rate::Float64)
     #get the props for the protein that will be produced
     gene = cell.gene_states[gene_index].gene
-    props = gene.prod_sites[Int64(site_type)]
+    props = gene.prod_sites[prod_index]
     #check if protein already exists in this cell's store
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if not, create and insert it
@@ -200,7 +199,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, site_type::GeneMod.
         #note: protein will be initialized with conc values of zero
         #@info @sprintf("Produced protein: %s", props)
         protein = Protein(cell.config, props, false, false, length(cell.gene_states))
-        ProteinStoreMod.insert(cell.proteins, protein, true)
+        ProteinStoreMod.insert(cell.proteins, protein)
     end
     
     #increment the conc using the rate
@@ -212,74 +211,35 @@ end
 function run_bind_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gene = indiv.genes[gene_index]
-        
-        #run binding for each of the regulatory sites
-        for site_type in instances(GeneMod.RegSite)
-            site = gene.reg_sites[Int64(site_type)]
-            
-            #Get eligible_proteins proteins
-            #for site types GeneMod.IntraIntra and GeneMod.IntraInter
-            if site.target == ProteinPropsMod.Intra
-                eligible_proteins = get_bind_eligible_proteins_for_intra_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
-                
-            #for site types GeneMod.InterIntra and GeneMod.InterInter
-            elseif site.target in (ProteinPropsMod.InterLocal, ProteinPropsMod.InterDistant)
-                eligible_proteins = get_bind_eligible_proteins_for_inter_site(cell.proteins, gene_index, site, indiv.config.run.reg_bind_threshold)
+
+        for i in 1:length(gene.bind_sites)
+            eligible_proteins = get_bind_eligible_proteins_for_site(cell.proteins, gene, bind_site_index)
+            run_bind_for_site(cell.gene_states[gene_index], gene_index, site_index, elibible_proteins)
+        end
+    end
+end
+
+function get_bind_eligible_proteins_for_site(ps::ProteinStore, gene::Gene, site_index::Int64)
+    #Binding logic:
+    #  - protein's type must match site's type
+    #  -protein's action must match site's action
+    #  -protein's loc must match site's loc
+    #  -protein's conc must be >= site's threshold
+
+    site = gene.bind_sites[site_index]
+    eligible_proteins = Array{Protein, 1}()
+    for protein in values(ProteinStoreMod.get_by_type(ps, site.type))
+        if protein.concs[gene_index] >= site.bind_threshold
+            if protein.action == site.action && protein.loc == site.loc
+                push!(eligible_proteins, protein)
             end
-            
-            #run the binding
-            run_bind_for_site(cell.gene_states[gene_index], site_type, gene_index, eligible_proteins)
-        end
-    end
-end
-
-function get_bind_eligible_proteins_for_intra_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    #for props:
-    #- need to ensure that protein's type matches site type (Reg)
-    #- protein's target will match site target (Intra) due the the filtering from the call above
-    #- protein's reg action doesn't need to match (could be Activate or Inhibit)
-    #- protein's app action is irrelevant (since this is a reg protein & reg site)
-
-    eligible_proteins = Array{Protein, 1}()
-    for protein in values(ProteinStoreMod.get_by_target(ps, ProteinPropsMod.Intra))
-        #if protein.concs[gene_index] >= bind_threshold && protein.props.type == site.type
-        if protein.props.type == site.type
-            push!(eligible_proteins, protein)
         end
     end
 
     eligible_proteins
 end
 
-function get_bind_eligible_proteins_for_inter_site(ps::ProteinStore, gene_index::Int64, site::ProteinProps, bind_threshold::Float64)
-    inter_cell_proteins = values(ProteinStoreMod.get_by_target(ps, site.target))
-    eligible_proteins = Array{Protein, 1}()
-
-    for protein in inter_cell_proteins
-        #we want to make sure that inter-cell proteins don't bind to genes in the cell that produced them (don't "self-bind")
-        #This call checks if the given store owns the given protein.
-        #note: it's possible that the store owns the protein, AND the protein was ALSO produced by another cell.
-        #Since we can't differentiate between the two cases, we still don't allow the protein to bind if both are true.
-        is_self_binding = ProteinStoreMod.is_owned_intercell_protein(ps, protein)
-        #above_thresh = protein.concs[gene_index] >= bind_threshold
-
-        #for props:
-        #- need to ensure that protein's type matches site type (Reg)
-        #- protein's target will match site target (Inter) due the the filtering from the call above
-        #- protein's reg action doesn't need to match (could be Activate or Inhibit)
-        #- protein's app action is irrelevant (since this is a reg protein & reg site)
-        seq_matches = protein.props.type == site.type
-
-        #if !is_self_binding && above_thresh && seq_matches
-        if !is_self_binding && seq_matches
-            push!(eligible_proteins, protein)
-        end
-    end
-
-    eligible_proteins
-end
-
-function run_bind_for_site(gs::GeneState, site::GeneMod.RegSite, gene_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site(gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
@@ -301,13 +261,13 @@ function run_bind_for_site(gs::GeneState, site::GeneMod.RegSite, gene_index::Int
         sel_protein = eligible_proteins[sel_index]
 
         #@info @sprintf("%s binding to site %s", sel_protein, site_type)
-        GeneStateMod.bind(gs, sel_protein, site)
+        GeneStateMod.bind(gs, sel_protein, site_index)
 
     else
-        state = GeneStateMod.get_binding_state(gs, site)
+        state = GeneStateMod.get_binding(gs, site_index)
         if state != nothing
             #@info @sprintf("Protein unbinding")
-            GeneStateMod.unbind(gs, site)
+            GeneStateMod.unbind(gs, site_index)
         end
     end
 end

@@ -16,6 +16,7 @@ export Gene
 mutable struct BindSite
     #from the protein
     type::ProteinProps.ProteinType
+    action::ProteinProps.ProteinAction
     loc::ProteinProps.ProteinLoc
     #additional binding params
     threshold::Float64
@@ -35,6 +36,7 @@ function get_sites_str(gene::Gene)
     for i in 1:length(gene.bind_sites)
         pairs = (
             (ProteinProps.ProteinType, gene.bind_sites[i].type),
+            (ProteinProps.ProteinAction, gene.bind_sites[i].action),
             (ProteinProps.ProteinLoc, gene.bind_sites[i].loc)
         )
         for (enum, val) in pairs
@@ -58,7 +60,7 @@ function get_sites_str(gene::Gene)
             print(buf, ", ")
         end
     end
-        
+    
     String(take!(buf))
 end
 
@@ -67,14 +69,15 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
     
     iprintln(io, "sites:", ilevel + 1)
-        iprint(io, get_sites_str(gene), ilevel + 2)
-    end
+    iprint(io, get_sites_str(gene), ilevel + 2)
+end
 end
 
 function rand_bind_site(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     threshold::Union{Array{Float64, 1}, Nothing}=nothing,
     consum_rate::Union{Array{Float64, 1}, Nothing}=nothing
 )
@@ -82,6 +85,11 @@ function rand_bind_site(
         type_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinType)
     else
         type_val = Random.rand(config.rng, type)
+    end
+    if action == nothing
+        action_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinAction)
+    else
+        action_val = Random.rand(config.rng, type)
     end
     if loc == nothing
         loc_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinLoc)
@@ -108,6 +116,7 @@ function rand_init(config::Config, genome_index::Int64)
     for i in 1:config.run.num_bind_sites
         bind_site = rand_bind_site(
             config,
+            #note: binding sites should never be of type Application
             type=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion]
         )
         push!(bind_sites, bind_site)

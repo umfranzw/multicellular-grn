@@ -61,6 +61,11 @@ end
 
 function bind(gs::GeneState, protein::Protein, site_index::Int64)
     gs.bindings[site_index] = protein
+
+    #binding consumes some of the protein
+    rate = gs.gene.bind_sites[site_index].consum_rate
+    col = gs.gene.genome_index
+    protein[col] = clamp(protein[col] - rate, 0.0, 1.0)
 end
 
 function unbind(gs::GeneState, site_index::Int64)

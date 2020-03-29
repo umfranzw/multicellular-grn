@@ -3,8 +3,10 @@ module CellMod
 using RunMod
 using GeneStateMod
 using GeneMod
-using IntraProteinMod
+using ProteinStoreMod
+using ProteinMod
 using SymMod: Sym
+using SymProbMod
 using MiscUtilsMod
 
 import Base.show
@@ -14,40 +16,39 @@ export Cell
 mutable struct Cell
     config::Config
     gene_states::Array{GeneState, 1}
-    intra_proteins::Dict{ProteinProps, IntraProtein}
+    proteins::ProteinStore
     energy::Float64
     parent::Union{Cell, Nothing}
     children::Array{Cell, 1}
+    probs::SymProbs
     sym::Union{Sym, Nothing}
 
-    function Cell(config::Config, genes::Array{Gene, 1}, sym::Union{Sym, Nothing})
+    function Cell(config::Config, genes::Array{Gene, 1})
         gene_states = map(g -> GeneState(config, g), genes)
-        intra_proteins = Dict{ProteinProps, IntraProtein}()
+        proteins = ProteinStore()
         children = Array{Cell, 1}()
 
-        cell = new(config, gene_states, intra_proteins, config.run.initial_cell_energy, nothing, children, sym)
+        cell = new(config, gene_states, proteins, config.run.initial_cell_energy, nothing, children, SymProbs(), nothing)
         
         cell
     end
 
-    function Cell(config::Config, gene_states::Array{GeneState, 1}, sym::Union{Sym, Nothing})
-        cell = new(config, gene_states, Dict{ProteinProps, IntraProtein}(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), sym)
+    function Cell(config::Config, gene_states::Array{GeneState, 1})
+        cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), SymProbs(), nothing)
         
         cell
     end
 end
 
-function insert_initial_intra_proteins(cell::Cell, proteins::Array{IntraProtein, 1})
+function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
     for protein in proteins
-        #it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        #However, we need to ensure that we only insert unique proteins into the root cell's store.
-        #note: this logic means some individual's root cells may have fewer initial proteins than others...
-        if protein.props ∉ keys(cell.intra_proteins)
-            #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
-            #in the root cell
-            copy = deepcopy(protein)
-            cell.intra_proteins[copy.props] = copy
-        end
+        #it is possible that not all initial proteins in the array are unique. That's ok, since they'll all (including the duplicates) be subject to evolution.
+        #the ProteinStore's insert() method ensures that only one (the last one) protein in each pair of duplicates gets inserted.
+        #note: this means some individual's root cells may have fewer initial proteins than others...
+        #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
+        #in the root cell
+        copy = deepcopy(protein)
+        ProteinStoreMod.insert(cell.proteins, copy)
     end
 end
 
