@@ -39,11 +39,6 @@ function mutate_indiv(indiv::Individual)
             insert!(protein.concs, loc, RandUtilsMod.rand_float(indiv.config))
         end
     end
-    
-    #Commented out because this creates two moving targets that need to be aligned
-    # for protein in indiv.initial_cell_proteins
-    #     mutate_initial_protein(protein)
-    # end
 end
 
 function dup_mutate_gene(gene::Gene)
@@ -70,40 +65,48 @@ function point_mutate_gene(gene::Gene)
     end
 end
 
-function mutate_initial_protein(protein::Protein)
-    #type and target must stay the same, others can be mutated
-    mutate_props(protein.config, protein.props, [ProteinPropsMod.ProteinRegAction], true)
-    
-    #concs can also mutate
-    for i in 1:length(protein.concs)
-        if RandUtilsMod.rand_float(protein.config) < protein.config.run.mut_prob
-            r = RandUtilsMod.rand_float(protein.config) #[0, 1]
-            r *= (protein.config.run.max_conc_mut) #[0, max_conc_mut]
-            r -= protein.config.run.max_conc_mut / 2 #[-max_conc_mut / 2, max_conc_mut / 2]
-
-            protein.concs[i] = clamp(protein.concs[i] + r, 0, 1)
-        end
-    end
-end
-
-#the enums in the given array are the ones that will be (potentially) mutated
-#use symbols instead!!!
-function mutate_props(config::Config, props::ProteinProps, enums::Array{DataType, 1}, app_action::Bool)
-    for enum in enums
+#note: just because a mutation happens doesn't necessarily mean anything has changed - it's possible for random mutations to choose the same val that currently exists...
+function mutate_props(
+    config::Config,
+    props::ProteinProps,
+    type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
+    arg::Union{Array{Float64, 1}, Nothing}=nothing
+)
+    mutated = false
+    i = 1
+    enum_info = (
+        (ProteinPropsMod.ProteinType, type, :type),
+        (ProteinPropsMod.ProteinLoc, loc, :loc),
+        (ProteinPropsMod.ProteinAction, action, :action)
+    )
+    while !mutated && i <= length(enum_info)
         if RandUtilsMod.rand_float(config) < config.run.mut_prob
-            new_val = RandUtilsMod.rand_enum_val(config, enum)
-
-            field_types = fieldtypes(ProteinProps)
-            field_index = findfirst(e -> e == enum, field_types)
-            field_names = fieldnames(ProteinProps)
-            name = field_names[field_index]
-            setfield!(props, name, new_val)
+            enum, options, fieldname = enum_info[i]
+            if options == nothing
+                new_val = RandUtilsMod.rand_enum_val(config, enum)
+            else
+                new_val = Random.rand(config.rng, options)
+            end
+            setfield!(props, fieldname, new_val)
+            mutated = true
         end
+        i += 1
     end
 
-    if app_action
-        props.app_action = UInt8(RandUtilsMod.rand_int(config, 1, Int64(ProteinPropsMod.num_app_actions)))
+    #mutate props.arg
+    if !mutated && RandUtilsMod.rand_float(config) < config.run.mut_prob
+        if arg == nothing
+            delta = RandUtilsMod.rand_int(config, -config.run.max_arg_mut_step, config.run.max_arg_mut_step)
+            props.arg = Int8((props.arg + delta) % 2^7)
+        else
+            props.arg = Random.rand(config.rng, arg)
+        end
+        mutated = true
     end
+
+    mutated
 end
 
 end

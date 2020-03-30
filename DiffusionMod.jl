@@ -84,7 +84,7 @@ function diffuse_inter_cell_protein(cell::Cell, protein::InterProtein, results::
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
     if protein == nothing
-        protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states))
+        protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states), pointer_from_objref(cell))
         ProteinStoreMod.insert(cell.proteins, protein, false)
     end
 
@@ -166,7 +166,7 @@ function get_2D(protein::Protein, cell_level::Int64, cell_col::Int64, conc_col::
         end
 
     else
-        error("Invalid offsets")
+        error("Diffusion error: Invalid offsets")
     end
 
     result

@@ -8,6 +8,7 @@ using ProteinMod
 using SymMod: Sym
 using SymProbMod
 using MiscUtilsMod
+using ProteinPropsMod
 
 import Base.show
 
@@ -21,6 +22,7 @@ mutable struct Cell
     parent::Union{Cell, Nothing}
     children::Array{Cell, 1}
     probs::SymProbs
+    sensors::Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}
     sym::Union{Sym, Nothing}
 
     function Cell(config::Config, genes::Array{Gene, 1})
@@ -28,16 +30,27 @@ mutable struct Cell
         proteins = ProteinStore()
         children = Array{Cell, 1}()
 
-        cell = new(config, gene_states, proteins, config.run.initial_cell_energy, nothing, children, SymProbs(), nothing)
+        cell = new(config, gene_states, proteins, config.run.initial_cell_energy, nothing, children, SymProbs(), build_sensors(length(genes)), nothing)
         
         cell
     end
 
     function Cell(config::Config, gene_states::Array{GeneState, 1})
-        cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), SymProbs(), nothing)
+        cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing)
         
         cell
     end
+end
+
+function build_sensors(num_concs::Int64)
+    sensors = Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}()
+    for loc in instances(ProteinPropsMod.ProteinLoc)
+        sensors[loc] = zeros(num_concs)
+    end
+end
+
+function adjust_sensor(cell::Cell, loc::ProteinPropsMod.ProteinLoc, delta::Array{Float64, 1})
+    cell.sensors[loc] = clamp.(cell.sensors[loc] .+ delta, 0.0, cell.config.run.max_sensor_amount)
 end
 
 function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})

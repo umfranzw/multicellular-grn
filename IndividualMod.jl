@@ -59,11 +59,11 @@ function rand_init(run::Run, seed::UInt64)
     initial_proteins = Array{Protein, 1}()
     
     for i in 1:config.run.num_initial_proteins
-        #all initial proteins will be type of type Internal
-        props = ProteinPropsMod.rand_init(config, type=ProteinPropsMod.Internal)
+        #all initial proteins should have type=Internal
+        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal]])
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, props, true, true, length(root_cell.gene_states))
+        protein = Protein(config, props, true, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
         push!(initial_proteins, protein)
     end
     
@@ -151,12 +151,53 @@ function run_decay(indiv::Individual)
     CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.cell_tree)
 end
 
+function run_neighbour_comm(indiv::Individual)
+    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell), indiv.cell_tree)
+end
+
+function run_neighbour_comm_for_cell(cell::Cell)
+    for src_loc in instances(ProteinProps.ProteinLoc)
+        neighbour = get_neighbour(src_loc)
+        sensor_amount = cell.sensors[src_loc]
+
+        #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
+        opposite_loc = get_opposite_loc(src_loc)
+        neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, ptr_from_objectref(neighbour))
+
+        #compute the max amount of each protein that we can accept
+        accept_amount = sensor_amount / length(neighbour_proteins)
+        for neighbour_protein in neighbour_proteins
+            transfer_amount = min.(protein.concs, accept_amount)
+            cell.sensors[src_loc] -= transfer_amount
+            neighbour_protein.concs -= amount
+            
+            #add the neighbour protein into the source cell, flipping the loc
+            dest_props = ProteinProps(
+                cell.config,
+                neighbour_protein.type,
+                neighbour_protein.fcn,
+                neighbour_protein.action,
+                src_loc, #flip the loc
+                neighbour_protein.arg
+            )
+
+            dest_protein = ProteinStoreMod.get(cell.proteins, props)
+            if dest_protein == nothing
+                dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
+            end
+            dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
+
+            #note: if the neighbour_protein was completely tranfered, the decay step will delete it later
+        end
+    end
+end
+
 function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         #decrease the concentration using deca_rate
         protein.concs = 
-        protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
+            protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
         if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
@@ -198,7 +239,7 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, 
     if protein == nothing
         #note: protein will be initialized with conc values of zero
         #@info @sprintf("Produced protein: %s", props)
-        protein = Protein(cell.config, props, false, false, length(cell.gene_states))
+        protein = Protein(cell.config, props, false, false, length(cell.gene_states), pointer_from_objref(cell))
         ProteinStoreMod.insert(cell.proteins, protein)
     end
     
@@ -213,26 +254,33 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
         gene = indiv.genes[gene_index]
 
         for i in 1:length(gene.bind_sites)
-            eligible_proteins = get_bind_eligible_proteins_for_site(cell.proteins, gene, bind_site_index)
+            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, bind_site_index)
             run_bind_for_site(cell.gene_states[gene_index], gene_index, site_index, elibible_proteins)
         end
     end
 end
 
-function get_bind_eligible_proteins_for_site(ps::ProteinStore, gene::Gene, site_index::Int64)
+function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index::Int64)
     #Binding logic:
-    #  - protein's type must match site's type
+    #  -protein's type must match site's type
+    #  -protein's conc must be >= site's threshold
+    #  -if the type is neighbour or diffusion, the protein's src_cell_ptr must not be equal to this cell ptr (to prevent self-binding)
     #  -protein's action must match site's action
     #  -protein's loc must match site's loc
-    #  -protein's conc must be >= site's threshold
 
     site = gene.bind_sites[site_index]
     eligible_proteins = Array{Protein, 1}()
-    for protein in values(ProteinStoreMod.get_by_type(ps, site.type))
-        if protein.concs[gene_index] >= site.bind_threshold
-            if protein.action == site.action && protein.loc == site.loc
-                push!(eligible_proteins, protein)
-            end
+    for protein in values(ProteinStoreMod.get_by_type(cell.proteins, site.type))
+        eligible = protein.concs[gene_index] >= site.bind_threshold
+        if site.type == ProteinPropsMod.Neighbour || site.type == ProteinPropsMod.Diffusion
+            eligible = eligible && protein.src_cell_ptr != pointer_from_objref(cell)
+        end
+        
+        eligible = eligible && protein.props.action == site.action
+        eligible = eligible && protein.props.loc == site.loc
+        
+        if eligible
+            push!(eligible_proteins, protein)
         end
     end
 

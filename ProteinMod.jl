@@ -15,15 +15,16 @@ mutable struct Protein
     props::ProteinProps
     concs::Array{Float64, 1}
     is_initial::Bool
+    src_cell_ptr::Ptr{Nothing}
 
-    function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool, num_concs::Int64)
+    function Protein(config::Config, props::ProteinProps, rand_concs::Bool, is_initial::Bool, num_concs::Int64, src_cell_ptr::Ptr{Nothing})
         if rand_concs
             concs = RandUtilsMod.rand_floats(config, num_concs)
         else
             concs = zeros(Float64, num_concs)
         end
         
-        new(props, concs, is_initial)
+        new(props, concs, is_initial, src_cell_ptr)
     end
 end
 
