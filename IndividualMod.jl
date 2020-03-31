@@ -14,7 +14,6 @@ using DiffusionMod
 using CellTreeMod
 using MiscUtilsMod
 using Printf
-using ChainGraphMod
 
 import Random
 import RandUtilsMod
@@ -31,7 +30,7 @@ mutable struct Individual
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
-    chain_graph::ChainGraph
+    gene_scores::Array{Int64, 1}
 end
 
 function show(io::IO, indiv::Individual, ilevel::Int64=0)
@@ -67,7 +66,7 @@ function rand_init(run::Run, seed::UInt64)
         push!(initial_proteins, protein)
     end
     
-    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, ChainGraph())
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, zeros(Int64, length(genes)))
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv
@@ -79,6 +78,7 @@ function reset(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
     indiv.cell_tree.root = Cell(indiv.config, indiv.genes)
     CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
+    indiv.gene_scores .= 0
 end
 
 function run_protein_app(indiv::Individual)
@@ -88,50 +88,53 @@ function run_protein_app(indiv::Individual)
     bfs_list = Array{Cell, 1}()
     CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.cell_tree)
 
-    deleted_cells = Set{Cell}()
     for cell in bfs_list
-        if cell.energy > indiv.config.run.cell_energy_threshold && cell ∉ deleted_cells
-            deleted = run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes, indiv.initial_cell_proteins)
-            deleted_cells = union(deleted_cells, deleted...)
-        end
+        run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
     end
 end
 
-function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1})
+function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
     #get all proteins (from this cell) that are eligible for application
-    app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.App)
+    app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.Application)
 
     #build a list of tuples of the form (protein, amount_above_threshold), where each protein has a conc >= protein_app_threshold
     pairs = Array{Tuple{Protein, Float64}, 1}()
     for protein in app_proteins
-        comp = repeat([cell.config.run.protein_app_threshold], length(protein.concs))
-        result = protein.concs .- comp
-        overflow = max(result...)
-        if overflow >= 0
-            push!(pairs, (protein, overflow))
+        #get the appropriate threshold, based on the Protein's Action
+        if protein.action == ProteinPropsMod.SymProb
+            threshold = cell.config.run.sym_prob_threshold
+            action_fcn = ProteinAppActionsMod.alter_sym_prob
+        elseif protein.action == ProteinPropsMod.Divide
+            threshold = cell.config.run.cell_division_threshold
+            action_fcn = ProteinAppActionsMod.divide
+        elseif protein.action == ProteinPropsMod.Sensor
+            threshold = cell.config.run.sensor_reinforcement_threshold
+            action_fcn = ProteinAppActionsMod.alter_sensor
         end
-        
-        # conc_sum = sum(protein.concs)
-        # if conc_sum >= cell.config.run.protein_app_threshold
-        #     push!(pairs, (protein, conc_sum))
-        # end
+
+        max_conc = maximum(protein.concs)
+        excess = max_conc - threshold
+        if excess > 0
+            push!(pairs, (protein, excess))
+        end
     end
-    #sort in descending order by sum - we'll apply they in this order
+    #sort in descending order by sum - we'll apply them in this order
     sort!(pairs; by=p -> p[2], rev=true)
 
     #apply the proteins
-    deleted_cells = Set{Cell}()
     for pair in pairs
         protein = pair[1]
-        deleted = ProteinAppActionsMod.run_app_action(tree, cell, genes, initial_proteins, protein)
-        deleted_cells = union(deleted_cells, deleted...)
+        args = AppArgs(tree, cell, genes, protein)
+        action_fcn(args)
     end
-
-    deleted_cells
 end
 
-function update_chains(indiv::Individual, reg_step::Int64)
-    ChainGraphMod.append_for_tree(indiv.chain_graph, indiv.cell_tree, reg_step)
+function update_gene_scores(indiv::Individual)
+    CellTreeMod.traverse(cell -> update_gene_scores_for_cell(indiv, cell), indiv.cell_tree)
+end
+
+function update_gene_scores_for_cell(indiv::Individual, cell::Cell)
+    
 end
 
 function run_bind(indiv::Individual)
@@ -181,12 +184,12 @@ function run_neighbour_comm_for_cell(cell::Cell)
             
             #add the neighbour protein into the source cell, flipping the loc
             dest_props = ProteinProps(
-                cell.config,
-                neighbour_protein.type,
-                neighbour_protein.fcn,
-                neighbour_protein.action,
-                src_loc, #flip the loc
-                neighbour_protein.arg
+            cell.config,
+            neighbour_protein.type,
+            neighbour_protein.fcn,
+            neighbour_protein.action,
+            src_loc, #flip the loc
+            neighbour_protein.arg
             )
 
             dest_protein = ProteinStoreMod.get(cell.proteins, props)
@@ -204,8 +207,7 @@ function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         #decrease the concentration using deca_rate
-        protein.concs = 
-            protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
+        protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
         if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
@@ -222,6 +224,12 @@ function run_decay_for_cell(cell::Cell)
             ProteinStoreMod.remove(cell.proteins, protein)
         end
     end
+
+    #run decay on the cell sensors
+    for loc in keys(sensors)
+        sensors[loc] = max.(sensors[loc] .- sensors[loc] * cell.config.run.decay_rate, zeros(length(sensors[loc])))
+        #note: sensor proteins are never removed
+    end
 end
 
 function run_produce_for_cell(indiv::Individual, cell::Cell)
@@ -233,6 +241,7 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
 
         for (prod_index, rate) in rates
             run_produce_for_site(cell, gene_index, prod_index, rate)
+            indiv.gene_scores[gene_index] += 1
         end
     end
 end

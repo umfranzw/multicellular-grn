@@ -25,7 +25,7 @@ function ev_alg(run::Run)
         
         #run the genetic operators
         for op in gen_ops
-            op(pop)
+            op(pop, ea_step)
         end
         reset_chain_graphs(pop)
         TrackerMod.save_ea_state(pop, ea_step)

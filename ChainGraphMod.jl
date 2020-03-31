@@ -59,7 +59,7 @@ function get_app_contributing_genes(graph::ChainGraph)
     #grab all of the app protein ids
     protein_ids = Set{Int64}()
     for (id, obj) in graph.id_to_obj
-        if obj isa Protein && obj.props.type == ProteinPropsMod.App
+        if obj isa Protein && obj.props.type == ProteinPropsMod.Application
             push!(protein_ids, id)
         end
     end

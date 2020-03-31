@@ -87,7 +87,6 @@ function get_prod_rates(gs::GeneState)
     #rate is determined by the amount the binding protein's conc exceeds the gene's binding threshold
     if logic == Gene.Id
         for site_index in 1:length(gs.bindings)
-            rate = 0
             protein = gs.bindings[i]
             if protein != nothing
                 protein_conc = protein.concs[col]
@@ -95,8 +94,8 @@ function get_prod_rates(gs::GeneState)
 
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
                 rate = excess * (config.run.max_prod_rate / (1 - threshold))
+                push!(rates, (prod_index=site_index, rate=rate))
             end
-            push!(rates, (prod_index=site_index, rate=rate))
         end
 
     #if all sites are active, first prod site is activated
@@ -115,10 +114,8 @@ function get_prod_rates(gs::GeneState)
             avg = sum / length(gs.bindings)
             #scale it from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
             rate = excess * (config.run.max_prod_rate / (1 - threshold))
-        else
-            rate = 0
+            push!(rates, (prod_index=1, rate=rate))
         end
-        push!(rates, (prod_index=1, rate=rate))
 
     #if at least one site is active, first prod site is activated
     #rate is determined by the average excess across all binding sites that are active    
@@ -139,10 +136,8 @@ function get_prod_rates(gs::GeneState)
             avg = sum / count
             #scale it from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
             rate = excess * (config.run.max_prod_rate / (1 - threshold))
-        else
-            rate = 0
+            push!(rates, (prod_index=1, rate=rate))
         end
-        push!(rates, (prod_index=1, rate=rate))
 
     #if exactly one site is active, first prod site is activated
     #rate is determined by the excess on the binding site that is active
@@ -163,10 +158,8 @@ function get_prod_rates(gs::GeneState)
         if count == 1
             #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
             rate = excess * (config.run.max_prod_rate / (1 - threshold))
-        else
-            rate = 0
+            push!(rates, (prod_index=1, rate=rate))
         end
-        push!(rates, (prod_index=1, rate=rate))
     end
 
     rates

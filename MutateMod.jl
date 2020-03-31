@@ -7,27 +7,29 @@ using ProteinMod
 using ProteinPropsMod
 using RandUtilsMod
 
-function mutate(pop::Array{Individual, 1})
+function mutate(pop::Array{Individual, 1}, ea_step::Int64)
     for indiv in pop
-        mutate_indiv(indiv)
+        mutate_indiv(indiv, ea_step)
     end
 end
 
-function mutate_indiv(indiv::Individual)
-    app_contrib_genes = ChainGraphMod.get_app_contributing_genes(indiv.chain_graph)
+function mutate_indiv(indiv::Individual, ea_step::Int64)
+    #TODO: change this. Give each gene a score that is the number of reg_steps it produced something. If avg score per cell > threshold, duplicate the gene.
+    #TODO: tree size is not available when mutation is run!!!
+    avg_scores = indiv.scores ./ CellTreeMod.size(indiv.cell_tree)
 
     copy_locations = Array{Int64, 1}()
     i = 1
     while i <= length(indiv.genes)
-        if indiv.genes[i] in app_contrib_genes
-            mut_copy = dup_mutate_gene(indiv.genes[i])
+        if avg_scores[i] >= indiv.config.run.gene_score_threshold
+            mut_copy = dup_and_mutate_gene(indiv.genes[i], ea_step)
             if mut_copy != nothing
                 insert!(indiv.genes, i + 1, mut_copy) #insert mutated copy after the src gene
                 push!(copy_locations, i + 1)
                 i += 1 #skip over the copy
             end
         else
-            point_mutate_gene(indiv.genes[i])
+            point_mutate_gene(indiv.genes[i], ea_step)
         end
         
         i += 1
@@ -38,30 +40,50 @@ function mutate_indiv(indiv::Individual)
         for protein in indiv.initial_cell_proteins
             insert!(protein.concs, loc, RandUtilsMod.rand_float(indiv.config))
         end
+        push!(indiv.gene_scores, 0)
     end
 end
 
-function dup_mutate_gene(gene::Gene)
+function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
     copy = nothing
     if RandUtilsMod.rand_float(gene.config) < config.run.mut_prob
         copy = deepcopy(gene)
-        point_mutate_gene(copy)
+        point_mutate_gene(copy, ea_step)
     end
 
     copy
 end
 
-function point_mutate_gene(gene::Gene)
-    #Regulatory sites:
-    #type & target must stay as they are, other attributes can mutate
-    for site in gene.reg_sites
-        mutate_props(gene.config, site, [ProteinPropsMod.ProteinRegAction], true)
+function point_mutate_gene(gene::Gene, ea_step::Int64)
+    #bind sites:
+    for site in gene.bind_sites
+        mutate_props(
+            gene.config,
+            site,
+            ea_step,
+            type=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion]
+        )
+
+        mutate_floats(gene.config, site, ea_step)
     end
 
-    #Production sites:
-    #target must stay as it is, other attributes can mutate
+    #prod sites:
     for site in gene.prod_sites
-        mutate_props(gene.config, site, [ProteinPropsMod.ProteinType, ProteinPropsMod.ProteinRegAction], true)
+        mutate_props(gene.config, site, ea_step)
+    end
+end
+
+function mutate_floats(config::Config, site::BindSite, ea_step::Int64)
+    time_factor = 1.0 - ea_step / config.run.ea_steps
+    
+    for fieldname in (:threshold, :consum_rate)
+        if RandUtilsMod.rand_float(config) < config.run.mut_prob
+            range = time_factor
+            delta = RandUtilsMod.rand_float(config) * range - range / 2 #value in [-range / 2, +range / 2]
+            cur_val = getfield(site, fieldname)
+            new_val = clamp(cur_val + delta, 0.0, 1.0)
+            setfield(site, fieldname, new_val)
+        end
     end
 end
 
@@ -69,6 +91,7 @@ end
 function mutate_props(
     config::Config,
     props::ProteinProps,
+    ea_step::Int64,
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
@@ -98,8 +121,11 @@ function mutate_props(
     #mutate props.arg
     if !mutated && RandUtilsMod.rand_float(config) < config.run.mut_prob
         if arg == nothing
-            delta = RandUtilsMod.rand_int(config, -config.run.max_arg_mut_step, config.run.max_arg_mut_step)
-            props.arg = Int8((props.arg + delta) % 2^7)
+            max_int8 = 2^7 - 1
+            time_factor = 1.0 - ea_step / config.run.ea_steps
+            range = Int8(floor(time_factor * max_int8))
+            delta = RandUtilsMod.rand_int(config, 0, range) - range ÷ 2
+            props.arg = Int8(clamp(props.arg + delta, -max_int8, max_int8))
         else
             props.arg = Random.rand(config.rng, arg)
         end
