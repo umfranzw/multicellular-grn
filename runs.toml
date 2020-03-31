@@ -39,8 +39,7 @@ min_ev_weight = 0.0
 #################################
 # Genotype -> Phenotype Mapping #
 #################################
-cell_energy_threshold = 0.25
-initial_cell_energy = 5.0
+division_age_threshold = 20
 
 ###########################
 #Random Number Generation #

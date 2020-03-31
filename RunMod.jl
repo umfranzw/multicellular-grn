@@ -45,10 +45,6 @@ struct Run
     max_acc_weight::Float64
     min_ev_weight::Float64
 
-    cell_energy_threshold::Float64
-
-    initial_cell_energy::Float64
-
     fix_rng_seed::Bool
     rng_seed::UInt64
 
@@ -85,10 +81,6 @@ struct Run
             run["weight_shift"],
             run["max_acc_weight"],
             run["min_ev_weight"],
-            
-            run["cell_energy_threshold"],
-            
-            run["initial_cell_energy"],
             
             run["fix_rng_seed"],
             run["rng_seed"],

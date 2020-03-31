@@ -8,66 +8,78 @@ using SymMod
 using GeneMod
 using Printf
 
-export AppAction
-
-struct AppAction
-    name::String
-    fcn::Function
-end
+export AppArgs
 
 struct AppArgs
     tree::CellTree
     cell::Cell
     genes::Array{Gene, 1}
-    initial_proteins::Array{Protein, 1}
-    protein::Protein
+    app_protein::Protein
 end
 
-const app_actions = Array{AppAction, 1}([
-    AppAction("make_parent_op_plus", args -> make_parent_op(args, :+)),
-    AppAction("make_parent_op_minus", args -> make_parent_op(args, :-)),
-    AppAction("make_parent_op_mult", args -> make_parent_op(args, :*)),
-    AppAction("make_child_int_1", args -> make_child_int(args, 1)),
-    AppAction("make_child_int_2", args -> make_child_int(args, 2)),
-    AppAction("make_child_int_3", args -> make_child_int(args, 3)),
-])
+#note: the methods in this module assume that the app_protein has exceeded the appropriate threshold
 
-function init_app_actions()
-    ProteinPropsMod.set_num_app_actions(length(app_actions))
-end
+function divide(args::AppArgs)
+    src_cell = arg.cell
+    if (length(src_cell.children) < src_cell.config.run.max_children) &&
+        cell.age < src_cell.config.run.division_age_theshold)
+        max_children = src_cell.config.run.max_children
+        num_concs = length(arg.genes)
+        chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
+        truncated_chunk_size = num_concs ÷ max_children
+        chunk_start = chunk_index * truncated_chunk_size + 1
+        #last chunk gets the extra concs (if there are any)
+        chunk_end = (chunk_index == max_children - 1) ? num_concs : chunk_start + truncated_chunk_size
+        chunk_range = chunk_start:chunk_end
 
-#returns a set containing any deleted cells
-function make_parent_op(args::AppArgs, op::Symbol)
-    if args.cell.parent == nothing
-        #@info @sprintf("Applying protein: make_parent_op\n")
-        parent = Cell(args.cell.config, args.genes, Sym(op, SymMod.FcnCall, -1))
-        #idea: new cell should not receive initial proteins (since that would lead to the same behaviour as the initial cell)
-        #CellMod.insert_initial_proteins(parent, args.initial_proteins)
-        CellMod.add_parent(args.cell, parent)
-        args.cell.energy /= 2
-        args.tree.root = parent
+        new_cell = Cell(src_cell.config, src_cell.genes)
+        CellMod.add_parent(new_cell, src_cell)
+
+        for (props, protein) in src_cell.proteins
+            new_protein = Protein(src_cell.config, copy(src_cell.props), false, false, num_concs, src_cell.src_cell_ptr)
+            #child gains half of the (magnitude of the) parent's concs in the chunk range
+            protein.concs[chunk_range] = protein.concs[chunk_range] / 2
+            new_protein.concs[chunk_range] = protein.concs[chunk_range]
+
+            ProteinStoreMod.insert(new_cell.proteins, new_protein)
+        end
     end
 
-    Set{Cell}()
+    #remove the app_protein, since it's done its job
+    ProteinStoreMod.remove(src_cell.proteins, args.app_protein)
 end
 
-function make_child_int(args::AppArgs, val::Int64)
-    if args.cell.sym.type == SymMod.FcnCall && (args.cell.sym.args_needed == -1 || length(args.cell.children) < args.cell.sym.args_needed)
-        #@info @sprintf("Applying protein: make_child_int\n")
-        child = Cell(args.cell.config, args.genes, Sym(val, SymMod.IntConst, 0))
-        args.cell.energy /= 2
-        #idea: new cell should not receive initial proteins (since that would lead to the same behaviour as the initial cell)
-        #CellMod.insert_initial_proteins(child, args.initial_proteins)
-        CellMod.add_child(args.cell, child)
+function alter_sym_prob(args::Args)
+    cell = args.cell
+    if cell.sym == nothing #if symbol has not yet been fixed
+        age_factor = 1.0 - cell.age / cell.config.run.reg_steps
+        
+        sym_index = args.app_protein.props.arg % length(cell.probs)
+        sign = protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
+        
+        max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess
+        scale_factor = 1.0 / max_excess
+        excess = maximum(app_protein.concs) - cell.config.run.sym_prob_threshold #should be positive, given that this method has been called
+        delta = sign * excess * scale_factor * age_factor
+        SymProbMod.alter_prob(cell.probs, sym_index, delta)
     end
 
-    Set{Cell}()
+    #remove the app_protein, since it's done its job
+    ProteinStoreMod.remove(cell.proteins, args.app_protein)
 end
 
-function run_app_action(tree::CellTree, cell::Cell, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1}, protein::Protein)
-    args = AppArgs(tree, cell, genes, initial_proteins, protein)
-    action = app_actions[protein.props.app_action]
-    action.fcn(args)
+function alter_sensor(args::Args)
+    cell = args.cell
+    loc = args.app_protein.props.loc
+    #note: can only increase (not decrease) the amount of sensor protein
+    #it will decrease as it is used, and through decay
+    max_excess = 1.0 - cell.config.run.sensor_reinforcement_threshold #max possible excess
+    scale_factor = 1.0 / max_excess
+    excess = maximum(app_protein.concs) - cell.config.run.sensor_reinforcement_threshold #should be positive, given that this method has been called
+    delta = sign * excess * scale_factor
+    CellMod.adjust_sensor(cell, loc, delta)
+
+    ProteinStoreMod.remove(cell.proteins, args.app_protein)
 end
 
 end

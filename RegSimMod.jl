@@ -20,6 +20,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
             IndividualMod.run_bind(indiv)
             IndividualMod.run_produce(indiv)
             IndividualMod.run_diffuse(indiv)
+            IndividualMod.run_neighbour_comm(indiv)
             IndividualMod.run_protein_app(indiv)
 
             #update gene-protein interaction graph (used by mutation op)
@@ -27,8 +28,10 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
             #save before decay so we can reconstruct the concs and bindings properly later
             TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
             IndividualMod.run_decay(indiv)
+            IndividualMod.run_age(indiv)
         end
 
+        IndividualMod.run_fix_syms(indiv)
         FitnessMod.eval(indiv, ea_step)
     end
 end

@@ -151,6 +151,14 @@ function run_decay(indiv::Individual)
     CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.cell_tree)
 end
 
+function run_age(indiv::Individual)
+    CellTreeMod.traverse(cell -> cell.age += 1, indiv.cell_tree)
+end
+
+function run_fix_syms(indiv::Individual)
+    CellTreeMod.traverse(cell -> CellMod.fix_sym(cell), indiv.cell_tree)
+end
+
 function run_neighbour_comm(indiv::Individual)
     CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell), indiv.cell_tree)
 end

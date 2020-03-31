@@ -3,6 +3,7 @@ module SymProbsMod
 using SymMod
 using SettingsMod
 using RunMod
+import Base.length
 
 index_to_sym = vcat([x for x in values(SettingsMod.fcns)], [x for x in values(SettingsMod.terms)])
 sym_to_index = Dict{Sym, Int64}(zip(index_to_sym, 1:length(index_to_sym)))
@@ -13,6 +14,10 @@ mutable struct SymProbs
     function SymProbs()
         new(Dict{Sym, Float64}(zip(index_to_sym, zeros(length(index_to_sym)))))
     end
+end
+
+function length(probs::SymProbs)
+    length(probs.probs)
 end
 
 function alter_prob(probs::SymProbs, index::Int64, amount::Float64)

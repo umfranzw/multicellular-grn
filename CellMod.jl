@@ -18,25 +18,25 @@ mutable struct Cell
     config::Config
     gene_states::Array{GeneState, 1}
     proteins::ProteinStore
-    energy::Float64
     parent::Union{Cell, Nothing}
     children::Array{Cell, 1}
     probs::SymProbs
     sensors::Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}
     sym::Union{Sym, Nothing}
+    age::Int64
 
     function Cell(config::Config, genes::Array{Gene, 1})
         gene_states = map(g -> GeneState(config, g), genes)
         proteins = ProteinStore()
         children = Array{Cell, 1}()
 
-        cell = new(config, gene_states, proteins, config.run.initial_cell_energy, nothing, children, SymProbs(), build_sensors(length(genes)), nothing)
+        cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(length(genes)), nothing, 0)
         
         cell
     end
 
     function Cell(config::Config, gene_states::Array{GeneState, 1})
-        cell = new(config, gene_states, ProteinStore(), config.run.initial_cell_energy, nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing)
+        cell = new(config, gene_states, ProteinStore(), nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing, 0)
         
         cell
     end
@@ -80,13 +80,17 @@ function add_child(cur::Cell, child::Cell)
     push!(cur.children, child)
 end
 
+function fix_sym(cell::Cell)
+    cell.sym = SymProbMod.choose_sym(cell.probs, cell.config)
+end
+
 function show(io::IO, cell::Cell, ilevel::Int64=0)
     parent_present = cell.parent == nothing ? "none" : "present"
     sym_desc = cell.sym == nothing ? "(nothing)" : cell.sym
 
     iprintln(io, "Cell:", ilevel)
 
-    iprintln(io, "energy: $(cell.energy)", ilevel + 1)
+    iprintln(io, "age: $(cell.age)", ilevel + 1)
     iprintln(io, "parent: $(parent_present)", ilevel + 1)
     iprintln(io, "children: $(length(cell.children))", ilevel + 1)
     iprintln(io, "sym: $(sym_desc)", ilevel + 1)
