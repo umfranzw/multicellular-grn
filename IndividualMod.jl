@@ -74,10 +74,13 @@ end
 
 #resets everything to the way it was before the reg sim (so
 #we can run the reg sim again on the next ea_step)
-function reset(indiv::Individual)
+function reset_cell_tree(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
     indiv.cell_tree.root = Cell(indiv.config, indiv.genes)
     CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
+end
+
+function reset_gene_scores(indiv::Individual)
     indiv.gene_scores .= 0
 end
 

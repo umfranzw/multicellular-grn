@@ -6,10 +6,7 @@ using MutateMod
 using RegSimMod
 using TrackerMod
 using Printf
-using ChainGraphMod
 import Random
-
-gen_ops = (MutateMod.mutate,)
 
 function ev_alg(run::Run)
     data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
@@ -18,17 +15,17 @@ function ev_alg(run::Run)
     TrackerMod.save_ea_state(pop, -1, true)
     RegSimMod.reg_sim(run, pop, -1)
     TrackerMod.update_bests(pop)
+    map(IndividualMod.reset_cell_tree, pop)
 
     ea_step = 1
     while !terminate(run) && ea_step <= run.ea_steps
         @info @sprintf("EA step: %d", ea_step)
         
         #run the genetic operators
-        for op in gen_ops
-            op(pop, ea_step)
-        end
-        reset_chain_graphs(pop)
+        MutateMod.mutate(pop, ea_step)
+
         TrackerMod.save_ea_state(pop, ea_step)
+        map(IndividualMod.reset_gene_scores, pop)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop, ea_step)
@@ -36,18 +33,12 @@ function ev_alg(run::Run)
         TrackerMod.update_bests(pop)
 
         #reset the individuals before the next iteration
-        map(IndividualMod.reset, pop)
+        map(IndividualMod.reset_cell_tree, pop)
 
         ea_step += 1
     end
 
     TrackerMod.destroy_tracker()
-end
-
-function reset_chain_graphs(pop::Array{Individual, 1})
-    for indiv in pop:
-        indiv.chain_graph = ChainGraph()
-    end
 end
 
 function terminate(run::Run)

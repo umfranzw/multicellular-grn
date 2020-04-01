@@ -14,33 +14,29 @@ function mutate(pop::Array{Individual, 1}, ea_step::Int64)
 end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
-    #TODO: change this. Give each gene a score that is the number of reg_steps it produced something. If avg score per cell > threshold, duplicate the gene.
-    #TODO: tree size is not available when mutation is run!!!
-    avg_scores = indiv.scores ./ CellTreeMod.size(indiv.cell_tree)
-
+    score_total = sum(indiv.gene_scores)
     copy_locations = Array{Int64, 1}()
-    i = 1
-    while i <= length(indiv.genes)
-        if avg_scores[i] >= indiv.config.run.gene_score_threshold
-            mut_copy = dup_and_mutate_gene(indiv.genes[i], ea_step)
+    gene_index = 1
+    while gene_index <= length(indiv.genes)
+        normal_score = indiv.gene_scores[gene_index] / score_total
+        if normal_score > indiv.config.run.gene_score_threshold
+            mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
             if mut_copy != nothing
-                insert!(indiv.genes, i + 1, mut_copy) #insert mutated copy after the src gene
-                push!(copy_locations, i + 1)
-                i += 1 #skip over the copy
+                insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
+                insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
+
+                #insert a new conc into the initial proteins
+                for protein in indiv.initial_cell_proteins
+                    insert!(protein.concs, gene_index + 1, RandUtilsMod.rand_float(indiv.config))
+                end
+                
+                gene_index += 1 #skip over the copy
             end
         else
             point_mutate_gene(indiv.genes[i], ea_step)
         end
         
-        i += 1
-    end
-
-    #insert values into the initial protein concs over the spots where the duplicated genes were inserted
-    for loc in copy_locations
-        for protein in indiv.initial_cell_proteins
-            insert!(protein.concs, loc, RandUtilsMod.rand_float(indiv.config))
-        end
-        push!(indiv.gene_scores, 0)
+        gene_index += 1
     end
 end
 
