@@ -5,6 +5,7 @@ import Base.==
 import Base.show
 import Formatting
 import Random
+using RandUtilsMod
 using MiscUtilsMod
 using RunMod
 
@@ -29,7 +30,7 @@ mutable struct ProteinProps
 end
 
 function rand_init(
-    config::Config,
+    config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     fcn::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
@@ -53,7 +54,7 @@ function rand_init(
         push!(vals, instance)
     end
 
-    if typeof(arg) == nothing
+    if arg == nothing
         arg_val = Random.rand(config.rng, Int8)
     else
         arg_val = arg

@@ -2,16 +2,14 @@ module ProteinStoreMod
 
 using ProteinMod
 using ProteinPropsMod
-using RunMod
 
 export ProteinStore
 
 mutable struct ProteinStore
-    config::Config
     proteins::Dict{ProteinPropsMod.ProteinType, Dict{ProteinProps, Protein}}
     
-    function ProteinStore(config::Config)
-        new(config, build_dict())
+    function ProteinStore()
+        new(build_dict())
     end
 end
 
@@ -22,6 +20,15 @@ function build_dict()
     end
 
     proteins
+end
+
+function num_proteins(ps::ProteinStore)
+    total = 0
+    for type in keys(ps.proteins)
+        total += length(ps.proteins[type])
+    end
+
+    total
 end
 
 function clear(ps::ProteinStore)
@@ -67,7 +74,7 @@ function get(ps::ProteinStore, props::ProteinProps)
     result
 end
 
-function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc, src_cell_ptr::Pointer{Nothing})
+function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc, src_cell_ptr::Ptr{Nothing})
     neighbours = Array{Protein, 1}()
     for protein in ps.proteins[ProteinPropsMod.Neighbour]
         if protein.props.loc == loc && protein.src_cell_ptr == src_cell_ptr

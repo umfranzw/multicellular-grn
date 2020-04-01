@@ -21,7 +21,7 @@ end
 
 function divide(args::AppArgs)
     src_cell = arg.cell
-    if (length(src_cell.children) < src_cell.config.run.max_children) &&
+    if (length(src_cell.children) < src_cell.config.run.max_children &&
         cell.age < src_cell.config.run.division_age_theshold)
         max_children = src_cell.config.run.max_children
         num_concs = length(arg.genes)
@@ -49,7 +49,7 @@ function divide(args::AppArgs)
     ProteinStoreMod.remove(src_cell.proteins, args.app_protein)
 end
 
-function alter_sym_prob(args::Args)
+function alter_sym_prob(args::AppArgs)
     cell = args.cell
     if cell.sym == nothing #if symbol has not yet been fixed
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
@@ -61,14 +61,14 @@ function alter_sym_prob(args::Args)
         scale_factor = 1.0 / max_excess
         excess = maximum(app_protein.concs) - cell.config.run.sym_prob_threshold #should be positive, given that this method has been called
         delta = sign * excess * scale_factor * age_factor
-        SymProbMod.alter_prob(cell.probs, sym_index, delta)
+        SymProbsMod.alter_prob(cell.probs, sym_index, delta)
     end
 
     #remove the app_protein, since it's done its job
     ProteinStoreMod.remove(cell.proteins, args.app_protein)
 end
 
-function alter_sensor(args::Args)
+function alter_sensor(args::AppArgs)
     cell = args.cell
     loc = args.app_protein.props.loc
     #note: can only increase (not decrease) the amount of sensor protein

@@ -5,8 +5,8 @@ using GeneStateMod
 using GeneMod
 using ProteinStoreMod
 using ProteinMod
-using SymMod: Sym
-using SymProbMod
+using SymMod
+using SymProbsMod
 using MiscUtilsMod
 using ProteinPropsMod
 
@@ -47,6 +47,8 @@ function build_sensors(num_concs::Int64)
     for loc in instances(ProteinPropsMod.ProteinLoc)
         sensors[loc] = zeros(num_concs)
     end
+
+    sensors
 end
 
 function adjust_sensor(cell::Cell, loc::ProteinPropsMod.ProteinLoc, delta::Array{Float64, 1})
@@ -54,14 +56,17 @@ function adjust_sensor(cell::Cell, loc::ProteinPropsMod.ProteinLoc, delta::Array
 end
 
 function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
-    for protein in proteins
+    i = 1
+    while i < min(length(proteins), cell.config.run.max_proteins_per_cell)
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll all (including the duplicates) be subject to evolution.
         #the ProteinStore's insert() method ensures that only one (the last one) protein in each pair of duplicates gets inserted.
         #note: this means some individual's root cells may have fewer initial proteins than others...
         #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
         #in the root cell
-        copy = deepcopy(protein)
+        copy = deepcopy(proteins[i])
         ProteinStoreMod.insert(cell.proteins, copy)
+
+        i += 1
     end
 end
 
@@ -81,7 +86,7 @@ function add_child(cur::Cell, child::Cell)
 end
 
 function fix_sym(cell::Cell)
-    cell.sym = SymProbMod.choose_sym(cell.probs, cell.config)
+    cell.sym = SymProbsMod.choose_sym(cell.probs, cell.config)
 end
 
 function show(io::IO, cell::Cell, ilevel::Int64=0)

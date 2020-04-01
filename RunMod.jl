@@ -22,19 +22,16 @@ struct Run
     mut_prob::Float64
     num_initial_genes::Int64
     fitness_term_threshold::Float64
-    reg_bind_threshold::Float64
-    protein_app_threshold::Float64
-    prod_rate_incr::Float64
-
+    gene_score_threshold::Float64
+    
     reg_steps::Int64
     protein_deletion_threshold::Float64
+    max_prod_rate::Float64
 
     decay_rate::Float64
     num_initial_proteins::Int64
-    max_proteins::Int64
-    max_conc_mut::Float64
-    max_mut_bits_change::Int64
-
+    max_proteins_per_cell::Int64
+    
     diff_alpha::Float64
     diff_h::Float64
     diff_dt::Float64
@@ -45,6 +42,15 @@ struct Run
     max_acc_weight::Float64
     min_ev_weight::Float64
 
+    bind_sites_per_gene::Int64
+
+    division_age_threshold::Int64
+    cell_division_threshold::Float64
+    max_children::Int64
+    max_sensor_amount::Float64
+    sensor_reinforcement_threshold::Float64
+    sym_prob_threshold::Float64
+    
     fix_rng_seed::Bool
     rng_seed::UInt64
 
@@ -52,43 +58,18 @@ struct Run
     step_range::StepRange{Int64, Int64}
     data_output_file::String
 
-    function Run(run)
-        new(
-            run["pop_size"],
-            run["ea_steps"],
-            run["mut_prob"],
-            run["num_initial_genes"],
-            run["fitness_term_threshold"],
-            run["reg_bind_threshold"],
-            run["protein_app_threshold"],
-            run["prod_rate_incr"],
-            
-            run["reg_steps"],
-            run["protein_deletion_threshold"],
-            
-            run["decay_rate"],
-            run["num_initial_proteins"],
-            run["max_proteins"],
-            run["max_conc_mut"],
-            run["max_mut_bits_change"],
-
-            run["diff_alpha"],
-            run["diff_h"],
-            run["diff_dt"],
-
-            run["initial_acc_weight"],
-            run["initial_ev_weight"],
-            run["weight_shift"],
-            run["max_acc_weight"],
-            run["min_ev_weight"],
-            
-            run["fix_rng_seed"],
-            run["rng_seed"],
-
-            run["log_data"],
-            parse_step_range(run["step_range"]),
-            run["data_output_file"]
-        )
+    function Run(run::Dict{AbstractString, Any})
+        args = Array{Any, 1}()
+        for name_sym in fieldnames(Run)
+            name_str = string(name_sym)
+            if name_str == "step_range"
+                push!(args, parse_step_range(run[name_str]))
+            else
+                push!(args, run[name_str])
+            end
+        end
+        
+        new(args...)
     end
 end
 

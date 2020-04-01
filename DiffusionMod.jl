@@ -39,6 +39,17 @@ function diffuse_intra_cell_proteins(tree::CellTree)
     CellTreeMod.traverse(cell -> diffuse_intra_cell_proteins_for_cell(cell), tree)
 end
 
+function get_all_but_diffusion(ps::ProteinStore)
+    proteins = Array{Protein, 1}()
+    for type in instances(ProteinPropsMod.ProteinType)
+        if type != ProteinPropsMod.Diffusion
+            append!(proteins, ProteinStoreMod.get_by_type(ps, type))
+        end
+    end
+
+    proteins
+end
+
 function diffuse_intra_cell_proteins_for_cell(cell::Cell)
     cols = length(cell.gene_states)
     intra_cell_proteins = get_all_but_diffusion(cell.proteins)
@@ -63,6 +74,21 @@ function get_1D(array::Array{Float64, 1}, col::Int64, len::Int64)
     end
 end
 
+function get_all_diffusion_proteins(tree::CellTree)
+    proteins = Set{Protein}()
+    CellTreeMod.traverse(cell -> append_diffusion_proteins_from_cell(proteins, cell), tree)
+    ProteinStoreMod
+
+    proteins
+end
+
+function append_diffusion_proteins_from_cell(set::Set{Protein}, cell::Cell)
+    diff_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.Diffusion)
+    for protein in diff_proteins
+        push!(set, protein)
+    end
+end
+
 function diffuse_inter_cell_proteins(tree::CellTree)
     #get a set of all of the inter-cell proteins' props (across all cells in the tree)
     inter_proteins = get_all_diffusion_proteins(tree)
@@ -80,35 +106,39 @@ function diffuse_inter_cell_proteins(tree::CellTree)
     end
 end
 
-function diffuse_inter_cell_protein(cell::Cell, protein::InterProtein, results::Dict{Tuple{Int64, Int64}, Array{Float64, 1}}, info::TreeInfo)
+function diffuse_inter_cell_protein(cell::Cell, protein::Protein, results::Dict{Tuple{Int64, Int64}, Array{Float64, 1}}, info::TreeInfo)
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
     if protein == nothing
-        protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states), pointer_from_objref(cell))
-        ProteinStoreMod.insert(cell.proteins, protein, false)
+        if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+            protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states), pointer_from_objref(cell))
+            ProteinStoreMod.insert(cell.proteins, protein, false)
+        end
     end
+    
+    if protein != nothing
+        cell_level = info.cell_to_level[cell]
+        cell_col = findall(n -> n == cell, info.level_to_cell[cell_level])[1]
 
-    cell_level = info.cell_to_level[cell]
-    cell_col = findall(n -> n == cell, info.level_to_cell[cell_level])[1]
+        new_concs = Array{Float64, 1}()
+        for i in 1:num_concs
+            new_conc = (1 - 4 * diff_dt * diff_alpha / diff_h^2) *
+                cell.concs[i] +
+                diff_dt * diff_alpha * ((
+                    get_2D(protein, cell_level, cell_col, i, 0, -1, info, num_concs) +
+                    get_2D(protein, cell_level, cell_col, i, -1, 0, info, num_concs) +
+                    get_2D(protein, cell_level, cell_col, i, 1, 0, info, num_concs) +
+                    get_2D(protein, cell_level, cell_col, i, 0, 1, info, num_concs)
+                ) / diff_h^2)
+            
+            #make sure the value stays in [0.0, 1.0]
+            #note: not sure if this is guarenteed here because of the way we're diffusing between parents and children in the tree structure (it would be in a matrix)...
+            new_concs[j] = clamp(new_concs[j], 0.0, 1.0)
+            push!(new_concs, new_conc)
+        end
 
-    new_concs = Array{Float64, 1}()
-    for i in 1:num_concs
-        new_conc = (1 - 4 * diff_dt * diff_alpha / diff_h^2) *
-            cell.concs[i] +
-            diff_dt * diff_alpha * ((
-                get_2D(protein, cell_level, cell_col, i, 0, -1, info, num_concs) +
-                get_2D(protein, cell_level, cell_col, i, -1, 0, info, num_concs) +
-                get_2D(protein, cell_level, cell_col, i, 1, 0, info, num_concs) +
-                get_2D(protein, cell_level, cell_col, i, 0, 1, info, num_concs)
-            ) / diff_h^2)
-        
-        #make sure the value stays in [0.0, 1.0]
-        #note: not sure if this is guarenteed here because of the way we're diffusing between parents and children in the tree structure (it would be in a matrix)...
-        new_concs[j] = clamp(new_concs[j], 0.0, 1.0)
-        push!(new_concs, new_conc)
+        results[(node_level, node_col)] = new_concs
     end
-
-    results[(node_level, node_col)] = new_concs
 end
 
 #note: this function will not handle diagonals (i.e. one of {level_offset, col_offset} must be set to 0)

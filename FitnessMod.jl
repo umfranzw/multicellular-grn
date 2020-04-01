@@ -2,6 +2,7 @@ module FitnessMod
 
 using IndividualMod
 using CellTreeMod
+using CellMod
 using SymMod
 using Printf
 

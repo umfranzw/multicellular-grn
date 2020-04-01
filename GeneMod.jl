@@ -3,21 +3,22 @@ module GeneMod
 using RunMod
 using ProteinPropsMod
 using MiscUtilsMod
+using Printf
 
 import RandUtilsMod
 import Random
 import Base.show
 import Formatting
 
-export Gene
+export Gene, BindSite
 
 @enum BindLogic::Int8 Id=1 And Or Xor
 
 mutable struct BindSite
     #from the protein
-    type::ProteinProps.ProteinType
-    action::ProteinProps.ProteinAction
-    loc::ProteinProps.ProteinLoc
+    type::ProteinPropsMod.ProteinType
+    action::ProteinPropsMod.ProteinAction
+    loc::ProteinPropsMod.ProteinLoc
     #additional binding params
     threshold::Float64
     consum_rate::Float64
@@ -35,9 +36,9 @@ function get_sites_str(gene::Gene)
     buf = IOBuffer()
     for i in 1:length(gene.bind_sites)
         pairs = (
-            (ProteinProps.ProteinType, gene.bind_sites[i].type),
-            (ProteinProps.ProteinAction, gene.bind_sites[i].action),
-            (ProteinProps.ProteinLoc, gene.bind_sites[i].loc)
+            (ProteinPropsMod.ProteinType, gene.bind_sites[i].type),
+            (ProteinPropsMod.ProteinAction, gene.bind_sites[i].action),
+            (ProteinPropsMod.ProteinLoc, gene.bind_sites[i].loc)
         )
         for (enum, val) in pairs
             width = MiscUtilsMod.digits_needed(length(instances(enum)))
@@ -71,7 +72,6 @@ function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "sites:", ilevel + 1)
     iprint(io, get_sites_str(gene), ilevel + 2)
 end
-end
 
 function rand_bind_site(
     config::Config;
@@ -97,23 +97,23 @@ function rand_bind_site(
         loc_val = Random.rand(config.rng, loc)
     end
     if threshold == nothing
-        threshold_val = RandUtilsMod.rand_float(config.rng)
+        threshold_val = RandUtilsMod.rand_float(config)
     else
         threshold_val = Random.rand(config.rng, threshold)
     end
     if consum_rate == nothing
-        consum_rate_val = RandUtilsMod.rand_float(config.rng)
+        consum_rate_val = RandUtilsMod.rand_float(config)
     else
         consum_rate_val = Random.rand(config.rng, consum_rate)
     end
 
-    BindSite(type_val, loc_val, threshold_val, consum_rate_val)
+    BindSite(type_val, action_val, loc_val, threshold_val, consum_rate_val)
 end
 
 function rand_init(config::Config, genome_index::Int64)
     bind_sites = Array{BindSite, 1}()
     prod_sites = Array{ProteinProps, 1}()
-    for i in 1:config.run.num_bind_sites
+    for i in 1:config.run.bind_sites_per_gene
         bind_site = rand_bind_site(
             config,
             #note: binding sites should never be of type Application

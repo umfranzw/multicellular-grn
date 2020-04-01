@@ -5,6 +5,8 @@ using SettingsMod
 using RunMod
 import Base.length
 
+export SymProbs
+
 index_to_sym = vcat([x for x in values(SettingsMod.fcns)], [x for x in values(SettingsMod.terms)])
 sym_to_index = Dict{Sym, Int64}(zip(index_to_sym, 1:length(index_to_sym)))
 
@@ -48,4 +50,6 @@ function choose_sym(probs::SymProbs, config::Config)
     end
 
     wheel[sel_index][1] #return the selected symbol
+end
+
 end

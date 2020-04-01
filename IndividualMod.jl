@@ -59,7 +59,7 @@ function rand_init(run::Run, seed::UInt64)
     
     for i in 1:config.run.num_initial_proteins
         #all initial proteins should have type=Internal
-        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal]])
+        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal])
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         protein = Protein(config, props, true, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
@@ -161,9 +161,14 @@ function run_neighbour_comm(indiv::Individual)
     CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell), indiv.cell_tree)
 end
 
+#!!!!
+function get_neighbour(cell::Cell, loc::ProteinPropsMod.ProteinLoc)
+    
+end 
+
 function run_neighbour_comm_for_cell(cell::Cell)
-    for src_loc in instances(ProteinProps.ProteinLoc)
-        neighbour = get_neighbour(src_loc)
+    for src_loc in instances(ProteinPropsMod.ProteinLoc)
+        neighbour = get_neighbour(cell, src_loc)
         sensor_amount = cell.sensors[src_loc]
 
         #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
@@ -189,9 +194,14 @@ function run_neighbour_comm_for_cell(cell::Cell)
 
             dest_protein = ProteinStoreMod.get(cell.proteins, props)
             if dest_protein == nothing
-                dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
+                if ProteinStore.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+                    dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
+                    ProteinStoreMod.insert(cell.proteins, dest_protein)
+                end
             end
-            dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
+            if dest_protein != nothing
+                dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
+            end
 
             #note: if the neighbour_protein was completely tranfered, the decay step will delete it later
         end
@@ -249,25 +259,29 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, 
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if not, create and insert it
     if protein == nothing
-        #note: protein will be initialized with conc values of zero
-        #@info @sprintf("Produced protein: %s", props)
-        protein = Protein(cell.config, props, false, false, length(cell.gene_states), pointer_from_objref(cell))
-        ProteinStoreMod.insert(cell.proteins, protein)
+        if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+            #note: protein will be initialized with conc values of zero
+            #@info @sprintf("Produced protein: %s", props)
+            protein = Protein(cell.config, props, false, false, length(cell.gene_states), pointer_from_objref(cell))
+            ProteinStoreMod.insert(cell.proteins, protein)
+        end
     end
-    
-    #increment the conc using the rate
-    #note: this will only increment the conc directly over the gene
-    #the diffusion will spread this out later
-    protein.concs[gene_index] = min(protein.concs[gene_index] + rate, 1.0)
+
+    if protein != nothing
+        #increment the conc using the rate
+        #note: this will only increment the conc directly over the gene
+        #the diffusion will spread this out later
+        protein.concs[gene_index] = min(protein.concs[gene_index] + rate, 1.0)
+    end
 end
 
 function run_bind_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gene = indiv.genes[gene_index]
 
-        for i in 1:length(gene.bind_sites)
-            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, bind_site_index)
-            run_bind_for_site(cell.gene_states[gene_index], gene_index, site_index, elibible_proteins)
+        for site_index in 1:length(gene.bind_sites)
+            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site_index)
+            run_bind_for_site(cell.gene_states[gene_index], gene_index, site_index, eligible_proteins)
         end
     end
 end
