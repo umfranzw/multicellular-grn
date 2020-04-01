@@ -132,14 +132,6 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     end
 end
 
-function update_gene_scores(indiv::Individual)
-    CellTreeMod.traverse(cell -> update_gene_scores_for_cell(indiv, cell), indiv.cell_tree)
-end
-
-function update_gene_scores_for_cell(indiv::Individual, cell::Cell)
-    
-end
-
 function run_bind(indiv::Individual)
     CellTreeMod.traverse(cell -> run_bind_for_cell(indiv, cell), indiv.cell_tree)
 end
