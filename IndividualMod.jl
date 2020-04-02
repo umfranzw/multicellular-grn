@@ -162,7 +162,6 @@ function run_neighbour_comm(indiv::Individual)
     CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info), indiv.cell_tree)
 end
 
-#!!!!
 function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.ProteinLoc)
     neighbours = Array{Cell, 1}()
     
@@ -326,7 +325,7 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     site = gene.bind_sites[site_index]
     eligible_proteins = Array{Protein, 1}()
     for protein in values(ProteinStoreMod.get_by_type(cell.proteins, site.type))
-        eligible = protein.concs[gene_index] >= site.bind_threshold
+        eligible = protein.concs[gene.genome_index] >= site.threshold
         if site.type == ProteinPropsMod.Neighbour || site.type == ProteinPropsMod.Diffusion
             eligible = eligible && protein.src_cell_ptr != pointer_from_objref(cell)
         end

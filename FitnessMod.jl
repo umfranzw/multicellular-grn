@@ -23,15 +23,15 @@ function get_evolvability(indiv::Individual)
     CellTreeMod.traverse(cell -> num_non_term += Int64(is_non_term(cell)), indiv.cell_tree)
 
     #number of non-app-contributing genes
-    app_contrib_genes = ChainGraphMod.get_app_contributing_genes(indiv.chain_graph)
-    num_non_contrib = length(indiv.genes) - length(app_contrib_genes)
+    num_producing_genes = count(s -> s > 0, indiv.gene_scores)
+    num_non_contrib = length(indiv.genes) - num_producing_genes
 end
 
 function is_non_term(cell::Cell)
     cell.sym != nothing && cell.sym.type == SymMod.FcnCall
 end
 
-function get_accuracy(inidv::Individual)
+function get_accuracy(indiv::Individual)
     expr_str = "f(x) = "
     expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 

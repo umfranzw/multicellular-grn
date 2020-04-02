@@ -50,7 +50,6 @@ end
 function get_all_diffusion_proteins(tree::CellTree)
     proteins = Set{Protein}()
     CellTreeMod.traverse(cell -> append_diffusion_proteins_from_cell(proteins, cell), tree)
-    ProteinStoreMod
 
     proteins
 end
@@ -74,7 +73,8 @@ function diffuse_inter_cell_proteins(tree::CellTree)
         #update the concs
         for ((level, col), new_concs) in results
             #println(new_concs)
-            CellMod.get_protein(info.level_to_cell[level][col], protein.props).concs = new_concs
+            cell = info.level_to_cell[level][col]
+            ProteinStoreMod.get(cell.proteins, protein.props).concs = new_concs
         end
     end
 end
@@ -94,24 +94,37 @@ function diffuse_inter_cell_protein(cell::Cell, protein::Protein, results::Dict{
         cell_col = findall(n -> n == cell, info.level_to_cell[cell_level])[1]
 
         new_concs = Array{Float64, 1}()
+        num_concs = length(cell.gene_states)
+        
         for i in 1:num_concs
-            new_conc = (1 - 4 * diff_dt * diff_alpha / diff_h^2) *
-                cell.concs[i] +
-                diff_dt * diff_alpha * ((
+            new_conc = (1 - 4 * cell.config.run.diff_dt * cell.config.run.diff_alpha / cell.config.run.diff_h^2) *
+                protein.concs[i] +
+                cell.config.run.diff_dt * cell.config.run.diff_alpha * ((
                     get_2D(protein, cell_level, cell_col, i, 0, -1, info, num_concs) +
                     get_2D(protein, cell_level, cell_col, i, -1, 0, info, num_concs) +
                     get_2D(protein, cell_level, cell_col, i, 1, 0, info, num_concs) +
                     get_2D(protein, cell_level, cell_col, i, 0, 1, info, num_concs)
-                ) / diff_h^2)
+                ) / cell.config.run.diff_h^2)
             
             #make sure the value stays in [0.0, 1.0]
             #note: not sure if this is guarenteed here because of the way we're diffusing between parents and children in the tree structure (it would be in a matrix)...
-            new_concs[j] = clamp(new_concs[j], 0.0, 1.0)
+            new_conc = clamp(new_conc, 0.0, 1.0)
             push!(new_concs, new_conc)
         end
 
-        results[(node_level, node_col)] = new_concs
+        results[(cell_level, cell_col)] = new_concs
     end
+end
+
+function get_protein_conc_or_zero(cell::Cell, props::ProteinProps, conc_col::Int64)
+    protein = ProteinStoreMod.get(cell.proteins, props)
+    if protein == nothing
+        conc = 0
+    else
+        conc = protein.concs[conc_col]
+    end
+
+    conc
 end
 
 #note: this function will not handle diagonals (i.e. one of {level_offset, col_offset} must be set to 0)
@@ -125,7 +138,7 @@ function get_2D(protein::Protein, cell_level::Int64, cell_col::Int64, conc_col::
             target_conc_col = conc_col + col_offset
             if target_conc_col != 0 && target_conc_col != num_conc_cols + 1 #if not falling off left or right edge
                 num_siblings = length(cur_cell.parent.children)
-                result = get_protein(protein, cur_cell.parent).concs[target_conc_col] / num_siblings
+                result = get_protein_conc_or_zero(cur_cell.parent, protein.props, target_conc_col) / num_siblings
             end
         end
 
@@ -136,10 +149,10 @@ function get_2D(protein::Protein, cell_level::Int64, cell_col::Int64, conc_col::
             #check to see if we have a left sibling we can grab from
             if cell_col > 1 #have left sibling
                 sibling = info.level_to_cell[cell_level][cell_col - 1]
-                result = get_protein(protein, sibling).concs[num_conc_cols] #return the rightmost conc
+                result = get_protein_conc_or_zero(sibling, protein.props, num_conc_cols) #return the rightmost conc
             end
         else #within bounds in current cell
-            result = get_protein(protein, cur_cell).concs[target_conc_col]
+            result = get_protein_conc_or_zero(cur_cell, protein.props, target_conc_col)
         end
 
     #get from right
@@ -149,10 +162,10 @@ function get_2D(protein::Protein, cell_level::Int64, cell_col::Int64, conc_col::
             #check to see if we have a right sibling we can grab from
             if cell_col < length(info.level_to_cell[cell_level]) #have right sibling
                 sibling = info.level_to_cell[cell_level][cell_col + 1]
-                result = get_protein(protein, sibling).concs[1] #return the leftmost conc
+                result = get_protein_conc_or_zero(sibling, protein.props, 1) #return the leftmost conc
             end
         else #within bounds
-            result = get_protein(protein, cur_cell).concs[target_conc_col]
+            result = get_protein_conc_or_zero(cur_cell, protein.props, target_conc_col)
         end
 
     #get from below
@@ -162,14 +175,14 @@ function get_2D(protein::Protein, cell_level::Int64, cell_col::Int64, conc_col::
             if target_conc_col != 0 && target_conc_col != num_conc_cols + 1 #if not falling off left or right edge
                 sum = 0.0
                 for child in cur_cell.children
-                    sum += get_protein(protein, child).concs[target_conc_col]
+                    sum += get_protein_conc_or_zero(child, protein.props, target_conc_col)
                 end
                 result = sum
             end
         end
 
     else
-        error("Diffusion error: Invalid offsets")
+        error("Diffusion error in get_2D(): Invalid offsets")
     end
 
     result

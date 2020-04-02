@@ -7,6 +7,8 @@ using ProteinMod
 using ProteinPropsMod
 using RandUtilsMod
 
+import Random
+
 function mutate(pop::Array{Individual, 1}, ea_step::Int64)
     for indiv in pop
         mutate_indiv(indiv, ea_step)
@@ -33,7 +35,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
                 gene_index += 1 #skip over the copy
             end
         else
-            point_mutate_gene(indiv.genes[i], ea_step)
+            point_mutate_gene(indiv.genes[gene_index], ea_step)
         end
         
         gene_index += 1
@@ -42,7 +44,7 @@ end
 
 function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
     copy = nothing
-    if RandUtilsMod.rand_float(gene.config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(gene.config) < gene.config.run.mut_prob
         copy = deepcopy(gene)
         point_mutate_gene(copy, ea_step)
     end
@@ -53,20 +55,29 @@ end
 function point_mutate_gene(gene::Gene, ea_step::Int64)
     #bind sites:
     for site in gene.bind_sites
-        mutate_props(
-            gene.config,
-            site,
-            ea_step,
-            type=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion]
-        )
-
-        mutate_floats(gene.config, site, ea_step)
+        mutate_bind_site(gene.config, site, ea_step)
     end
 
     #prod sites:
     for site in gene.prod_sites
         mutate_props(gene.config, site, ea_step)
     end
+end
+
+function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        #type can be anything but Application
+        site.type = Random.rand(config.rng, [ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion])
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        site.action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinAction)
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        site.loc = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinLoc)
+    end
+
+    #mutate site.threshold and site.consum_rate
+    mutate_floats(config, site, ea_step)
 end
 
 function mutate_floats(config::Config, site::BindSite, ea_step::Int64)
@@ -78,7 +89,7 @@ function mutate_floats(config::Config, site::BindSite, ea_step::Int64)
             delta = RandUtilsMod.rand_float(config) * range - range / 2 #value in [-range / 2, +range / 2]
             cur_val = getfield(site, fieldname)
             new_val = clamp(cur_val + delta, 0.0, 1.0)
-            setfield(site, fieldname, new_val)
+            setfield!(site, fieldname, new_val)
         end
     end
 end
@@ -87,7 +98,7 @@ end
 function mutate_props(
     config::Config,
     props::ProteinProps,
-    ea_step::Int64,
+    ea_step::Int64;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
@@ -119,7 +130,7 @@ function mutate_props(
         if arg == nothing
             max_int8 = 2^7 - 1
             time_factor = 1.0 - ea_step / config.run.ea_steps
-            range = Int8(floor(time_factor * max_int8))
+            range = Int64(floor(time_factor * max_int8))
             delta = RandUtilsMod.rand_int(config, 0, range) - range ÷ 2
             props.arg = Int8(clamp(props.arg + delta, -max_int8, max_int8))
         else

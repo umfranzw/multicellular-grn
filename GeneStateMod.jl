@@ -65,7 +65,7 @@ function bind(gs::GeneState, protein::Protein, site_index::Int64)
     #binding consumes some of the protein
     rate = gs.gene.bind_sites[site_index].consum_rate
     col = gs.gene.genome_index
-    protein[col] = clamp(protein[col] - rate, 0.0, 1.0)
+    protein.concs[col] = clamp(protein.concs[col] - rate, 0.0, 1.0)
 end
 
 function unbind(gs::GeneState, site_index::Int64)
@@ -78,7 +78,7 @@ end
 
 #Note: assumes proteins have already been bound
 function get_prod_rates(gs::GeneState)
-    rates = Array{Union{Float64, Nothing}, 1}()
+    rates = Array{NamedTuple{(:prod_index, :rate), Tuple{Int64, Float64}}, 1}()
     logic = gs.gene.bind_logic
     col = gs.gene.genome_index
 
@@ -93,7 +93,7 @@ function get_prod_rates(gs::GeneState)
                 excess = protein_conc - threshold #will be >= 0, since it's already bound
 
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
-                rate = excess * (config.run.max_prod_rate / (1 - threshold))
+                rate = excess * (gs.config.run.max_prod_rate / (1 - threshold))
                 push!(rates, (prod_index=i, rate=rate))
             end
         end
@@ -117,7 +117,7 @@ function get_prod_rates(gs::GeneState)
             avg = sum / length(gs.bindings)
             max_avg = max_sum / length(gs.bindings) #max possible avg
             #scale avg from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
-            rate = excess * (config.run.max_prod_rate / (1 - max_avg))
+            rate = excess * (gs.config.run.max_prod_rate / (1 - max_avg))
             push!(rates, (prod_index=1, rate=rate))
         end
 
@@ -143,7 +143,7 @@ function get_prod_rates(gs::GeneState)
             avg = sum / count
             max_avg = max_sum / count
             #scale it from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
-            rate = excess * (config.run.max_prod_rate / (1 - max_avg))
+            rate = excess * (gs.config.run.max_prod_rate / (1 - max_avg))
             push!(rates, (prod_index=1, rate=rate))
         end
 
@@ -153,7 +153,7 @@ function get_prod_rates(gs::GeneState)
         count = 0
         excess = 0
         max_excess = 0
-        i = 0
+        i = 1
         while i <= length(gs.bindings) && count < 2
             protein = gs.bindings[i]
             if protein != nothing
@@ -168,7 +168,7 @@ function get_prod_rates(gs::GeneState)
 
         if count == 1
             #scale excess from [0.0, 1.0 - max_excess] to [0.0, run.max_prod_rate]
-            rate = excess * (config.run.max_prod_rate / (1 - max_excess))
+            rate = excess * (gs.config.run.max_prod_rate / (1 - max_excess))
             push!(rates, (prod_index=1, rate=rate))
         end
     end

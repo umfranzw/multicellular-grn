@@ -3,6 +3,7 @@ module SymProbsMod
 using SymMod
 using SettingsMod
 using RunMod
+using RandUtilsMod
 import Base.length
 
 export SymProbs
@@ -35,16 +36,16 @@ function choose_sym(probs::SymProbs, config::Config)
     #normalize the probabilities and build the "roulette wheel"
     total = foldl((s, p) -> s + p, values(probs.probs); init=0.0)
     next_bound = 0.0
-    wheel = Array{Tuple{Sym, Float64}, 1}() #[(Sym, cummulative prob), ...]
+    wheel = Array{Array{Union{Sym, Float64}, 1}, 1}() #[(Sym, cummulative prob), ...]
     for (sym, prob) in probs.probs
         next_bound += prob / total
-        push!(wheel, (sym, next_bound))
+        push!(wheel, [sym, next_bound])
     end
 
-    wheel[end] = 1.0 #just in case we've got some floating point error
+    wheel[end][2] = 1.0 #just in case we've got some floating point error
 
     sel_index = 1
-    r = RandUtilsMod.rand_float(gs.config) #random value in [0, 1)
+    r = RandUtilsMod.rand_float(config) #random value in [0, 1)
     while r >= wheel[sel_index][2]
         sel_index += 1
     end
