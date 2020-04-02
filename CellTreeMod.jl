@@ -148,9 +148,11 @@ function to_expr_str(node::Cell, expr_str::String)
         expr_str = to_expr_str(node.children[i], expr_str)
         if sym.type == SymMod.FcnCall && i < length(node.children)
             expr_str *= ", "
-        else
-            expr_str *= ")"
         end
+    end
+    
+    if sym.type == SymMod.FcnCall
+        expr_str *= ")"
     end
 
     expr_str
