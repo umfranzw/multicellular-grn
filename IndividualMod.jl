@@ -158,52 +158,81 @@ function run_fix_syms(indiv::Individual)
 end
 
 function run_neighbour_comm(indiv::Individual)
-    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell), indiv.cell_tree)
+    info = TreeInfo(indiv.cell_tree)
+    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info), indiv.cell_tree)
 end
 
 #!!!!
-function get_neighbour(cell::Cell, loc::ProteinPropsMod.ProteinLoc)
+function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.ProteinLoc)
+    neighbours = Array{Cell, 1}()
     
-end 
+    if loc == ProteinPropsMod.Top
+        if cell.parent != nothing
+            push!(neighbours, cell.parent)
+        end
+        
+    elseif loc == ProteinPropsMod.Bottom
+        append!(neighbours, cell.children)
+        
+    elseif loc == ProteinPropsMod.Left || loc == ProteinPropsMod.Right
+        level = info.cell_to_level[cell]
+        row = info.level_to_cell[level]
+        cell_index = findall(c -> c == cell, row)[1]
 
-function run_neighbour_comm_for_cell(cell::Cell)
+        if loc == ProteinPropsMod.Left
+            if cell_index > 1
+                push!(neighbours, row[cell_index - 1])
+            end
+        else
+            if cell_index < length(row)
+                push!(neighbours, row[cell_index + 1])
+            end
+        end
+    end
+
+    neighbours
+end
+
+function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
     for src_loc in instances(ProteinPropsMod.ProteinLoc)
-        neighbour = get_neighbour(cell, src_loc)
-        sensor_amount = cell.sensors[src_loc]
+        neighbours = get_neighbours_at(cell, info, src_loc) #in the case that src_loc == Botttom, we may have mulitple neighbours (the children)
+        for neighbour in neighbours
+            sensor_amount = cell.sensors[src_loc] / length(neighbours) #allocate an equal amount to each neighbour
 
-        #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
-        opposite_loc = get_opposite_loc(src_loc)
-        neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, ptr_from_objectref(neighbour))
+            #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
+            opposite_loc = ProteinPropsMod.get_opposite_loc(src_loc)
+            neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, ptr_from_objectref(neighbour))
 
-        #compute the max amount of each protein that we can accept
-        accept_amount = sensor_amount / length(neighbour_proteins)
-        for neighbour_protein in neighbour_proteins
-            transfer_amount = min.(protein.concs, accept_amount)
-            cell.sensors[src_loc] -= transfer_amount
-            neighbour_protein.concs -= amount
-            
-            #add the neighbour protein into the source cell, flipping the loc
-            dest_props = ProteinProps(
-            cell.config,
-            neighbour_protein.type,
-            neighbour_protein.fcn,
-            neighbour_protein.action,
-            src_loc, #flip the loc
-            neighbour_protein.arg
-            )
+            #compute the max amount of each protein that we can accept
+            accept_amount = sensor_amount / length(neighbour_proteins)
+            for neighbour_protein in neighbour_proteins
+                transfer_amount = min.(protein.concs, accept_amount)
+                cell.sensors[src_loc] -= transfer_amount
+                neighbour_protein.concs -= amount
+                
+                #add the neighbour protein into the source cell, flipping the loc
+                dest_props = ProteinProps(
+                    cell.config,
+                    neighbour_protein.type,
+                    neighbour_protein.fcn,
+                    neighbour_protein.action,
+                    src_loc, #flip the loc
+                    neighbour_protein.arg
+                )
 
-            dest_protein = ProteinStoreMod.get(cell.proteins, props)
-            if dest_protein == nothing
-                if ProteinStore.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-                    dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
-                    ProteinStoreMod.insert(cell.proteins, dest_protein)
+                dest_protein = ProteinStoreMod.get(cell.proteins, props)
+                if dest_protein == nothing
+                    if ProteinStore.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+                        dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
+                        ProteinStoreMod.insert(cell.proteins, dest_protein)
+                    end
                 end
-            end
-            if dest_protein != nothing
-                dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
-            end
+                if dest_protein != nothing
+                    dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
+                end
 
-            #note: if the neighbour_protein was completely tranfered, the decay step will delete it later
+                #note: if the neighbour_protein was completely tranfered, the decay step will delete it later
+            end
         end
     end
 end
@@ -231,8 +260,8 @@ function run_decay_for_cell(cell::Cell)
     end
 
     #run decay on the cell sensors
-    for loc in keys(sensors)
-        sensors[loc] = max.(sensors[loc] .- sensors[loc] * cell.config.run.decay_rate, zeros(length(sensors[loc])))
+    for loc in keys(cell.sensors)
+        cell.sensors[loc] = max.(cell.sensors[loc] .- cell.sensors[loc] * cell.config.run.decay_rate, zeros(length(cell.sensors[loc])))
         #note: sensor proteins are never removed
     end
 end

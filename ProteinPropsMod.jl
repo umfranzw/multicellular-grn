@@ -20,6 +20,13 @@ export ProteinProps,
 
 @enum ProteinLoc::Int8 Top=1 Bottom Left Right
 
+const opposite_locs = Dict{ProteinLoc, ProteinLoc}(
+    Top => Bottom,
+    Bottom => Top,
+    Left => Right,
+    Right => Left
+)
+
 #note: must be only one field of each type
 mutable struct ProteinProps
     type::ProteinType
@@ -62,6 +69,12 @@ function rand_init(
     push!(vals, arg_val)
 
     ProteinProps(vals...)
+end
+
+function get_opposite_loc(loc::ProteinLoc)
+    global opposite_locs
+    
+    opposite_locs[loc]
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)

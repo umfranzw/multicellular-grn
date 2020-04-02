@@ -8,33 +8,6 @@ using CellTreeMod
 using CellMod
 using Printf
 
-struct TreeInfo
-    cell_to_level::Dict{Cell, Int64}
-    level_to_cell::Dict{Int64, Array{Cell, 1}}
-
-    function TreeInfo(tree::CellTree)
-        cell_to_level = Dict{Cell, Int64}()
-        level_to_cell = Dict{Int64, Array{Cell, 1}}()
-        if tree.root != nothing
-            build_info(tree.root, cell_to_level, level_to_cell, 1)
-        end
-
-        new(cell_to_level, level_to_cell)
-    end
-end
-
-function build_info(cell::Cell, cell_to_level::Dict{Cell, Int64}, level_to_cell::Dict{Int64, Array{Cell, 1}}, level::Int64)
-    cell_to_level[cell] = level
-    if level ∉ keys(level_to_cell)
-        level_to_cell[level] = Array{Cell, 1}()
-    end
-    push!(level_to_cell[level], cell)
-
-    for child in cell.children
-        build_info(child, cell_to_level, level_to_cell, level + 1)
-    end
-end
-
 function diffuse_intra_cell_proteins(tree::CellTree)
     CellTreeMod.traverse(cell -> diffuse_intra_cell_proteins_for_cell(cell), tree)
 end

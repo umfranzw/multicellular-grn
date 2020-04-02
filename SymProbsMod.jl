@@ -35,7 +35,7 @@ function choose_sym(probs::SymProbs, config::Config)
     #normalize the probabilities and build the "roulette wheel"
     total = foldl((s, p) -> s + p, values(probs.probs); init=0.0)
     next_bound = 0.0
-    wheel = Array{Tuple{Sym, Float64}}() #[(Sym, cummulative prob), ...]
+    wheel = Array{Tuple{Sym, Float64}, 1}() #[(Sym, cummulative prob), ...]
     for (sym, prob) in probs.probs
         next_bound += prob / total
         push!(wheel, (sym, next_bound))
