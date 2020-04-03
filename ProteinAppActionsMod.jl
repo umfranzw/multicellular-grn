@@ -22,7 +22,7 @@ end
 function divide(args::AppArgs)
     src_cell = arg.cell
     if (length(src_cell.children) < src_cell.config.run.max_children &&
-        cell.age < src_cell.config.run.division_age_theshold)
+        cell.age < src_cell.config.run.division_age_limit)
         max_children = src_cell.config.run.max_children
         num_concs = length(arg.genes)
         chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]

@@ -6,43 +6,66 @@ pop_size = 10
 ea_steps = 5
 mut_prob = 0.2
 num_initial_genes = 1
+
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
 
+#if the normalized gene score (normalized # of times the gene produces)
+#is above this threshold, the gene will be duplicated when mutation happens
 gene_score_threshold = 0.1
 
 #########################
 # Regulatory Simulation #
 #########################
 reg_steps = 50
+
+#proteins are deleted when all conc values are below this threshold
 protein_deletion_threshold = 0.04
+
 max_prod_rate = 0.5
 
 decay_rate = 0.05
+
 #note: actual number of initial proteins may be less than this (they must be unique)
 num_initial_proteins = 10
+
+#proteins will stop being produced when this count is exceeded
 max_proteins_per_cell = 50
 
 diff_alpha = 0.1
 diff_h = 0.75
 diff_dt = 1.0
 
+#weight given to accuracy in fitness fcn
 initial_acc_weight = 0.5
+#weight given to evolvability in fitness fcn
 initial_ev_weight = 0.5
+#amount the weight shifts (evolvability -> accuracy) on each ea_step
 weight_shift = 0.02
+#weight shift will stop when accuarcy weight gets to this value
 max_acc_weight = 1.0
 min_ev_weight = 0.0
 
+#note: number of production sites = number of bind sites
 bind_sites_per_gene = 2
 
 #################################
 # Genotype -> Phenotype Mapping #
 #################################
-division_age_threshold = 40
+#cells will stop dividing when they meet or exceed this limit
+division_age_limit = 40
+
+#cells can only divide when the (application) division protein exceeds this threshold
 cell_division_threshold = 0.75
+
+#maximum number of children per cell (i.e. max airity of functions)
 max_children = 2
+
+#max conc value for sensor proteins (controls how much neighbour protein can be transferred between cells)
 max_sensor_amount = 0.75
+#cell sensors can only be reinforced when the (application) sensor protein exceeds this threshold
 sensor_reinforcement_threshold = 0.5
+#cell symbol probs can only be changed when the (application) sym protein exceeds this threshold
 sym_prob_threshold = 0.5
 
 ###########################

@@ -4,6 +4,9 @@ using CellMod
 using SymMod
 using DataStructures: Queue, enqueue!, dequeue!, isempty
 using Printf
+using MiscUtilsMod
+
+import Base.show
 
 export CellTree, TreeInfo,
     traverse, find_empty, find, copy
@@ -202,17 +205,17 @@ function find(node::Cell; type::Union{SymType, Nothing}=nothing, val::Any=nothin
 end
 
 function show(io::IO, tree::CellTree, ilevel::Int64=0)
-    iprintln("CellTree", ilevel)
+    iprintln(io, "CellTree", ilevel)
     if tree.root == nothing
         iprintln(io, "(nothing)", ilevel + 1)
     else
-        show_tree(tree.root, ilevel + 1)
+        show_tree(io, tree.root, ilevel + 1)
     end
 end
 
-function show_tree(cell::Cell, ilevel::Int64)
-    cell_str = cell.sym == nothing ? "_" : string(cell.sym)[1]
-    iprint(cell_str, ilevel)
+function show_tree(io::IO, cell::Cell, ilevel::Int64)
+    cell_str = cell.sym == nothing ? "_" : string(cell.sym)[1:1] #note: the range keeps it a String (rather than a Char)
+    iprint(io, cell_str, ilevel)
     for child in cell.children
         show_tree(child, ilevel + 1)
     end

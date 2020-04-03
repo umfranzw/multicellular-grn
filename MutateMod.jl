@@ -67,15 +67,15 @@ end
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         #type can be anything but Application or what it is currently
-        valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), instances(ProteinPropsMod.ProteinType))
+        valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, valid_types)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_actions = filter(a -> a != site.action, instances(ProteinPropsMod.ProteinAction))
+        valid_actions = filter(a -> a != site.action, [instances(ProteinPropsMod.ProteinAction)...])
         site.action = Random.rand(config.rng, valid_actions)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_locs = filter(l -> l != site.loc, instances(ProteinPropsMod.ProteinLoc))
+        valid_locs = filter(l -> l != site.loc, [instances(ProteinPropsMod.ProteinLoc)...])
         site.loc = Random.rand(config.rng, valid_locs)
     end
 
@@ -118,7 +118,7 @@ function mutate_props(
             enum, options, fieldname = enum_info[i]
             if options == nothing
                 #make sure we don't select the current value
-                valid_options = filter(val -> val != getfield(props, fieldname), instances(enum))
+                valid_options = filter(val -> val != getfield(props, fieldname), [instances(enum)...])
                 new_val = Random.rand(config.rng, valid_options)
             else
                 #make sure we don't select the current value

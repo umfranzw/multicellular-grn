@@ -44,7 +44,7 @@ struct Run
 
     bind_sites_per_gene::Int64
 
-    division_age_threshold::Int64
+    division_age_limit::Int64
     cell_division_threshold::Float64
     max_children::Int64
     max_sensor_amount::Float64
