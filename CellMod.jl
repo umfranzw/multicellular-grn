@@ -9,6 +9,7 @@ using SymMod
 using SymProbsMod
 using MiscUtilsMod
 using ProteinPropsMod
+using Printf
 
 import Base.show
 
@@ -95,13 +96,22 @@ function show(io::IO, cell::Cell, ilevel::Int64=0)
 
     iprintln(io, "Cell:", ilevel)
 
-    iprintln(io, "age: $(cell.age)", ilevel + 1)
     iprintln(io, "parent: $(parent_present)", ilevel + 1)
-    iprintln(io, "children: $(length(cell.children))", ilevel + 1)
+    iprintln(io, "num children: $(length(cell.children))", ilevel + 1)
     iprintln(io, "sym: $(sym_desc)", ilevel + 1)
+    iprintln(io, "age: $(cell.age)", ilevel + 1)
     
     iprintln(io, "gene_states:", ilevel + 1)
-    map(gs -> GeneStateMod.show(io, gs, ilevel + 1), cell.gene_states)
+    foreach(gs -> GeneStateMod.show(io, gs, ilevel + 1), cell.gene_states)
+
+    iprintln(io, "sensors:", ilevel + 1)
+    for loc in instances(ProteinPropsMod.ProteinLoc)
+        name = string(loc)
+        val = join(map(c -> @sprintf("%0.2f", c), cell.sensors[loc]), ", ")
+        iprintln(io, "$(name): [$(val)]", ilevel + 2)
+    end
+    
+    SymProbsMod.show(io, cell.probs, ilevel + 2)
 end
 
 end

@@ -202,10 +202,20 @@ function find(node::Cell; type::Union{SymType, Nothing}=nothing, val::Any=nothin
 end
 
 function show(io::IO, tree::CellTree, ilevel::Int64=0)
-    iprintln(io, "Cell Tree:", ilevel)
-    
-    num_cells = size(tree)
-    iprint(io, @sprintf("size: %d", size), ilevel + 1)
+    iprintln("CellTree", ilevel)
+    if tree.root == nothing
+        iprintln(io, "(nothing)", ilevel + 1)
+    else
+        show_tree(tree.root, ilevel + 1)
+    end
+end
+
+function show_tree(cell::Cell, ilevel::Int64)
+    cell_str = cell.sym == nothing ? "_" : string(cell.sym)[1]
+    iprint(cell_str, ilevel)
+    for child in cell.children
+        show_tree(child, ilevel + 1)
+    end
 end
 
 end

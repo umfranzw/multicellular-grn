@@ -4,7 +4,10 @@ using SymMod
 using SettingsMod
 using RunMod
 using RandUtilsMod
+using MiscUtilsMod
+using Printf
 import Base.length
+import Base.show
 
 export SymProbs
 
@@ -15,7 +18,8 @@ mutable struct SymProbs
     probs::Dict{Sym, Float64}
 
     function SymProbs()
-        new(Dict{Sym, Float64}(zip(index_to_sym, zeros(length(index_to_sym)))))
+        initial_probs = repeat([1.0 / length(index_to_sym)], length(index_to_sym))
+        new(Dict{Sym, Float64}(zip(index_to_sym, initial_probs)))
     end
 end
 
@@ -51,6 +55,18 @@ function choose_sym(probs::SymProbs, config::Config)
     end
 
     wheel[sel_index][1] #return the selected symbol
+end
+
+function show(io::IO, probs::SymProbs, ilevel::Int64=0)
+    #sort from highest to lowest
+    pairs = [(sym, prob) for (sym, prob) in probs.probs]
+    sort!(pairs, by=p -> p[2], rev=true)
+
+    iprintln(io, "SymProbs:", ilevel)
+    for (sym, prob) in pairs
+        prob = @sprintf("%0.2f", prob)
+        iprintln(io, "$(sym): $(prob)", ilevel + 1)
+    end
 end
 
 end

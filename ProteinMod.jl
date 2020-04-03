@@ -2,14 +2,13 @@ module ProteinMod
 
 import RandUtilsMod
 import Base.show
-import Formatting
 
 using RunMod
 using ProteinPropsMod
+using Printf
+using MiscUtilsMod
 
 export Protein
-
-const conc_fs = Formatting.FormatSpec("0.3f")
 
 mutable struct Protein
     props::ProteinProps
@@ -33,15 +32,9 @@ function show(io::IO, protein::Protein, ilevel::Int64=0)
     iprint(io, "is_initial: $(string(protein.is_initial))", ilevel + 1)
     iprint(io, "props: $(protein.props)", ilevel + 1)
     
-    iprint(io, "concs: [", ilevel + 1)
-    for i in 1:length(protein.concs)
-        Formatting.printfmt(io, conc_fs, protein.concs[i])
-        if i < length(protein.concs)
-            print(io, ", ")
-        end
-    end
-    print(io, "]")
-    println(io, "")
+    str_concs = join(map(c -> @sprintf("%0.2f", c), protein.concs), ", ")
+    iprintln(io, "concs: [$(str_concs)]", ilevel + 1)
+    iprintln(io, "src_cell_ptr: $(protein.src_cell_ptr)", ilevel + 1)
 end
 
 end

@@ -35,14 +35,17 @@ end
 
 function show(io::IO, indiv::Individual, ilevel::Int64=0)
     iprintln(io, "Individual:", ilevel)
-    iprintln(io, "Genes:", ilevel + 1)
-    map(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
+    iprintln(io, "genes:", ilevel + 1)
+    foreach(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
 
+    iprintln(io, "gene_scores:", ilevel + 1)
+    iprintln(io, join(indiv.gene_scores, ", "), ilevel + 2)
+             
     iprintln(io, "cell_tree:", ilevel + 1)
     iprintln(io, indiv.cell_tree, ilevel + 2)
 
     iprintln(io, "initial_cell_proteins:", ilevel + 1)
-    map(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
+    foreach(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
 
     iprintln(io, "fitness: $(indiv.fitness)", ilevel + 1)
 end
@@ -101,16 +104,16 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.Application)
 
     #build a list of tuples of the form (protein, amount_above_threshold), where each protein has a conc >= protein_app_threshold
-    pairs = Array{Tuple{Protein, Float64}, 1}()
+    pairs = Array{Tuple{Protein, Float64, Function}, 1}()
     for protein in app_proteins
         #get the appropriate threshold, based on the Protein's Action
-        if protein.action == ProteinPropsMod.SymProb
+        if protein.props.action == ProteinPropsMod.SymProb
             threshold = cell.config.run.sym_prob_threshold
             action_fcn = ProteinAppActionsMod.alter_sym_prob
-        elseif protein.action == ProteinPropsMod.Divide
+        elseif protein.props.action == ProteinPropsMod.Divide
             threshold = cell.config.run.cell_division_threshold
             action_fcn = ProteinAppActionsMod.divide
-        elseif protein.action == ProteinPropsMod.Sensor
+        elseif protein.props.action == ProteinPropsMod.Sensor
             threshold = cell.config.run.sensor_reinforcement_threshold
             action_fcn = ProteinAppActionsMod.alter_sensor
         end
@@ -118,7 +121,7 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
         max_conc = maximum(protein.concs)
         excess = max_conc - threshold
         if excess > 0
-            push!(pairs, (protein, excess))
+            push!(pairs, (protein, excess, action_fcn))
         end
     end
     #sort in descending order by sum - we'll apply them in this order
@@ -127,6 +130,7 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     #apply the proteins
     for pair in pairs
         protein = pair[1]
+        action_fcn = pair[3]
         args = AppArgs(tree, cell, genes, protein)
         action_fcn(args)
     end

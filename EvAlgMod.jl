@@ -15,7 +15,7 @@ function ev_alg(run::Run)
     TrackerMod.save_ea_state(pop, -1, true)
     RegSimMod.reg_sim(run, pop, -1)
     TrackerMod.update_bests(pop)
-    map(IndividualMod.reset_cell_tree, pop)
+    foreach(IndividualMod.reset_cell_tree, pop)
 
     ea_step = 1
     while !terminate(run) && ea_step <= run.ea_steps
@@ -25,20 +25,29 @@ function ev_alg(run::Run)
         MutateMod.mutate(pop, ea_step)
 
         TrackerMod.save_ea_state(pop, ea_step)
-        map(IndividualMod.reset_gene_scores, pop)
+        foreach(IndividualMod.reset_gene_scores, pop)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop, ea_step)
 
         TrackerMod.update_bests(pop)
+        #print_pop(pop)
 
         #reset the individuals before the next iteration
-        map(IndividualMod.reset_cell_tree, pop)
+        foreach(IndividualMod.reset_cell_tree, pop)
 
         ea_step += 1
     end
 
     TrackerMod.destroy_tracker()
+end
+
+function print_pop(pop::Array{Individual, 1})
+    for indiv in pop
+        println(indiv)
+    end
+
+    print("\n")
 end
 
 function terminate(run::Run)
@@ -55,6 +64,7 @@ function create_pop(run::Run)
         dev = Random.RandomDevice()
         seed_base = UInt64(Random.rand(dev) * 0xffffffffffffffff)
     end
+    #println("seed_base: $(seed_base)")
     
     for i in 1:run.pop_size
         push!(pop, IndividualMod.rand_init(run, seed_base + i))

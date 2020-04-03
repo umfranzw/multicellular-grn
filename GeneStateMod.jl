@@ -31,15 +31,15 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
 
     iprintln(io, "bindings", ilevel + 1)
     site_strs = Array{String, 1}()
-    for protein in gs.site_bindings
-        if site == nothing
+    for protein in gs.bindings
+        if protein == nothing
             push!(site_strs, "(nothing)")
         else
             push!(ProteinPropsMod.to_str(protein.props))
         end
     end
     iprintln(io, join(site_strs, ", "), ilevel + 2)
-    println(io, "")
+    print(io, "\n")
 end
 
 function get_compatible_bind_site_indices(gs::GeneState, protein::Protein)

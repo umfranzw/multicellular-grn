@@ -46,14 +46,14 @@ function get_sites_str(gene::Gene)
             str = Formatting.fmt(fs, Int64(val))
             print(buf, str)
         end
-        @printf(buf, " %0.1f", gene.binding_sites[i].threshold)
-        @printf(buf, " %0.1f", gene.binding_sites[i].consum_rate)
+        @printf(buf, " %0.1f", gene.bind_sites[i].threshold)
+        @printf(buf, " %0.1f", gene.bind_sites[i].consum_rate)
         
-        if i < length(gene.reg_sites)
+        if i < length(gene.bind_sites)
             print(buf, ", ")
         end
     end
-    print(buf, "\n")
+    print(buf, " : ")
 
     for i in 1:length(gene.prod_sites)
         print(buf, ProteinPropsMod.to_str(gene.prod_sites[i]))
@@ -68,6 +68,7 @@ end
 function show(io::IO, gene::Gene, ilevel::Int64=0)
     iprintln(io, "Gene:", ilevel)
     iprintln(io, "genome_index: $(gene.genome_index)", ilevel + 1)
+    iprintln(io, "bind_logic: $(string(gene.bind_logic))", ilevel + 1)
     
     iprintln(io, "sites:", ilevel + 1)
     iprint(io, get_sites_str(gene), ilevel + 2)
