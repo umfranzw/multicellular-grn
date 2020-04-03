@@ -66,14 +66,17 @@ end
 
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        #type can be anything but Application
-        site.type = Random.rand(config.rng, [ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion])
+        #type can be anything but Application or what it is currently
+        valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), instances(ProteinPropsMod.ProteinType))
+        site.type = Random.rand(config.rng, valid_types)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        site.action = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinAction)
+        valid_actions = filter(a -> a != site.action, instances(ProteinPropsMod.ProteinAction))
+        site.action = Random.rand(config.rng, valid_actions)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        site.loc = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinLoc)
+        valid_locs = filter(l -> l != site.loc, instances(ProteinPropsMod.ProteinLoc))
+        site.loc = Random.rand(config.rng, valid_locs)
     end
 
     #mutate site.threshold and site.consum_rate
@@ -104,29 +107,31 @@ function mutate_props(
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     arg::Union{Array{Float64, 1}, Nothing}=nothing
 )
-    mutated = false
     i = 1
     enum_info = (
         (ProteinPropsMod.ProteinType, type, :type),
         (ProteinPropsMod.ProteinLoc, loc, :loc),
         (ProteinPropsMod.ProteinAction, action, :action)
     )
-    while !mutated && i <= length(enum_info)
+    while i <= length(enum_info)
         if RandUtilsMod.rand_float(config) < config.run.mut_prob
             enum, options, fieldname = enum_info[i]
             if options == nothing
-                new_val = RandUtilsMod.rand_enum_val(config, enum)
+                #make sure we don't select the current value
+                valid_options = filter(val -> val != getfield(props, fieldname), instances(enum))
+                new_val = Random.rand(config.rng, valid_options)
             else
-                new_val = Random.rand(config.rng, options)
+                #make sure we don't select the current value
+                valid_options = filter(val -> val != getfield(props, fieldname), options)
+                new_val = Random.rand(config.rng, valid_options)
             end
             setfield!(props, fieldname, new_val)
-            mutated = true
         end
         i += 1
     end
 
     #mutate props.arg
-    if !mutated && RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
         if arg == nothing
             max_int8 = 2^7 - 1
             time_factor = 1.0 - ea_step / config.run.ea_steps
@@ -136,10 +141,7 @@ function mutate_props(
         else
             props.arg = Random.rand(config.rng, arg)
         end
-        mutated = true
     end
-
-    mutated
 end
 
 end
