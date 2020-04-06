@@ -3,7 +3,7 @@
 # GA #
 ######
 pop_size = 10
-ea_steps = 5
+ea_steps = 6
 mut_prob = 0.2
 num_initial_genes = 1
 
@@ -77,7 +77,7 @@ rng_seed = 1
 ############
 # Tracking #
 ############
-log_data = false
-step_range = "1:1:10"
+log_data = true
+step_range = "1:2:6"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

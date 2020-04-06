@@ -30,6 +30,8 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         end
 
         IndividualMod.run_fix_syms(indiv)
+        #save final state under index run.reg_step + 1
+        TrackerMod.save_reg_state(indiv.cell_tree, ea_step, run.reg_steps + 1, pop_index)
         FitnessMod.eval(indiv, ea_step)
     end
 end
