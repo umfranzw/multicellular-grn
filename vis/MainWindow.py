@@ -71,3 +71,6 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap.fromImage(image)
         self.image_label.setPixmap(pixmap)
 
+    def closeEvent(self, event):
+        self.data_tools.close()
+

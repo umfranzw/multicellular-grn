@@ -8,6 +8,8 @@ import TrackerMod
 import Serialization
 import CodecZlib
 
+import Base.close
+
 export Data
 
 cache_size = 10
