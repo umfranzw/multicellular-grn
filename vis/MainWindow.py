@@ -32,13 +32,16 @@ class MainWindow(QMainWindow):
         
         self.indivSpin = QSpinBox()
         self.indivSpin.setRange(1, self.run.pop_size)
+        self.indivSpin.valueChanged.connect(self.update_image)
         
         self.eaStepSpin = QSpinBox()
         self.eaStepSpin.setRange(0, self.run.ea_steps)
+        self.eaStepSpin.valueChanged.connect(self.update_image)
         #self.eaStepSpin.setSingleStep(self.run.step_interval.step)
         
         self.regStepSpin = QSpinBox()
         self.regStepSpin.setRange(1, self.run.reg_steps + 1)
+        self.regStepSpin.valueChanged.connect(self.update_image)
 
         self.toolbar.addWidget(QLabel("Indiv:"))
         self.toolbar.addWidget(self.indivSpin)
@@ -60,8 +63,9 @@ class MainWindow(QMainWindow):
 
         self.update_image()
 
+    @Slot()
     def update_image(self):
-        index = (self.indivSpin.value(), self.eaStepSpin.value(), self.regStepSpin.value())
+        index = (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())
         raw = self.tree_tools.gen_image(self.data_tools, index)
         image = QImage.fromData(raw, format='png')
         pixmap = QPixmap.fromImage(image)
