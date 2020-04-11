@@ -1,10 +1,11 @@
-from PySide2.QtCore import Slot
-from PySide2.QtGui import QKeySequence
-from PySide2.QtWidgets import QMainWindow, QAction, QSpinBox, QToolBar, QLabel
-from PySide2.QtGui import QPixmap, QImage
+from PySide2.QtCore import *
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
 
 from DataTools import DataTools
 from TreeTools import TreeTools
+from TableModel import TableModel
+from CustomSortFilterProxyModel import CustomSortFilterProxyModel
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -28,34 +29,23 @@ class MainWindow(QMainWindow):
         self.run = self.data_tools.get_run()
         
         # Tool Bar
-        self.toolbar = QToolBar()
-        
-        self.indivSpin = QSpinBox()
-        self.indivSpin.setRange(1, self.run.pop_size)
-        self.indivSpin.valueChanged.connect(self.update_image)
-        
-        self.eaStepSpin = QSpinBox()
-        self.eaStepSpin.setRange(0, self.run.ea_steps)
-        self.eaStepSpin.valueChanged.connect(self.update_image)
-        #self.eaStepSpin.setSingleStep(self.run.step_interval.step)
-        
-        self.regStepSpin = QSpinBox()
-        self.regStepSpin.setRange(1, self.run.reg_steps + 1)
-        self.regStepSpin.valueChanged.connect(self.update_image)
+        toolbar = self.build_toolbar()
+        self.addToolBar(toolbar)
 
-        self.toolbar.addWidget(QLabel("Indiv:"))
-        self.toolbar.addWidget(self.indivSpin)
-        self.toolbar.addWidget(QLabel("EA Step:"))
-        self.toolbar.addWidget(self.eaStepSpin)
-        self.toolbar.addWidget(QLabel("Reg Step:"))
-        self.toolbar.addWidget(self.regStepSpin)
-        
-        self.addToolBar(self.toolbar)
+        #table area
+        table_area = self.build_table()
 
         # Image
         self.image_label = QLabel()
+
+        #combine the image and table area horizontally
+        centralWidget = QWidget(self)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.image_label)
+        hlayout.addWidget(table_area)
+        centralWidget.setLayout(hlayout)
         
-        self.setCentralWidget(self.image_label)
+        self.setCentralWidget(centralWidget)
 
         # Window dimensions
         geometry = qApp.desktop().availableGeometry(self)
@@ -63,14 +53,76 @@ class MainWindow(QMainWindow):
 
         self.update_image()
 
-    @Slot()
-    def update_image(self):
-        index = (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())
-        raw = self.tree_tools.gen_image(self.data_tools, index)
-        image = QImage.fromData(raw, format='png')
-        pixmap = QPixmap.fromImage(image)
-        self.image_label.setPixmap(pixmap)
+    def build_table(self):
+        index = self.getIndex()
+        data = self.data_tools.get_protein_info_for_indiv(index)
+        
+        widget = QWidget(self)
+        vlayout = QVBoxLayout()
+
+        headers = [
+            'Type',
+            'Fcn',
+            'Action',
+            'Loc',
+            'Arg',
+            'isInitial',
+        ]
+        self.model = TableModel(data, headers)
+        self.model.rowChanged.connect(self.update_image)
+
+        self.proxyModel = CustomSortFilterProxyModel(self)
+        self.proxyModel.setSourceModel(self.model)
+        self.table = QTableView()
+        self.table.setModel(self.proxyModel)
+        self.table.setSortingEnabled(True)
+
+        self.searchEntry = QLineEdit()
+        self.searchEntry.textChanged.connect(self.proxyModel.setFilterWildcard)
+        
+        vlayout.addWidget(self.searchEntry)
+        vlayout.addWidget(self.table)
+        widget.setLayout(vlayout)
+
+        return widget
+
+    def build_toolbar(self):
+        toolbar = QToolBar()
+        
+        self.eaStepSpin = QSpinBox()
+        self.eaStepSpin.setRange(0, self.run.ea_steps)
+        self.eaStepSpin.valueChanged.connect(self.update_image)
+        #self.eaStepSpin.setSingleStep(self.run.step_interval.step)
+
+        self.indivSpin = QSpinBox()
+        self.indivSpin.setRange(1, self.run.pop_size)
+        self.indivSpin.valueChanged.connect(self.update_image)
+        
+        self.regStepSpin = QSpinBox()
+        self.regStepSpin.setRange(1, self.run.reg_steps + 1)
+        self.regStepSpin.valueChanged.connect(self.update_image)
+
+        toolbar.addWidget(QLabel("EA Step:"))
+        toolbar.addWidget(self.eaStepSpin)
+        toolbar.addWidget(QLabel("Indiv:"))
+        toolbar.addWidget(self.indivSpin)
+        toolbar.addWidget(QLabel("Reg Step:"))
+        toolbar.addWidget(self.regStepSpin)
+        
+        return toolbar
 
     def closeEvent(self, event):
+        self.tree_tools.close()
         self.data_tools.close()
 
+    def getIndex(self):
+        return (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())
+    
+    @Slot()
+    def update_image(self):
+        index = self.getIndex()
+        checked_props = self.model.getCheckedProps()
+        image = self.tree_tools.gen_image(self.data_tools, index, checked_props)
+        pixmap = QPixmap.fromImage(image)
+        self.image_label.setPixmap(pixmap)
+        

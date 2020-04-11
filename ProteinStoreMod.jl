@@ -98,4 +98,13 @@ function get_all(ps::ProteinStore)
     proteins
 end
 
+function get_all_props(ps::ProteinStore)
+    props = Set{ProteinProps}()
+    for type in instances(ProteinPropsMod.ProteinType)
+        union!(props, keys(ps.proteins[type]))
+    end
+    
+    props
+end
+
 end

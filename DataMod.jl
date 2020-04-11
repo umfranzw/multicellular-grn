@@ -2,8 +2,13 @@ module DataMod
 
 using IndividualMod
 using CellTreeMod
+using CellMod
 using RunMod
 using CacheMod
+using ProteinMod
+using ProteinPropsMod
+using ProteinStoreMod
+using Statistics
 import TrackerMod
 import Serialization
 import CodecZlib
@@ -130,6 +135,73 @@ function create_index(data::Data)
         #go to next item
         seek(data.file_handle, position(data.file_handle) + size)
     end
+end
+
+#analysis functions
+
+function get_conc_sum_for_tree(tree::CellTree, protein::Protein)
+    get_concs_for_tree(tree, protein, sum)
+end
+
+function get_conc_max_for_tree(tree::CellTree, protein::Protein)
+    get_concs_for_tree(tree, protein, maximum)
+end
+
+function get_conc_mean_for_tree(tree::CellTree, protein::Protein)
+    get_concs_for_tree(tree, protein, mean)
+end
+
+function get_conc_excess_for_tree(tree::CellTree, protein::Protein, threshold::Float64)
+    get_concs_for_tree(tree, protein, concs -> clamp(concs .- threshold, 0.0, 1.0))
+end
+
+function get_concs_for_tree(tree::CellTree, protein::Protein, fcn::Union{Function, Nothing}=nothing)
+    result = Dict{Cell, Array{Float64, 1}}()
+    CellTreeMod.traverse(cell -> result[cell] = get_concs_for_cell(cell, protein, fcn), tree)
+
+    result
+end
+
+function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, Nothing}=nothing)
+    result = nothing
+    target = ProteinStoreMod.get(cell.proteins, protein.props)
+    if target != nothing
+        if fcn == nothing
+            result = target.concs
+        else
+            result = [fcn(target.concs)]
+        end
+    end
+    
+    result    
+end
+
+function get_protein_info(indiv::Individual)
+    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps}}()
+    if indiv.cell_tree.root != nothing
+        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
+    end
+    
+    info
+end
+
+function get_protein_info_for_cell(cell::Cell)
+    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps}}()
+    proteins = ProteinStoreMod.get_all(cell.proteins)
+    for protein in proteins
+        item  = (
+            string(protein.props.type),
+            string(protein.props.fcn),
+            string(protein.props.action),
+            string(protein.props.loc),
+            protein.props.arg,
+            protein.is_initial,
+            protein.props
+        )
+        push!(info, item)
+    end
+
+    info
 end
 
 end
