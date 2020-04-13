@@ -23,6 +23,27 @@ class TableModel(QAbstractTableModel):
         self._checks = {}
         self._headers = headers
 
+    def refresh(self, data):
+        checked = set()
+        for pindex in self._checks.keys():
+            if self.checkState(pindex) == Qt.Checked:
+                props = tuple(self._data[pindex.row()][:-1]) #get all properties except the julia pointer on the end
+                checked.add(props)
+
+        self.beginResetModel()
+        self._checks.clear()
+
+        for row in range(len(data)):
+            key = tuple(data[row][:-1])
+            if key in checked:
+                index = self.index(row, 0)
+                self._checks[QPersistentModelIndex(index)] = Qt.Checked
+
+        #self.removeRows(0, self.rowCount())
+
+        self._data = data
+        self.endResetModel()
+
     def checkState(self, index):
         if index in self._checks:
             return self._checks[index]
@@ -35,7 +56,7 @@ class TableModel(QAbstractTableModel):
         for pindex in self._checks.keys():
             if self.checkState(pindex) == Qt.Checked:
                 props = self._data[pindex.row()][-1]
-                colour = self.get_colour(pindex.row())
+                colour = self.getColour(pindex.row())
                 info.append((props, colour))
 
         return info
@@ -49,18 +70,17 @@ class TableModel(QAbstractTableModel):
                 return self.checkState(QPersistentModelIndex(index))
         elif role == Qt.DecorationRole:
             if index.column() == self.columnCount(index) - 1:
-                colour = self.get_colour(index.row())
+                colour = self.getColour(index.row())
                 pixmap = QPixmap(30, 20)
                 pixmap.fill(colour)
                 return pixmap
-        # elif role == Qt.BackgroundColorRole:
-        #     if index.column() == self.columnCount(index) - 1: 
-        #         return TableModel.colours[index.row() % len(TableModel.colours)]
     
         return None
 
-    def get_colour(self, row):
-        return TableModel.colours[row % len(TableModel.colours)]
+    def getColour(self, row):
+        key = tuple(self._data[row][:-1]) #get everything except the julia pointer on the end
+        colour_index = hash(key) % len(TableModel.colours)
+        return TableModel.colours[colour_index]
 
     def setData(self, index, value, role):
         if not index.isValid():
@@ -71,10 +91,10 @@ class TableModel(QAbstractTableModel):
             return True
         return False
             
-    def rowCount(self, index):
+    def rowCount(self, index=QModelIndex()):
         return len(self._data)
 
-    def columnCount(self, index):
+    def columnCount(self, index=QModelIndex()):
         return len(self._data[0]) #(all rows are of equal length, +1 for colour column, -1 for pointer at the end)
 
     def headerData(self, section, orientation, role):

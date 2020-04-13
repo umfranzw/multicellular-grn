@@ -92,15 +92,18 @@ class MainWindow(QMainWindow):
         
         self.eaStepSpin = QSpinBox()
         self.eaStepSpin.setRange(0, self.run.ea_steps)
+        self.eaStepSpin.valueChanged.connect(self.update_table)
         self.eaStepSpin.valueChanged.connect(self.update_image)
         #self.eaStepSpin.setSingleStep(self.run.step_interval.step)
 
         self.indivSpin = QSpinBox()
         self.indivSpin.setRange(1, self.run.pop_size)
+        self.indivSpin.valueChanged.connect(self.update_table)
         self.indivSpin.valueChanged.connect(self.update_image)
         
         self.regStepSpin = QSpinBox()
         self.regStepSpin.setRange(1, self.run.reg_steps + 1)
+        self.regStepSpin.valueChanged.connect(self.update_table)
         self.regStepSpin.valueChanged.connect(self.update_image)
 
         toolbar.addWidget(QLabel("EA Step:"))
@@ -126,4 +129,9 @@ class MainWindow(QMainWindow):
         image = self.tree_tools.gen_image(self.data_tools, index, checked_info)
         pixmap = QPixmap.fromImage(image)
         self.image_label.setPixmap(pixmap)
-        
+
+    @Slot()
+    def update_table(self):
+        index = self.getIndex()
+        data = self.data_tools.get_protein_info_for_indiv(index)
+        self.model.refresh(data)
