@@ -6,6 +6,7 @@ class DataTools():
         Main.eval('@everywhere push!(LOAD_PATH, "/home/wayne/Documents/school/thesis/multicellular-grn")')
         Main.using('DataMod')
         Main.using('ProteinStoreMod')
+        Main.using('ProteinPropsMod')
         Main.eval('data = Data("{}")'.format(filename))
 
     def close(self):
@@ -26,6 +27,10 @@ class DataTools():
     def get_protein(self, cell, props):
         get_fcn = Main.eval('ProteinStoreMod.get')
         return get_fcn(cell.proteins, props)
+
+    def get_props_str(self, props):
+        to_str_fcn = Main.eval('ProteinPropsMod.to_str')
+        return to_str_fcn(props)
 
     def get_protein_info_for_indiv(self, index):
         self.get_indiv(index)

@@ -8,6 +8,7 @@ import Random
 using RandUtilsMod
 using MiscUtilsMod
 using RunMod
+using Printf
 
 export ProteinProps,
     hash, ==
@@ -85,12 +86,13 @@ function show(io::IO, props::ProteinProps, ilevel::Int64=0)
         (ProteinLoc, props.loc)
     )
     for (enum, val) in pairs
-        width = MiscUtilsMod.digits_needed(length(instances(enum)))
-        fs = Formatting.FormatSpec("0$(width)d")
-        str = Formatting.fmt(fs, Int64(val))
-        iprint(io, str, ilevel)
+        # width = MiscUtilsMod.digits_needed(length(instances(enum)))
+        # fs = Formatting.FormatSpec("0$(width)d")
+        # str = Formatting.fmt(fs, Int64(val))
+        # iprint(io, str, ilevel)
+        iprint(io, string(val)[1:3], ilevel) #print first 3 chars of value name
     end
-    iprint(io, string(props.arg), ilevel)
+    iprint(io, @sprintf("%0.2f", props.arg), ilevel)
     
     println(io, "")
 end

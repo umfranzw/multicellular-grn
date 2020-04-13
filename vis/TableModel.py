@@ -4,6 +4,18 @@ from PySide2.QtCore import *
 
 class TableModel(QAbstractTableModel):
     rowChanged = Signal(str, bool)
+    #note: a list of valid strings can be obtained by calling QColor.colorNames()
+    colours = list(map(QColor, [
+        'skyblue',
+        'yellowgreen',
+        'red',
+        'darkviolet',
+        'forestgreen',
+        'deeppink',
+        'orange',
+        'navy',
+        'slategray'
+    ]))
     
     def __init__(self, data, headers):
         super(TableModel, self).__init__()
@@ -17,13 +29,16 @@ class TableModel(QAbstractTableModel):
         else:
             return Qt.Unchecked
 
-    def getCheckedProps(self):
-        checked = []
+    def getCheckedInfo(self):
+        #return a list of the form [(julia_props_obj, QColor), ...] that contains one entry for each checked row
+        info = []
         for pindex in self._checks.keys():
             if self.checkState(pindex) == Qt.Checked:
-                checked.append(self._data[pindex.row()][-1])
+                props = self._data[pindex.row()][-1]
+                colour = self.get_colour(pindex.row())
+                info.append((props, colour))
 
-        return checked
+        return info
 
     def data(self, index, role=Qt.DisplayRole):
         if role == Qt.DisplayRole:
@@ -32,7 +47,20 @@ class TableModel(QAbstractTableModel):
             if index.column() == 0:
                 #we use QPersistentModelIndex so that if the table changes, the ref still points to the same row
                 return self.checkState(QPersistentModelIndex(index))
+        elif role == Qt.DecorationRole:
+            if index.column() == self.columnCount(index) - 1:
+                colour = self.get_colour(index.row())
+                pixmap = QPixmap(30, 20)
+                pixmap.fill(colour)
+                return pixmap
+        # elif role == Qt.BackgroundColorRole:
+        #     if index.column() == self.columnCount(index) - 1: 
+        #         return TableModel.colours[index.row() % len(TableModel.colours)]
+    
         return None
+
+    def get_colour(self, row):
+        return TableModel.colours[row % len(TableModel.colours)]
 
     def setData(self, index, value, role):
         if not index.isValid():
@@ -47,7 +75,7 @@ class TableModel(QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, index):
-        return len(self._data[0]) - 1 #(all rows are of equal length, -1 for pointer at the end)
+        return len(self._data[0]) #(all rows are of equal length, +1 for colour column, -1 for pointer at the end)
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:

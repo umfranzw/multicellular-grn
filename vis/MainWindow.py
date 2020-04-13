@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
             'Loc',
             'Arg',
             'isInitial',
+            'Colour',
         ]
         self.model = TableModel(data, headers)
         self.model.rowChanged.connect(self.update_image)
@@ -121,8 +122,8 @@ class MainWindow(QMainWindow):
     @Slot()
     def update_image(self):
         index = self.getIndex()
-        checked_props = self.model.getCheckedProps()
-        image = self.tree_tools.gen_image(self.data_tools, index, checked_props)
+        checked_info = self.model.getCheckedInfo() #[(julia_props_obj, QColor), ...]
+        image = self.tree_tools.gen_image(self.data_tools, index, checked_info)
         pixmap = QPixmap.fromImage(image)
         self.image_label.setPixmap(pixmap)
         
