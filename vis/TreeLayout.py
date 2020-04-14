@@ -2,16 +2,16 @@ class TreeLayout():
     @staticmethod
     def buchheim(draw_tree):
         dt = firstwalk(draw_tree)
-        min = second_walk(dt)
+        min = TreeLayout.second_walk(dt)
         if min < 0:
-            third_walk(dt, -min)
+            TreeLayout.third_walk(dt, -min)
         return dt
 
     @staticmethod
     def third_walk(tree, n):
         tree.x += n
         for c in tree.children:
-            third_walk(c, n)
+            TreeLayout.third_walk(c, n)
 
     @staticmethod
     def firstwalk(v, distance=1.):
@@ -23,10 +23,10 @@ class TreeLayout():
         else:
             default_ancestor = v.children[0]
             for w in v.children:
-                firstwalk(w)
-                default_ancestor = apportion(w, default_ancestor, distance)
+                TreeLayout.firstwalk(w)
+                default_ancestor = TreeLayout.apportion(w, default_ancestor, distance)
             print("finished v =", v.tree, "children")
-            execute_shifts(v)
+            TreeLayout.execute_shifts(v)
 
             midpoint = (v.children[0].x + v.children[-1].x) / 2
 
@@ -60,7 +60,7 @@ class TreeLayout():
                 vor.ancestor = v
                 shift = (vil.x + sil) - (vir.x + sir) + distance
                 if shift > 0:
-                    move_subtree(ancestor(vil, v, default_ancestor), v, shift)
+                    TreeLayout.move_subtree(TreeLayout.ancestor(vil, v, default_ancestor), v, shift)
                     sir = sir + shift
                     sor = sor + shift
                 sil += vil.mod
@@ -117,6 +117,6 @@ class TreeLayout():
             min = v.x
 
         for w in v.children:
-            min = second_walk(w, m + v.mod, depth+1, min)
+            min = TreeLayout.second_walk(w, m + v.mod, depth+1, min)
 
         return min

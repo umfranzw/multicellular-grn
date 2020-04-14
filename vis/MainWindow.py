@@ -26,8 +26,8 @@ class MainWindow(QMainWindow):
         # Data
         self.data_tools = DataTools('data')
         self.tree_tools = TreeTools(self.data_tools)
+        self.scene = QGraphicsScene()
         self.run = self.data_tools.get_run()
-        self.scene = QGraphicsScene(200, 600, self)
         
         # Tool Bar
         toolbar = self.build_toolbar()
@@ -38,12 +38,12 @@ class MainWindow(QMainWindow):
 
         # Graphics View Area
         graphics_view = QGraphicsView(self.scene)
-        self.scene.selectionChanged.connect(lambda: self.update_table(self.scene.selectedItems()))
+        #self.scene.selectionChanged.connect(lambda: self.update_cell_area(self.scene.selectedItems()))
 
         #combine the view and table areas horizontally
         centralWidget = QWidget(self)
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.graphics_view)
+        hlayout.addWidget(graphics_view)
         hlayout.addWidget(table_area)
         centralWidget.setLayout(hlayout)
         
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
 
     def build_table(self):
         index = self.getIndex()
-        data = self.data_tools.get_protein_info_for_indiv(index)
+        data = self.data_tools.get_protein_info_for_tree(index)
         
         widget = QWidget(self)
         vlayout = QVBoxLayout()
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
             'Colour',
         ]
         self.model = TableModel(data, headers)
-        self.model.rowChanged.connect(self.update_image)
+        self.model.rowChanged.connect(self.update_view)
 
         self.proxyModel = CustomSortFilterProxyModel(self)
         self.proxyModel.setSourceModel(self.model)
@@ -95,18 +95,18 @@ class MainWindow(QMainWindow):
         self.eaStepSpin = QSpinBox()
         self.eaStepSpin.setRange(0, self.run.ea_steps)
         self.eaStepSpin.valueChanged.connect(self.update_table)
-        self.eaStepSpin.valueChanged.connect(self.update_image)
+        self.eaStepSpin.valueChanged.connect(self.update_view)
         #self.eaStepSpin.setSingleStep(self.run.step_interval.step)
 
         self.indivSpin = QSpinBox()
         self.indivSpin.setRange(1, self.run.pop_size)
         self.indivSpin.valueChanged.connect(self.update_table)
-        self.indivSpin.valueChanged.connect(self.update_image)
+        self.indivSpin.valueChanged.connect(self.update_view)
         
         self.regStepSpin = QSpinBox()
         self.regStepSpin.setRange(1, self.run.reg_steps + 1)
         self.regStepSpin.valueChanged.connect(self.update_table)
-        self.regStepSpin.valueChanged.connect(self.update_image)
+        self.regStepSpin.valueChanged.connect(self.update_view)
 
         toolbar.addWidget(QLabel("EA Step:"))
         toolbar.addWidget(self.eaStepSpin)
@@ -126,20 +126,14 @@ class MainWindow(QMainWindow):
     
     @Slot()
     def update_view(self):
-        self.tree_tools.clear_scene() #clear any previous tree
+        self.tree_tools.clear_scene(self.scene) #clear any previous tree
         index = self.getIndex()
         checked_info = self.model.getCheckedInfo() #[(julia_props_obj, QColor), ...]
-        root_cell = self.data_tools.get_tree(index)
-        self.tree_tools.draw_scene(root_cell, checked_info)
+        self.tree_tools.draw_scene(self.scene, index, checked_info)
 
     #note: there should only be at most one element in graph_items, since only one cell can be selected at once
     @Slot()
-    def update_table(self, graph_items=[]):
+    def update_table(self):
         index = self.getIndex()
-        if graph_items:
-            cell = graph_items[0] #TODO:: how do I get the cell?
-            data = self.data_tools.get_protein_info_for_cell(index, cell)
-        else:
-            data = []
-            
+        data = self.data_tools.get_protein_info_for_tree(index)
         self.model.refresh(data)

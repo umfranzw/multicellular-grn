@@ -1,81 +1,55 @@
-from graphviz import Graph
 from PySide2.QtGui import QImage
 from DataTools import DataTools
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QPainter, QPixmap
-import tempfile
-import shutil
+from DrawTree import DrawTree
+from TreeLayout import TreeLayout
+from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
 
 class TreeTools():
     node_width = 200
     node_height = 200
     node_space = 50
 
-    def __init__(self, data_tools, scene):
+    def __init__(self, data_tools):
         self.data_tools = data_tools
-        self.scene = scene
-        self.img_path = tempfile.mkdtemp()
-        print(self.img_path)
 
-    def clear_scene(self):
-        for item in self.scene.items():
-            self.scene.removeItem(item)
+    def clear_scene(self, scene):
+        for item in scene.items():
+            scene.removeItem(item)
 
     #call this one!
-    def draw_scene(self, root_cell, checked_info):
-        tree = DrawTree(root_cell)
+    def draw_scene(self, scene, index, checked_info):
+        cell_tree = self.data_tools.get_tree(index)
+        root_cell = self.data_tools.get_root_cell(cell_tree)
+        
+        tree = DrawTree(root_cell, self.data_tools)
         tree = TreeLayout.buchheim(tree)
-        self.draw_tree(tree, 0, checked_info)
-        self.draw_edges(tree, 0)
+
+        self.draw_tree(scene, tree, 0, checked_info)
+        self.draw_edges(scene, tree, 0)
                   
-    def draw_tree(self, node, depth, checked_info):
+    def draw_tree(self, scene, node, depth, checked_info):
         pixmap = self.build_conc_graph(node.cell, checked_info)
-        item = QGraphicsPixmapItem(pixmap)
+        item = QCustomGraphicsPixmapItem(pixmap, node.cell)
         item.setOffset(QPointF(cell.x * TreeTools.node_width, depth * TreeTools.node_height))
         item.setFlags(QGraphicsItem.ItemIsSelectable)
-        self.scene.addItem(item)
+        scene.addItem(item)
         
         for child in root.children:
-            self.draw_tree(child, depth + 1, checked_info)
+            draw_tree(scene, child, depth + 1, checked_info)
 
-    def draw_edges(self, node, depth):
+    def draw_edges(self, scene, node, depth):
         pen = QPen(Qt.black, 1)
         for child in node.children:
             line = QGraphicsLineItem(node.x * TreeTools.node_width + (TreeTools.node_space / 2), depth * TreeTools.node_height + (TreeTools.node_space / 2),
                  child.x * TreeTools.node_width + (TreeTools.node_space / 2), (depth + 1) * TreeTools.node_height + (TreeTools.node_space / 2))
             line.setPen(pen)
-            self.scene.addItem(line)
+            scene.addItem(line)
             
-            self.draw_edges(child, depth + 1)
+            self.draw_edges(scene, child, depth + 1)
     
-    def close(self):
-        shutil.rmtree(self.img_path)
-    
-    def gen_image(self, data_tools, index, props_list):
-        tree = data_tools.get_tree(index)
-        graph = Graph(format='png')
-        self.build_graph(graph, None, tree.root, props_list)
-
-        return QImage.fromData(graph.pipe(), format='png')
-
-    #props is the props of the protein to graph (if it's present in cell)
-    def build_graph(self, graph, parent_name, cell, checked_info):
-        name = str(cell.jl_value) #use Julia pointer value as unique identifier
-        label = str(cell.sym.val) if cell.sym != None else '_'
-
-        pixmap = self.build_conc_graph(cell, checked_info)
-        filename = '{}/{}.png'.format(self.img_path, name)
-        pixmap.save(filename, format='png')
-        graph.node(name, label, image=filename, shape='box', labelloc='b')
-
-        #add edges from parent (if one exists)
-        if parent_name is not None:
-            graph.edge(parent_name, name)
-
-        for child in cell.children:
-            self.build_graph(graph, name, child)
-
     def build_conc_graph(self, cell, checked_info):
         chart = QtCharts.QChart() #note: we're not going to show this widget in the GUI, it's just for generating charts
         cell_label = str(cell.sym.val) if cell.sym != None else '_'

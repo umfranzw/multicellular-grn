@@ -1,11 +1,11 @@
 class DrawTree():
-    def __init__(self, cell, parent=None, depth=0, number=1):
+    def __init__(self, cell, data_tools, parent=None, depth=0, number=1):
         self.x = -1.
         self.y = depth
         self.cell = cell
         
         self.children = []
-        for i, child in enumerate(cell.children):
+        for i, child in enumerate(data_tools.get_cell_children(cell)):
             self.children.append(DrawTree(child, self, depth + 1, i + 1))
             
         self.parent = parent

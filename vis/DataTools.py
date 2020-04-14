@@ -32,10 +32,21 @@ class DataTools():
         to_str_fcn = Main.eval('ProteinPropsMod.to_str')
         return to_str_fcn(props)
 
-    def get_protein_info_for_indiv(self, index):
-        self.get_indiv(index)
-        Main.eval('info = DataMod.get_protein_info(indiv)')
+    def get_protein_info_for_tree(self, index):
+        self.get_tree(index)
+        Main.eval('info = DataMod.get_protein_info(tree)')
         props_list = list(map(lambda row: row, Main.info))
         
         return props_list
-    
+
+    def get_cell_children(self, cell):
+        Main.cell = cell
+        Main.eval('children = cell.children')
+
+        return Main.children
+
+    def get_root_cell(self, tree):
+        Main.tree = tree
+        Main.eval('root = tree.root')
+        
+        return Main.root

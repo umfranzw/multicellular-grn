@@ -176,10 +176,10 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
     result    
 end
 
-function get_protein_info(indiv::Individual)
+function get_protein_info(tree::CellTree)
     info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps}}()
-    if indiv.cell_tree.root != nothing
-        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
+    if tree.root != nothing
+        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), tree.root)
     end
     
     info
