@@ -24,20 +24,20 @@ class TableModel(QAbstractTableModel):
         self._headers = headers
 
     def refresh(self, data):
-        checked = set()
-        for pindex in self._checks.keys():
-            if self.checkState(pindex) == Qt.Checked:
-                props = tuple(self._data[pindex.row()][:-1]) #get all properties except the julia pointer on the end
-                checked.add(props)
+        # checked = set()
+        # for pindex in self._checks.keys():
+        #     if self.checkState(pindex) == Qt.Checked:
+        #         props = tuple(self._data[pindex.row()][:-1]) #get all properties except the julia pointer on the end
+        #         checked.add(props)
 
         self.beginResetModel()
-        self._checks.clear()
+        self._checks = {}
 
-        for row in range(len(data)):
-            key = tuple(data[row][:-1])
-            if key in checked:
-                index = self.index(row, 0)
-                self._checks[QPersistentModelIndex(index)] = Qt.Checked
+        # for row in range(len(data)):
+        #     key = tuple(data[row][:-1])
+        #     if key in checked:
+        #         index = self.index(row, 0)
+        #         self._checks[QPersistentModelIndex(index)] = Qt.Checked
 
         #self.removeRows(0, self.rowCount())
 

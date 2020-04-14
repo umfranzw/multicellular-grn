@@ -27,21 +27,23 @@ class MainWindow(QMainWindow):
         self.data_tools = DataTools('data')
         self.tree_tools = TreeTools(self.data_tools)
         self.run = self.data_tools.get_run()
+        self.scene = QGraphicsScene(200, 600, self)
         
         # Tool Bar
         toolbar = self.build_toolbar()
         self.addToolBar(toolbar)
 
-        #table area
+        # Table Area
         table_area = self.build_table()
 
-        # Image
-        self.image_label = QLabel()
+        # Graphics View Area
+        graphics_view = QGraphicsView(self.scene)
+        self.scene.selectionChanged.connect(lambda: self.update_table(self.scene.selectedItems()))
 
-        #combine the image and table area horizontally
+        #combine the view and table areas horizontally
         centralWidget = QWidget(self)
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.image_label)
+        hlayout.addWidget(self.graphics_view)
         hlayout.addWidget(table_area)
         centralWidget.setLayout(hlayout)
         
@@ -51,7 +53,7 @@ class MainWindow(QMainWindow):
         geometry = qApp.desktop().availableGeometry(self)
         self.setFixedSize(geometry.width() * 0.8, geometry.height() * 0.7)
 
-        self.update_image()
+        self.update_view()
 
     def build_table(self):
         index = self.getIndex()
@@ -123,15 +125,21 @@ class MainWindow(QMainWindow):
         return (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())
     
     @Slot()
-    def update_image(self):
+    def update_view(self):
+        self.tree_tools.clear_scene() #clear any previous tree
         index = self.getIndex()
         checked_info = self.model.getCheckedInfo() #[(julia_props_obj, QColor), ...]
-        image = self.tree_tools.gen_image(self.data_tools, index, checked_info)
-        pixmap = QPixmap.fromImage(image)
-        self.image_label.setPixmap(pixmap)
+        root_cell = self.data_tools.get_tree(index)
+        self.tree_tools.draw_scene(root_cell, checked_info)
 
+    #note: there should only be at most one element in graph_items, since only one cell can be selected at once
     @Slot()
-    def update_table(self):
+    def update_table(self, graph_items=[]):
         index = self.getIndex()
-        data = self.data_tools.get_protein_info_for_indiv(index)
+        if graph_items:
+            cell = graph_items[0] #TODO:: how do I get the cell?
+            data = self.data_tools.get_protein_info_for_cell(index, cell)
+        else:
+            data = []
+            
         self.model.refresh(data)
