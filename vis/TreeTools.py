@@ -1,8 +1,8 @@
-from PySide2.QtGui import QImage
+from PySide2.QtGui import QImage, QPainter, QPixmap, QPen
+from PySide2.QtWidgets import QGraphicsItem, QGraphicsLineItem
 from DataTools import DataTools
 from PySide2.QtCharts import QtCharts
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QPainter, QPixmap
+from PySide2.QtCore import Qt, QPointF
 from DrawTree import DrawTree
 from TreeLayout import TreeLayout
 from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
@@ -32,12 +32,12 @@ class TreeTools():
                   
     def draw_tree(self, scene, node, depth, checked_info):
         pixmap = self.build_conc_graph(node.cell, checked_info)
-        item = QCustomGraphicsPixmapItem(pixmap, node.cell)
-        item.setOffset(QPointF(cell.x * TreeTools.node_width, depth * TreeTools.node_height))
+        item = CustomGraphicsPixmapItem(pixmap, node.cell)
+        item.setOffset(QPointF(node.x * TreeTools.node_width, depth * TreeTools.node_height))
         item.setFlags(QGraphicsItem.ItemIsSelectable)
         scene.addItem(item)
         
-        for child in root.children:
+        for child in node.children:
             draw_tree(scene, child, depth + 1, checked_info)
 
     def draw_edges(self, scene, node, depth):
@@ -54,16 +54,24 @@ class TreeTools():
         chart = QtCharts.QChart() #note: we're not going to show this widget in the GUI, it's just for generating charts
         cell_label = str(cell.sym.val) if cell.sym != None else '_'
         chart.setTitle(cell_label)
+
+        num_concs = self.data_tools.get_num_genes(cell)
+        categories = list(map(lambda i: str(i), range(num_concs)))
+        x_axis = QtCharts.QBarCategoryAxis()
+        x_axis.append(categories)
+        chart.addAxis(x_axis, Qt.AlignBottom)
+
+        y_axis = QtCharts.QValueAxis()
+        y_axis.setRange(0.0, 1.0)
+        chart.addAxis(y_axis, Qt.AlignLeft)
         
         series = QtCharts.QBarSeries()
         for props, colour in checked_info:
             protein = self.data_tools.get_protein(cell, props)
             if protein is not None:
                 concs = protein.concs
-                print(concs)
             else:
                 concs = []
-                print('no concs')
 
             props_str = self.data_tools.get_props_str(props)
             bar_set = QtCharts.QBarSet(props_str)
@@ -71,17 +79,9 @@ class TreeTools():
             bar_set.append(concs)
             series.append(bar_set)
 
-        chart.addSeries(series)
-        num_concs = series.barSets()[0].count() if series.barSets() else 0
-        categories = list(map(lambda i: str(i), range(num_concs)))
-        x_axis = QtCharts.QBarCategoryAxis()
-        x_axis.append(categories)
-        chart.addAxis(x_axis, Qt.AlignBottom)
-
-        y_axis = QtCharts.QValueAxis()
-        y_axis.setRange(0, 1)
-        chart.addAxis(y_axis, Qt.AlignLeft)
         
+        chart.addSeries(series)
+        series.attachAxis(y_axis)
         chart.legend().setVisible(False)
         
         chartView = QtCharts.QChartView(chart)

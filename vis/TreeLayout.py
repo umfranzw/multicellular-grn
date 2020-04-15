@@ -1,7 +1,7 @@
 class TreeLayout():
     @staticmethod
     def buchheim(draw_tree):
-        dt = firstwalk(draw_tree)
+        dt = TreeLayout.firstwalk(draw_tree)
         min = TreeLayout.second_walk(dt)
         if min < 0:
             TreeLayout.third_walk(dt, -min)

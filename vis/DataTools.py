@@ -50,3 +50,9 @@ class DataTools():
         Main.eval('root = tree.root')
         
         return Main.root
+
+    def get_num_genes(self, cell):
+        Main.cell = cell
+        Main.eval('num_genes = length(cell.gene_states)')
+
+        return Main.num_genes

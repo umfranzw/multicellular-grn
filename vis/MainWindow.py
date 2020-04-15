@@ -118,7 +118,6 @@ class MainWindow(QMainWindow):
         return toolbar
 
     def closeEvent(self, event):
-        self.tree_tools.close()
         self.data_tools.close()
 
     def getIndex(self):
