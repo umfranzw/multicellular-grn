@@ -176,8 +176,8 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
     result    
 end
 
-function get_protein_info(tree::CellTree)
-    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps}}()
+function get_protein_info_for_tree(tree::CellTree)
+    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps, UInt64}}()
     if tree.root != nothing
         CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), tree.root)
     end
@@ -186,7 +186,7 @@ function get_protein_info(tree::CellTree)
 end
 
 function get_protein_info_for_cell(cell::Cell)
-    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps}}()
+    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps, UInt64}}()
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         item  = (
@@ -196,7 +196,9 @@ function get_protein_info_for_cell(cell::Cell)
             string(protein.props.loc),
             protein.props.arg,
             protein.is_initial,
-            protein.props
+            protein.props,
+            hash(protein.props) #note: if the same protein is present in two different cells, they'll hash the same
+            #this means they'll be considered identical in the gui
         )
         push!(info, item)
     end
