@@ -181,8 +181,11 @@ function get_protein_info_for_tree(tree::CellTree)
     if tree.root != nothing
         CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), tree.root)
     end
+
+    array = collect(info)
+    sort!(array, by=row -> row[end])
     
-    info
+    array
 end
 
 function get_protein_info_for_cell(cell::Cell)
@@ -197,7 +200,12 @@ function get_protein_info_for_cell(cell::Cell)
             protein.props.arg,
             protein.is_initial,
             protein.props,
-            hash(protein.props) #note: if the same protein is present in two different cells, they'll hash the same
+            hash((protein.props.type,
+                  protein.props.fcn,
+                  protein.props.action,
+                  protein.props.loc,
+                  protein.props.arg,
+                  protein.is_initial)) #note: if the same protein is present in two different cells, they'll hash the same
             #this means they'll be considered identical in the gui
         )
         push!(info, item)

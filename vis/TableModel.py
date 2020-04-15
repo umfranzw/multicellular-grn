@@ -76,7 +76,7 @@ class TableModel(QAbstractTableModel):
         return len(self._data)
 
     def columnCount(self, index=QModelIndex()):
-        return len(self._data[0]) - 1 #(all rows are of equal length, +1 for colour column, -1 for props pointer, -1 for pointer value)
+        return len(self._headers)
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole:

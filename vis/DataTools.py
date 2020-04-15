@@ -35,9 +35,8 @@ class DataTools():
     def get_protein_info_for_tree(self, index):
         self.get_tree(index)
         Main.eval('info = DataMod.get_protein_info_for_tree(tree)')
-        props_list = list(map(lambda row: row, Main.info))
         
-        return props_list
+        return Main.info
 
     def get_cell_children(self, cell):
         Main.cell = cell
