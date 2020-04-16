@@ -12,21 +12,11 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.setWindowTitle("Vis")
 
-        # Menu
-        self.menu = self.menuBar()
-        self.file_menu = self.menu.addMenu("File")
-
-        # Exit QAction
-        exit_action = QAction("Exit", self)
-        exit_action.setShortcut(QKeySequence.Quit)
-        exit_action.triggered.connect(self.close)
-
-        self.file_menu.addAction(exit_action)
-
         # Data
         self.data_tools = DataTools('data')
         self.tree_tools = TreeTools(self.data_tools)
         self.scene = QGraphicsScene()
+        #self.scene.setBackgroundBrush(QBrush(Qt.black))
         self.run = self.data_tools.get_run()
         
         # Tool Bar
@@ -38,22 +28,39 @@ class MainWindow(QMainWindow):
 
         # Graphics View Area
         graphics_view = QGraphicsView(self.scene)
+        graphics_view.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
         #self.scene.selectionChanged.connect(lambda: self.update_cell_area(self.scene.selectedItems()))
 
-        #combine the view and table areas horizontally
+        # cell info area
+        cell_area = self.build_cell_info_area()
+
+        #combine the various areas in a grid
         centralWidget = QWidget(self)
-        hlayout = QHBoxLayout()
-        hlayout.addWidget(graphics_view)
-        hlayout.addWidget(table_area)
-        centralWidget.setLayout(hlayout)
+        grid_layout = QGridLayout()
+        grid_layout.addWidget(graphics_view, 0, 0, 2, 1)
+        grid_layout.addWidget(table_area, 0, 1)
+        grid_layout.addWidget(cell_area, 1, 1)
+        centralWidget.setLayout(grid_layout)
         
         self.setCentralWidget(centralWidget)
 
         # Window dimensions
-        geometry = qApp.desktop().availableGeometry(self)
-        self.setFixedSize(geometry.width() * 0.8, geometry.height() * 0.7)
+        # geometry = qApp.desktop().availableGeometry(self)
+        # self.setFixedSize(geometry.width() * 0.8, geometry.height() * 0.7)
 
         self.update_view()
+
+    def build_cell_info_area(self):
+        tabs = QTabWidget(self)
+        probs_tab = QWidget()
+        sensors_tab = QWidget()
+        gene_states_tab = QWidget()
+
+        tabs.addTab(probs_tab, "Sym Probs")
+        tabs.addTab(sensors_tab, "Sensors")
+        tabs.addTab(gene_states_tab, "Gene States")
+        
+        return tabs
 
     def build_table(self):
         index = self.getIndex()
@@ -80,10 +87,14 @@ class MainWindow(QMainWindow):
         self.table.setModel(self.proxyModel)
         self.table.setSortingEnabled(True)
 
+        hlayout = QHBoxLayout()
+        search_label = QLabel('Search:')
         self.searchEntry = QLineEdit()
         self.searchEntry.textChanged.connect(self.proxyModel.setFilterWildcard)
+        hlayout.addWidget(search_label)
+        hlayout.addWidget(self.searchEntry)
         
-        vlayout.addWidget(self.searchEntry)
+        vlayout.addLayout(hlayout)
         vlayout.addWidget(self.table)
         widget.setLayout(vlayout)
 
