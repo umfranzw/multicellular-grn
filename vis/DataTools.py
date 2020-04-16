@@ -50,6 +50,12 @@ class DataTools():
         
         return Main.root
 
+    def get_probs_info_for_cell(self, cell):
+        Main.cell = cell
+        Main.eval('info = DataMod.get_probs_info_for_cell(cell)')
+
+        return Main.info
+
     def get_num_genes(self, cell):
         Main.cell = cell
         Main.eval('num_genes = length(cell.gene_states)')

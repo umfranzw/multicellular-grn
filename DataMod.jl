@@ -8,6 +8,7 @@ using CacheMod
 using ProteinMod
 using ProteinPropsMod
 using ProteinStoreMod
+using SymMod
 using Statistics
 import TrackerMod
 import Serialization
@@ -211,6 +212,18 @@ function get_protein_info_for_cell(cell::Cell)
         push!(info, item)
     end
 
+    info
+end
+
+function get_probs_info_for_cell(cell::Cell)
+    info = Array{Tuple{String, Float64}, 1}() #[(sym_label, prob), ...]
+    for (sym, val) in cell.probs.probs
+        label = SymMod.to_str(sym)
+        push!(info, (label, val))
+    end
+
+    sort!(info, by=pair -> pair[1]) #sort by label
+    
     info
 end
 

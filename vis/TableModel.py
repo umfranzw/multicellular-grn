@@ -4,7 +4,7 @@ from PySide2.QtCore import *
 import colorsys
 
 class TableModel(QAbstractTableModel):
-    rowChanged = Signal(str, bool)
+    rowChanged = Signal(list)
 
     kelly_colour_vals = (0x222222, 0xf3c300, 0x875692, 0xf38400, 0xa1caf1, 0xbe0032, 0xc2b280, 0x848482, 0x008856, 0xe68fac, 0x0067a5, 0xf99379, 0x604e97, 0xf6a600, 0xb3446c, 0xdcd300, 0x882d17, 0x8db600, 0x654522, 0xe25822, 0x2b3d26) #note: white has been removed
 
@@ -68,7 +68,7 @@ class TableModel(QAbstractTableModel):
             return False
         if role == Qt.CheckStateRole:
             self._checks[self._data[index.row()][-1]] = (value, self._data[index.row()][-2])
-            self.rowChanged.emit(self._data[index.row()][index.column()], value)
+            self.rowChanged.emit(self.getCheckedInfo())
             return True
         return False
             

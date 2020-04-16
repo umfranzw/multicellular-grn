@@ -20,6 +20,13 @@ struct Sym
     end
 end
 
+function to_str(sym::Sym)
+    buf = IOBuffer()
+    SymMod.show(buf, sym)
+    
+    String(take!(buf))
+end
+
 function show(io::IO, sym::Sym)
     print(io, sym.val)
 end
