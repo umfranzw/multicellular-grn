@@ -30,6 +30,7 @@ struct Run
 
     decay_rate::Float64
     num_initial_proteins::Int64
+    initial_cell_sensor_conc::Float64
     max_proteins_per_cell::Int64
     
     diff_alpha::Float64

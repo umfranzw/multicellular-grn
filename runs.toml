@@ -29,6 +29,8 @@ decay_rate = 0.05
 #note: actual number of initial proteins may be less than this (they must be unique)
 num_initial_proteins = 10
 
+initial_cell_sensor_conc = 0.5
+
 #proteins will stop being produced when this count is exceeded
 max_proteins_per_cell = 50
 

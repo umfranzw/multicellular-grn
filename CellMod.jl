@@ -31,7 +31,7 @@ mutable struct Cell
         proteins = ProteinStore()
         children = Array{Cell, 1}()
 
-        cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(length(genes)), nothing, 0)
+        cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(config.run, length(genes)), nothing, 0)
         
         cell
     end
@@ -43,10 +43,10 @@ mutable struct Cell
     end
 end
 
-function build_sensors(num_concs::Int64)
+function build_sensors(run::Run, num_concs::Int64)
     sensors = Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}()
     for loc in instances(ProteinPropsMod.ProteinLoc)
-        sensors[loc] = zeros(num_concs)
+        sensors[loc] = repeat([run.initial_cell_sensor_conc], num_concs)
     end
 
     sensors
