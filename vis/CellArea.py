@@ -11,7 +11,7 @@ class CellArea(QWidget):
         layout = QVBoxLayout()
         tabs = QTabWidget(self)
         probs_tab = self.build_probs_tab()
-        sensors_tab = QWidget()
+        sensors_tab = self.build_sensors_tab()
         gene_states_tab = QWidget()
 
         tabs.addTab(probs_tab, "Sym Probs")
@@ -37,10 +37,79 @@ class CellArea(QWidget):
         
         return tab
 
+    def refresh_sensors_tab(self, cell):
+        sensor_concs = self.data_tools.get_sensor_concs(cell)
+        num_concs = len(sensor_concs['Top'])
+        pairs = (
+            ('Top', self.top_chart),
+            ('Right', self.right_chart),
+            ('Bottom', self.bottom_chart),
+            ('Left', self.left_chart),
+        )
+
+        for (loc, chart) in pairs:
+            chart.removeAllSeries()
+            for axis in chart.axes(Qt.Horizontal | Qt.Vertical):
+                chart.removeAxis(axis)
+
+            categories = list(map(lambda i: str(i), range(num_concs)))
+            x_axis = QtCharts.QBarCategoryAxis()
+            x_axis.append(categories)
+            chart.addAxis(x_axis, Qt.AlignBottom)
+
+            y_axis = QtCharts.QValueAxis()
+            y_axis.setRange(0.0, 1.0)
+            chart.addAxis(y_axis, Qt.AlignLeft)
+            
+            series = QtCharts.QBarSeries()
+            bar_set = QtCharts.QBarSet(loc)
+            bar_set.append(sensor_concs[loc])
+            series.append(bar_set)
+            chart.addSeries(series)
+            series.attachAxis(y_axis)
+
+    def build_sensors_tab(self):
+        tab = QWidget()
+        layout = QGridLayout()
+
+        self.top_chart = QtCharts.QChart()
+        self.top_chart.legend().setVisible(False)
+        top_view = QtCharts.QChartView(self.top_chart)
+        top_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        top_view.resize(200, 200)
+
+        self.right_chart = QtCharts.QChart()
+        self.right_chart.legend().setVisible(False)
+        right_view = QtCharts.QChartView(self.right_chart)
+        right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        right_view.resize(200, 200)
+
+        self.bottom_chart = QtCharts.QChart()
+        self.bottom_chart.legend().setVisible(False)
+        bottom_view = QtCharts.QChartView(self.bottom_chart)
+        bottom_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        bottom_view.resize(200, 200)
+
+        self.left_chart = QtCharts.QChart()
+        self.left_chart.legend().setVisible(False)
+        left_view = QtCharts.QChartView(self.left_chart)
+        left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        left_view.resize(200, 200)
+
+        layout.addWidget(top_view, 0, 1)
+        layout.addWidget(right_view, 1, 2)
+        layout.addWidget(bottom_view, 2, 1)
+        layout.addWidget(left_view, 1, 0)
+        
+        tab.setLayout(layout)
+
+        return tab
+
     @Slot()
     def refresh(self, cells):
         cell = cells[0] if cells else None
         self.refresh_probs_tab(cell)
+        self.refresh_sensors_tab(cell)
 
     def refresh_probs_tab(self, cell):
         self.probs_chart.removeAllSeries()

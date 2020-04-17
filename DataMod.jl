@@ -227,4 +227,13 @@ function get_probs_info_for_cell(cell::Cell)
     info
 end
 
+function get_sensor_concs(cell::Cell)
+    concs = Dict{String, Array{Float64, 1}}()
+    for loc in instances(ProteinPropsMod.ProteinLoc)
+        concs[string(loc)] = cell.sensors[loc]
+    end
+
+    concs
+end
+
 end

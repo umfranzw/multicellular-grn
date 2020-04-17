@@ -78,7 +78,6 @@ class TreeTools():
             bar_set.setColor(colour)
             bar_set.append(concs)
             series.append(bar_set)
-
         
         chart.addSeries(series)
         series.attachAxis(y_axis)

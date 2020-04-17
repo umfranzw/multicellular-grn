@@ -61,3 +61,9 @@ class DataTools():
         Main.eval('num_genes = length(cell.gene_states)')
 
         return Main.num_genes
+
+    def get_sensor_concs(self, cell):
+        Main.cell = cell
+        Main.eval('sensor_concs = DataMod.get_sensor_concs(cell)')
+
+        return Main.sensor_concs
