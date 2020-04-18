@@ -55,11 +55,11 @@ function alter_sym_prob(args::AppArgs)
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
         sym_index = args.app_protein.props.arg % length(cell.probs)
-        sign = protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
+        sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
         
         max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess
         scale_factor = 1.0 / max_excess
-        excess = maximum(app_protein.concs) - cell.config.run.sym_prob_threshold #should be positive, given that this method has been called
+        excess = maximum(args.app_protein.concs) - cell.config.run.sym_prob_threshold #should be positive, given that this method has been called
         delta = sign * excess * scale_factor * age_factor
         SymProbsMod.alter_prob(cell.probs, sym_index, delta)
     end

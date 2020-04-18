@@ -9,9 +9,9 @@ class ToolbarArea(QToolBar):
         QToolBar.__init__(self, *args, **kwargs)
         
         self.eaStepSpin = QSpinBox()
-        self.eaStepSpin.setRange(0, run.ea_steps)
+        self.eaStepSpin.setRange(run.step_range.start, run.step_range.stop - 1) #note: in Julia the top bound is inclusive, in Python it's exclusive
+        self.eaStepSpin.setSingleStep(run.step_range.step)
         self.eaStepSpin.valueChanged.connect(self.handle_index_changed)
-        #self.eaStepSpin.setSingleStep(run.step_interval.step)
 
         self.indivSpin = QSpinBox()
         self.indivSpin.setRange(1, run.pop_size)

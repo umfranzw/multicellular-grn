@@ -22,7 +22,8 @@ class DataTools():
         return Main.indiv
 
     def get_run(self):
-        return Main.data.run
+        Main.eval('run = data.run')
+        return Main.run
 
     def get_protein(self, cell, props):
         get_fcn = Main.eval('ProteinStoreMod.get')
@@ -63,7 +64,10 @@ class DataTools():
         return Main.num_genes
 
     def get_sensor_concs(self, cell):
-        Main.cell = cell
-        Main.eval('sensor_concs = DataMod.get_sensor_concs(cell)')
+        concs = {}
+        if cell is not None:
+            Main.cell = cell
+            Main.eval('sensor_concs = DataMod.get_sensor_concs(cell)')
+            concs = Main.sensor_concs
 
-        return Main.sensor_concs
+        return concs
