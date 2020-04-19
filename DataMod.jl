@@ -9,6 +9,8 @@ using ProteinMod
 using ProteinPropsMod
 using ProteinStoreMod
 using SymMod
+using ChainGraphMod
+using GeneStateMod
 using Statistics
 import TrackerMod
 import Serialization
@@ -234,6 +236,44 @@ function get_sensor_concs(cell::Cell)
     end
 
     concs
+end
+
+function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell::Cell)
+    graph = ChainGraph()
+
+    for reg_step in 1:data.run.reg_steps + 1
+        tree = DataMod.get_tree(data, ea_step, pop_index, reg_step)
+        cur = CellTreeMod.find_by_id(tree, cell.id)
+        if cur != nothing
+            for gs in cell.gene_states
+                #find all bindings and insert them into the graph
+                for bound_protein in gs.bindings
+                    if bound_protein != nothing
+                        ChainGraphMod.add_node(graph, bound_protein)
+                        ChainGraphMod.add_node(graph, gs.gene)
+                        ChainGraphMod.add_edge(graph, bound_protein, gs.gene)
+                    end
+                end
+
+                #find all productions and insert them into the graph
+                rates = GeneStateMod.get_prod_rates(gs)
+                for (prod_index, rate) in rates
+                    if rate > 0
+                        prod_props = gene.prod_sites[prod_index]
+                        #the produced protein should have been inserted into the store already
+                        protein = ProteinStoreMod.get(cell.proteins, prod_props)
+                        #note: binding must occur in order for production to occur, so here, the gene is already in the graph
+                        #(it was inserted above)
+                        #Just need to add the protein and an edge
+                        ChainGraphMod.add_node(graph, protein)
+                        ChainGraphMod.add_edge(gs.gene, protein)
+                    end
+                end
+            end
+        end
+    end
+
+    graph
 end
 
 end

@@ -1,9 +1,12 @@
 using DataMod
+using ChainGraphMod
 
 data = Data("data");
 
-ea_step = 0
-indiv_index = 1
-
-indiv = DataMod.get_indiv(data, ea_step, indiv_index)
-info = DataMod.get_protein_info(indiv)
+tree = DataMod.get_tree(data, 1, 1, 1)
+cell = tree.root
+graph = DataMod.build_graph_for_cell(data, 1, 1, cell)
+png_data = ChainGraphMod.plot(graph)
+f = open("test.png", "w")
+write(f, png_data)
+close(f)

@@ -75,7 +75,7 @@ function alter_sensor(args::AppArgs)
     #it will decrease as it is used, and through decay
     max_excess = 1.0 - cell.config.run.sensor_reinforcement_threshold #max possible excess
     scale_factor = 1.0 / max_excess
-    excess = maximum(app_protein.concs) - cell.config.run.sensor_reinforcement_threshold #should be positive, given that this method has been called
+    excess = maximum(args.app_protein.concs) - cell.config.run.sensor_reinforcement_threshold #should be positive, given that this method has been called
     delta = sign * excess * scale_factor
     CellMod.adjust_sensor(cell, loc, delta)
 

@@ -6,6 +6,7 @@ using GeneMod
 using ProteinMod
 using ProteinPropsMod
 using CellTreeMod
+using CellMod
 
 export ChainGraph
 
@@ -33,8 +34,8 @@ function add_node(graph::ChainGraph, node::Union{Gene, Protein})
     if node ∉ keys(graph.obj_to_id)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
-        graph.id_to_obj[last_id] = obj
-        graph.obj_to_id[obj] = last_id
+        graph.id_to_obj[last_id] = node
+        graph.obj_to_id[node] = last_id
     end
 end
 
@@ -109,6 +110,7 @@ function gen_dot_code(graph::ChainGraph)
     print(gene_buf, "{rank = same; ")
 
     for obj in keys(graph.obj_to_id)
+        id = graph.obj_to_id[obj]
         if obj isa Protein
             label = ProteinPropsMod.to_str(obj.props)
             
@@ -117,13 +119,14 @@ function gen_dot_code(graph::ChainGraph)
             else
                 colour = "#000000"
             end
-            print(protein_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
+            print(protein_buf, "$(id) [label=\"$(label)\",style=filled,fillcolor=\"#309FFF\",penwidth=4,shape=circle,color=\"$(colour)\"];\n")
             
         elseif obj isa Gene
             sites_str = GeneMod.get_sites_str(obj)
-            label = "$(sites_str)\n($(obj.genome_index))"
+            logic = string(obj.bind_logic)
+            label = "$(sites_str)\n$(logic)\n($(obj.genome_index))"
             
-            print(gene_buf, "$(info.id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",penwidth=4,shape=box];\n")
+            print(gene_buf, "$(id) [label=\"$(label)\",style=filled,fillcolor=\"#00CD66\",penwidth=4,shape=box];\n")
         end
     end
     print(protein_buf, "}\n")

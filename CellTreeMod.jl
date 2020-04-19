@@ -181,27 +181,52 @@ function find_empty(node::Cell)
     results
 end
 
-function find(node::Cell; type::Union{SymType, Nothing}=nothing, val::Any=nothing)
-    results = Array{Cell, 1}()
+# function find(node::Cell; type::Union{SymType, Nothing}=nothing, val::Any=nothing)
+#     results = Array{Cell, 1}()
 
-    found = node.sym != nothing
-    if type != nothing
-        found = found && node.sym.type == type
-    end
+#     found = node.sym != nothing
+#     if type != nothing
+#         found = found && node.sym.type == type
+#     end
 
-    if val != nothing
-        found = found && node.sym.val == val
-    end
+#     if val != nothing
+#         found = found && node.sym.val == val
+#     end
+
+#     if found
+#         push!(results, node)
+#     end
+
+#     for child in node.children
+#         push!(results, find(child, type=type, val=val)...)
+#     end
+
+#     results
+# end
+
+function find_by_id(tree::CellTree, id::UInt64)
+    result = nothing
     
-    if found
-        push!(results, node)
+    if tree.root != nothing
+        result = find_by_id(tree.root, id)
     end
 
-    for child in node.children
-        push!(results, find(child, type=type, val=val)...)
+    return result
+end
+
+function find_by_id(cur::Cell, key::UInt64)
+    result = nothing
+    if cur.id == key
+        result = cur
+    else
+        i = 1
+        while result == nothing && i < length(cur.children)
+            result = find_by_id(cur.children[i], key)
+            i += 1
+        end
     end
 
-    results
+    result
 end
 
 function show(io::IO, tree::CellTree, ilevel::Int64=0)

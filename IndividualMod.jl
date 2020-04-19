@@ -366,7 +366,7 @@ function run_bind_for_site(gs::GeneState, gene_index::Int64, site_index::Int64, 
 
         sel_protein = eligible_proteins[sel_index]
 
-        #@info @sprintf("%s binding to site %s", sel_protein, site_type)
+        @info @sprintf("%s binding to site %s", sel_protein, site_index)
         GeneStateMod.bind(gs, sel_protein, site_index)
 
     else

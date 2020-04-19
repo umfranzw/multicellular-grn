@@ -8,7 +8,6 @@ using Printf
 import RandUtilsMod
 import Random
 import Base.show
-import Formatting
 
 export Gene, BindSite
 
@@ -41,13 +40,11 @@ function get_sites_str(gene::Gene)
             (ProteinPropsMod.ProteinLoc, gene.bind_sites[i].loc)
         )
         for (enum, val) in pairs
-            width = MiscUtilsMod.digits_needed(length(instances(enum)))
-            fs = Formatting.FormatSpec("0$(width)d")
-            str = Formatting.fmt(fs, Int64(val))
-            print(buf, str)
+            chunk = string(val)[1:3]
+            print(buf, chunk)
         end
-        @printf(buf, " %0.1f", gene.bind_sites[i].threshold)
-        @printf(buf, " %0.1f", gene.bind_sites[i].consum_rate)
+        #@printf(buf, " %0.1f", gene.bind_sites[i].threshold)
+        #@printf(buf, " %0.1f", gene.bind_sites[i].consum_rate)
         
         if i < length(gene.bind_sites)
             print(buf, ", ")

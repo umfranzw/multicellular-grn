@@ -1,7 +1,5 @@
 module GraphVizMod
 
-import GtkUtilsMod
-
 function plot(dot_code::String)
     stdout_buf = IOBuffer()
     stdin_buf = IOBuffer()
@@ -10,7 +8,7 @@ function plot(dot_code::String)
     cmd = `dot -Tpng`
     run(pipeline(ignorestatus(cmd), stdin=stdin_buf, stdout=stdout_buf))
 
-    GtkUtilsMod.pixbuf_from_data(stdout_buf.data)
+    stdout_buf.data
 end
 
 end

@@ -15,7 +15,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         indiv_trees = Array{CellTree, 1}()
         
         for reg_step in 1:run.reg_steps
-            #@info @sprintf("Reg step %d\n", reg_step)
+            @info @sprintf("Reg step %d\n", reg_step)
 
             IndividualMod.run_bind(indiv)
             IndividualMod.run_produce(indiv)
