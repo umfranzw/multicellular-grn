@@ -91,6 +91,7 @@ function show(io::IO, props::ProteinProps, ilevel::Int64=0)
         # iprint(io, str, ilevel)
         iprint(io, string(val)[1:3], ilevel) #print first 3 chars of value name
     end
+    iprint(io, "-", ilevel)
     iprint(io, string(props.arg), ilevel)
     
     println(io, "")

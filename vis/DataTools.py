@@ -71,3 +71,15 @@ class DataTools():
             concs = Main.sensor_concs
 
         return concs
+
+    def get_interaction_graph(self, ea_step, pop_index, cell):
+        if cell is None:
+            pixmap_data = []
+        else:
+            Main.cell = cell
+            Main.ea_step = ea_step
+            Main.pop_index = pop_index
+            Main.eval('pixmap_data = DataMod.build_graph_for_cell(data, ea_step, pop_index, cell)')
+            pixmap_data = Main.pixmap_data
+
+        return pixmap_data

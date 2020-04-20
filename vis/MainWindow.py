@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
         self.table_area.checksChanged.connect(self.refresh_graphics_area)
-        self.graphics_area.selectionChanged.connect(self.cell_area.refresh)
+        self.graphics_area.selectionChanged.connect(self.relay_selection_changed)
 
         #combine the various areas in a grid
         centralWidget = QWidget(self)
@@ -47,6 +47,11 @@ class MainWindow(QMainWindow):
         centralWidget.setLayout(grid_layout)
         
         self.setCentralWidget(centralWidget)
+
+    @Slot()
+    def relay_selection_changed(self, cells):
+        index = self.toolbar.getIndex()
+        self.cell_area.refresh(cells, index)
 
     def sizeHint(self):
         return QSize(1200, 1000)

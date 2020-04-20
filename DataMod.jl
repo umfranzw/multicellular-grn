@@ -273,7 +273,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
         end
     end
 
-    graph
+    ChainGraphMod.plot(graph)
 end
 
 end
