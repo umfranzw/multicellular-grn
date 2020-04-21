@@ -35,7 +35,7 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
         if protein == nothing
             push!(site_strs, "(nothing)")
         else
-            push!(ProteinPropsMod.to_str(protein.props))
+            push!(site_strs, ProteinPropsMod.to_str(protein.props))
         end
     end
     iprintln(io, join(site_strs, ", "), ilevel + 2)

@@ -245,7 +245,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
         tree = DataMod.get_tree(data, ea_step, pop_index, reg_step)
         cur = CellTreeMod.find_by_id(tree, cell.id)
         if cur != nothing
-            for gs in cell.gene_states
+            for gs in cur.gene_states
                 #find all bindings and insert them into the graph
                 for bound_protein in gs.bindings
                     if bound_protein != nothing
@@ -261,7 +261,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
                     if rate > 0
                         prod_props = gene.prod_sites[prod_index]
                         #the produced protein should have been inserted into the store already
-                        protein = ProteinStoreMod.get(cell.proteins, prod_props)
+                        protein = ProteinStoreMod.get(cur.proteins, prod_props)
                         #note: binding must occur in order for production to occur, so here, the gene is already in the graph
                         #(it was inserted above)
                         #Just need to add the protein and an edge
@@ -273,6 +273,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
         end
     end
 
+    #println(ChainGraphMod.gen_dot_code(graph))
     ChainGraphMod.plot(graph)
 end
 

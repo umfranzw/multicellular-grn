@@ -98,6 +98,7 @@ function show(io::IO, cell::Cell, ilevel::Int64=0)
 
     iprintln(io, "Cell:", ilevel)
 
+    iprintln(io, "id: $(cell.id)", ilevel + 1)
     iprintln(io, "parent: $(parent_present)", ilevel + 1)
     iprintln(io, "num children: $(length(cell.children))", ilevel + 1)
     iprintln(io, "sym: $(sym_desc)", ilevel + 1)

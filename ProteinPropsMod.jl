@@ -112,7 +112,7 @@ function to_str(props::ProteinProps)
     show(buf, props)
     seek(buf, 0)
 
-    chomp(read(buf, String)) #protein sequence string (remove the newline)
+    string(chomp(read(buf, String))) #protein sequence string (remove the newline)
 end
 
 end

@@ -29,18 +29,20 @@ class CellArea(QWidget):
     def build_interaction_tab(self):
         tab = QWidget()
         layout = QVBoxLayout()
+        
         button = QPushButton('Generate')
+        button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         button.clicked.connect(self.update_interaction_img)
-        self.interaction_img = QLabel()
-        
         layout.addWidget(button)
-        layout.addWidget(self.interaction_img)
-        tab.setLayout(layout)
-
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(tab)
         
-        return scroll_area
+        scroll_area = QScrollArea()
+        self.interaction_img = QLabel()
+        scroll_area.setWidget(self.interaction_img)
+        layout.addWidget(scroll_area)
+
+        tab.setLayout(layout)
+        
+        return tab
 
     def build_probs_tab(self):
         tab = QWidget()
@@ -158,12 +160,23 @@ class CellArea(QWidget):
                 series.attachAxis(y_axis)
 
     def refresh_interaction_tab(self, cell, index):
+        deselected = self.interaction_cell and cell == None
         self.interaction_cell = cell
         self.index = index
+        
+        if deselected:
+            self.update_interaction_img()
 
     def update_interaction_img(self):
-        pixmap_data = self.data_tools.get_interaction_graph(self.index[0], self.index[1], self.interaction_cell)
-        pixmap = QPixmap(700, 700)
-        pixmap.loadFromData(pixmap_data, format='png')
-        pixmap.save('/home/wayne/Documents/school/thesis/multicellular-grn/test/test.png', format='png')
-        self.interaction_img.setPixmap(pixmap)
+        if self.interaction_cell is None: #if cell was deselected
+            pixmap = QPixmap(0, 0)
+            self.interaction_img.setPixmap(pixmap)
+            self.interaction_img.resize(0, 0)
+        else:
+            pixmap_data = self.data_tools.get_interaction_graph(self.index[0], self.index[1], self.interaction_cell)
+            pixmap = QPixmap(0, 0)
+            pixmap.loadFromData(pixmap_data, format='png')
+            size = pixmap.size()
+            print(size)
+            self.interaction_img.resize(size.width(), size.height())
+            self.interaction_img.setPixmap(pixmap)
