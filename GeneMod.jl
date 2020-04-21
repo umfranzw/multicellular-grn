@@ -33,33 +33,48 @@ end
 
 function get_sites_str(gene::Gene)
     buf = IOBuffer()
+    
     for i in 1:length(gene.bind_sites)
-        pairs = (
-            (ProteinPropsMod.ProteinType, gene.bind_sites[i].type),
-            (ProteinPropsMod.ProteinAction, gene.bind_sites[i].action),
-            (ProteinPropsMod.ProteinLoc, gene.bind_sites[i].loc)
-        )
-        for (enum, val) in pairs
-            chunk = string(val)[1:3]
-            print(buf, chunk)
-        end
-        #@printf(buf, " %0.1f", gene.bind_sites[i].threshold)
-        #@printf(buf, " %0.1f", gene.bind_sites[i].consum_rate)
+        bind_str = GeneMod.get_bind_site_str(gene, i)
+        print(buf, bind_str)
         
         if i < length(gene.bind_sites)
             print(buf, ", ")
         end
     end
+    
     print(buf, " : ")
 
     for i in 1:length(gene.prod_sites)
-        print(buf, ProteinPropsMod.to_str(gene.prod_sites[i]))
+        prod_str = GeneMode.get_prod_site_str(gene, i)
+        print(buf, prod_str)
         if i < length(gene.prod_sites)
             print(buf, ", ")
         end
     end
     
     String(take!(buf))
+end
+
+function get_bind_site_str(gene::Gene, index::Int64)
+    buf = IOBuffer()
+    pairs = (
+        (ProteinPropsMod.ProteinType, gene.bind_sites[index].type),
+        (ProteinPropsMod.ProteinAction, gene.bind_sites[index].action),
+        (ProteinPropsMod.ProteinLoc, gene.bind_sites[index].loc)
+    )
+    for (enum, val) in pairs
+        chunk = string(val)[1:3]
+        print(buf, chunk)
+    end
+    #@printf(buf, " %0.1f", gene.bind_sites[index].threshold)
+    #@printf(buf, " %0.1f", gene.bind_sites[index].consum_rate)
+
+    String(take!(buf))
+end
+
+function get_prod_site_str(gene::Gene, index::Int64)
+    ProteinPropsMod.to_str(gene.prod_sites[index])
 end
 
 function show(io::IO, gene::Gene, ilevel::Int64=0)

@@ -14,7 +14,7 @@ class CellArea(QWidget):
         tabs = QTabWidget(self)
         probs_tab = self.build_probs_tab()
         sensors_tab = self.build_sensors_tab()
-        gene_states_tab = QWidget()
+        gene_states_tab = self.build_gene_states_tab()
         interaction_tab = self.build_interaction_tab()
 
         tabs.addTab(probs_tab, "Sym Probs")
@@ -25,6 +25,32 @@ class CellArea(QWidget):
         layout.addWidget(tabs)
 
         self.setLayout(layout)
+
+    def build_gene_states_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout()
+        num_bind_sites = self.data_tools.get_run().bind_sites_per_gene
+        
+        #build table
+        headers = [
+            'Gene Index',
+            'Bind Logic',
+        ]
+        for i in range(num_bind_sites):
+            headers.append('Bind Site {}'.format(i + 1))
+            headers.append('Bound Protein {}'.format(i + 1))
+
+        for i in range(num_bind_sites):
+            headers.append('Prod Site {}'.format(i + 1))
+            headers.append('Prod Rate {}'.format(i + 1))
+
+        self.gs_table = QTableWidget(0, len(headers))
+        self.gs_table.setHorizontalHeaderLabels(headers)
+        
+        layout.addWidget(self.gs_table)
+        tab.setLayout(layout)
+        
+        return tab
 
     def build_interaction_tab(self):
         tab = QWidget()
@@ -110,10 +136,25 @@ class CellArea(QWidget):
 
     @Slot()
     def refresh(self, cells, index):
+        self.index = index
         cell = cells[0] if cells else None
+        
         self.refresh_probs_tab(cell)
         self.refresh_sensors_tab(cell)
+        self.refresh_gene_states_tab(cell)
         self.refresh_interaction_tab(cell, index)
+
+    def refresh_gene_states_tab(self, cell):
+        if cell is None: #if cell we deselected
+            self.gs_table.setRowCount(0) #this deletes all the rows
+        else:
+            table_data = self.data_tools.get_gs_table_data(cell, self.index) #this is a 2D array
+            self.gs_table.setRowCount(len(table_data))
+
+            for row in range(len(table_data)):
+                for col in range(len(table_data[row])):
+                    item = QTableWidgetItem(table_data[row][col])
+                    self.gs_table.setItem(row, col, item)
 
     def refresh_probs_tab(self, cell):
         self.probs_chart.removeAllSeries()
@@ -162,7 +203,6 @@ class CellArea(QWidget):
     def refresh_interaction_tab(self, cell, index):
         deselected = self.interaction_cell and cell == None
         self.interaction_cell = cell
-        self.index = index
         
         if deselected:
             self.update_interaction_img()
@@ -177,6 +217,5 @@ class CellArea(QWidget):
             pixmap = QPixmap(0, 0)
             pixmap.loadFromData(pixmap_data, format='png')
             size = pixmap.size()
-            print(size)
             self.interaction_img.resize(size.width(), size.height())
             self.interaction_img.setPixmap(pixmap)

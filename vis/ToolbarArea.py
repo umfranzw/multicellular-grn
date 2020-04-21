@@ -18,7 +18,7 @@ class ToolbarArea(QToolBar):
         self.indivSpin.valueChanged.connect(self.handle_index_changed)
         
         self.regStepSpin = QSpinBox()
-        self.regStepSpin.setRange(1, run.reg_steps + 1)
+        self.regStepSpin.setRange(0, run.reg_steps + 1)
         self.regStepSpin.valueChanged.connect(self.handle_index_changed)
 
         self.addWidget(QLabel("EA Step:"))

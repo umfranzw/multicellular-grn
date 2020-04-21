@@ -83,3 +83,16 @@ class DataTools():
             pixmap_data = Main.pixmap_data
 
         return pixmap_data
+
+    def get_gs_table_data(self, cell, index):
+        if cell is None:
+            table_data = []
+        else:
+            Main.cell = cell
+            Main.ea_step = index[0]
+            Main.indiv_index = index[1]
+            Main.reg_step = index[2]
+            Main.eval('table_data = DataMod.get_gs_table_data(data, cell, ea_step, indiv_index, reg_step)')
+            table_data = Main.table_data
+
+        return table_data

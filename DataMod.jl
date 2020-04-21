@@ -8,10 +8,12 @@ using CacheMod
 using ProteinMod
 using ProteinPropsMod
 using ProteinStoreMod
+using GeneMod
 using SymMod
 using ChainGraphMod
 using GeneStateMod
 using Statistics
+using Printf
 import TrackerMod
 import Serialization
 import CodecZlib
@@ -275,6 +277,71 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
 
     #println(ChainGraphMod.gen_dot_code(graph))
     ChainGraphMod.plot(graph)
+end
+
+function get_cell_from_prev_reg_step(data::Data, cur_cell::Cell, ea_step::Int64, indiv_index::Int64, cur_reg_step::Int64)
+    prev_cell = nothing
+
+    if cur_reg_step != 0
+        prev_tree = get_tree(data, ea_step, indiv_index, cur_reg_step - 1)
+        prev_cell = CellTreeMod.find_by_id(prev_tree, cur_cell.id)
+    end
+
+    prev_cell #will be nothing if not present
+end
+
+function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::Int64, reg_step::Int64)
+    #table data should be a 2d array
+    #each row is a binding site
+    #cols are as described in vis/CellArea.py/build_gene_states_tab
+    table = Array{Array{String, 1}, 1}()
+
+    prev_cell = DataMod.get_cell_from_prev_reg_step(data, cell, ea_step, indiv_index, reg_step)
+    for gene_index in 1:length(cell.gene_states)
+        gs = cell.gene_states[gene_index]
+        gene_index_str = string(gene_index)
+        bind_logic = string(gs.gene.bind_logic)
+
+        bind_sites = Array{String, 1}()
+        bound_proteins = Array{String, 1}()
+        for i in 1:length(gs.gene.bind_sites)
+            push!(bind_sites, GeneMod.get_bind_site_str(gs.gene, i))
+            if gs.bindings[i] == nothing
+                push!(bound_proteins, "")
+            else
+                push!(bound_proteins, ProteinPropsMod.to_str(gs.bindings[i].props))
+            end
+        end
+
+        if prev_cell == nothing
+            prod_rates = Array{NamedTuple{(:prod_index, :rate), Tuple{Int64, Float64}}, 1}()
+        else
+            prod_rates = GeneStateMod.get_prod_rates(prev_cell.gene_states[gene_index])
+        end
+        prod_sites = repeat([""], length(gs.gene.bind_sites))
+        prod_rates_strs = repeat([""], length(gs.gene.bind_sites))
+        for (prod_index, rate) in prod_rates
+            prod_sites[prod_index] = GeneMod.get_prod_site_str(gs.gene, prod_index)
+            prod_rates_strs[prod_index] = @printf("%0.2f", rate)
+        end
+
+        row = Array{String, 1}()
+        push!(row, gene_index_str)
+        push!(row, bind_logic)
+        for i in 1:length(gs.gene.bind_sites)
+            push!(row, bind_sites[i])
+            push!(row, bound_proteins[i])
+        end
+
+        for i in 1:length(gs.gene.bind_sites)
+            push!(row, prod_sites[i])
+            push!(row, prod_rates_strs[i])
+        end
+
+        push!(table, row)
+    end
+
+    table
 end
 
 end
