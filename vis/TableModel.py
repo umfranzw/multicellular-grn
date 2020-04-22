@@ -13,19 +13,24 @@ class TableModel(QAbstractTableModel):
     def __init__(self, data, headers):
         super(TableModel, self).__init__()
         self._data = data
-        self._checks = {} # julia hash value (from _data[-1] -> (Qt.Checked/UnChecked, julia props obj)
+        self._checks = {} # julia hash value (from _data[row][-1] -> (Qt.Checked/UnChecked, julia props obj)
         self._headers = headers
 
     def refresh(self, data):
-        new_checks = {}
-        for key in self._checks.keys():
-            if self.checkState(key) == Qt.Checked:
-                new_checks[key] = self._checks[key]
-
         self.beginResetModel()
-        self._checks = new_checks
         self._data = data
         self.endResetModel()
+
+    def setCheckedRows(self, row_indices):
+        self.beginResetModel()
+        self._checks.clear()
+        for row in row_indices:
+            key = self._data[row][-1]
+            value = (Qt.Checked, self._data[row][-2])
+            self._checks[key] = value
+        self.endResetModel()
+        
+        self.rowChanged.emit(self.getCheckedInfo())
 
     def checkState(self, index):
         if index in self._checks:
@@ -63,13 +68,15 @@ class TableModel(QAbstractTableModel):
         colour_index = val % len(TableModel.colours)
         return TableModel.colours[colour_index]
 
-    def setData(self, index, value, role):
+    def setData(self, index, value, role, emit=True):
         if not index.isValid():
             return False
         if role == Qt.CheckStateRole:
             self._checks[self._data[index.row()][-1]] = (value, self._data[index.row()][-2])
-            self.rowChanged.emit(self.getCheckedInfo())
+            if emit:
+                self.rowChanged.emit(self.getCheckedInfo())
             return True
+        
         return False
             
     def rowCount(self, index=QModelIndex()):

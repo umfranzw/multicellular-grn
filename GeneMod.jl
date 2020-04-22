@@ -46,7 +46,7 @@ function get_sites_str(gene::Gene)
     print(buf, " : ")
 
     for i in 1:length(gene.prod_sites)
-        prod_str = GeneMode.get_prod_site_str(gene, i)
+        prod_str = GeneMod.get_prod_site_str(gene, i)
         print(buf, prod_str)
         if i < length(gene.prod_sites)
             print(buf, ", ")

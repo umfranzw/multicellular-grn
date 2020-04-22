@@ -26,3 +26,6 @@ class GraphicsArea(QGraphicsView):
     def handle_selectionChanged(self):
         cells = list(map(lambda item: item.cell, self.scene.selectedItems()))
         self.selectionChanged.emit(cells)
+
+    def disconnect_signals(self):
+        self.scene.selectionChanged.disconnect(self.handle_selectionChanged)

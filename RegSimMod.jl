@@ -13,20 +13,22 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         #@info @sprintf("Individual %d\n", pop_index)
         indiv = pop[pop_index]
         indiv_trees = Array{CellTree, 1}()
+        #save initial state under index 0
         TrackerMod.save_reg_state(indiv.cell_tree, ea_step, 0, pop_index)
         
         for reg_step in 1:run.reg_steps
             #@info @sprintf("Reg step %d\n", reg_step)
 
             IndividualMod.run_bind(indiv)
+
+            TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
+
             IndividualMod.run_produce(indiv)
             IndividualMod.run_diffuse(indiv)
             IndividualMod.run_neighbour_comm(indiv)
             IndividualMod.run_protein_app(indiv)
             IndividualMod.run_decay(indiv)
             IndividualMod.run_age(indiv)
-            
-            TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
         end
 
         IndividualMod.run_fix_syms(indiv)

@@ -245,9 +245,9 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
 
     for reg_step in 1:data.run.reg_steps + 1
         tree = DataMod.get_tree(data, ea_step, pop_index, reg_step)
-        cur = CellTreeMod.find_by_id(tree, cell.id)
-        if cur != nothing
-            for gs in cur.gene_states
+        cur_cell = CellTreeMod.find_by_id(tree, cell.id)
+        if cur_cell != nothing
+            for gs in cur_cell.gene_states
                 #find all bindings and insert them into the graph
                 for bound_protein in gs.bindings
                     if bound_protein != nothing
@@ -257,13 +257,13 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
                     end
                 end
 
-                #find all productions and insert them into the graph
+                #recalc all productions and insert them into the graph
                 rates = GeneStateMod.get_prod_rates(gs)
                 for (prod_index, rate) in rates
                     if rate > 0
                         prod_props = gene.prod_sites[prod_index]
                         #the produced protein should have been inserted into the store already
-                        protein = ProteinStoreMod.get(cur.proteins, prod_props)
+                        protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
                         #note: binding must occur in order for production to occur, so here, the gene is already in the graph
                         #(it was inserted above)
                         #Just need to add the protein and an edge
@@ -275,10 +275,10 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
         end
     end
 
-    #println(ChainGraphMod.gen_dot_code(graph))
     ChainGraphMod.plot(graph)
 end
 
+#currently unused, but could be useful...
 function get_cell_from_prev_reg_step(data::Data, cur_cell::Cell, ea_step::Int64, indiv_index::Int64, cur_reg_step::Int64)
     prev_cell = nothing
 
@@ -296,7 +296,6 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
     #cols are as described in vis/CellArea.py/build_gene_states_tab
     table = Array{Array{String, 1}, 1}()
 
-    prev_cell = DataMod.get_cell_from_prev_reg_step(data, cell, ea_step, indiv_index, reg_step)
     for gene_index in 1:length(cell.gene_states)
         gs = cell.gene_states[gene_index]
         gene_index_str = string(gene_index)
@@ -313,16 +312,12 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
             end
         end
 
-        if prev_cell == nothing
-            prod_rates = Array{NamedTuple{(:prod_index, :rate), Tuple{Int64, Float64}}, 1}()
-        else
-            prod_rates = GeneStateMod.get_prod_rates(prev_cell.gene_states[gene_index])
-        end
+        prod_rates = GeneStateMod.get_prod_rates(cell.gene_states[gene_index])
         prod_sites = repeat([""], length(gs.gene.bind_sites))
         prod_rates_strs = repeat([""], length(gs.gene.bind_sites))
         for (prod_index, rate) in prod_rates
             prod_sites[prod_index] = GeneMod.get_prod_site_str(gs.gene, prod_index)
-            prod_rates_strs[prod_index] = @printf("%0.2f", rate)
+            prod_rates_strs[prod_index] = @sprintf("%0.2f", rate)
         end
 
         row = Array{String, 1}()

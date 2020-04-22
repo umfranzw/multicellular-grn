@@ -57,6 +57,8 @@ class MainWindow(QMainWindow):
         return QSize(1200, 1000)
 
     def closeEvent(self, event):
+        #note: need to disconnect this signal so it won't try to fire as the graphics area is being destroyed
+        self.graphics_area.disconnect_signals()
         self.data_tools.close()
 
     @Slot()
