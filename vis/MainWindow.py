@@ -38,15 +38,16 @@ class MainWindow(QMainWindow):
         self.table_area.checksChanged.connect(self.refresh_graphics_area)
         self.graphics_area.selectionChanged.connect(self.relay_selection_changed)
 
-        #combine the various areas in a grid
-        centralWidget = QWidget(self)
-        grid_layout = QGridLayout()
-        grid_layout.addWidget(self.graphics_area, 0, 0, 2, 1)
-        grid_layout.addWidget(self.table_area, 0, 1)
-        grid_layout.addWidget(self.cell_area, 1, 1)
-        centralWidget.setLayout(grid_layout)
+        #combine everything into a series of tabs
+        tabs = QTabWidget()
+        tabs.addTab(self.table_area, "Protein Info")
+        tabs.addTab(self.cell_area, "Cell Info")
         
-        self.setCentralWidget(centralWidget)
+        splitter = QSplitter()
+        splitter.addWidget(self.graphics_area)
+        splitter.addWidget(tabs)
+
+        self.setCentralWidget(splitter)
 
     @Slot()
     def relay_selection_changed(self, cells):
