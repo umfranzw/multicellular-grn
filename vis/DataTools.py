@@ -96,3 +96,7 @@ class DataTools():
             table_data = Main.table_data
 
         return table_data
+
+    def get_best_fitnesses(self):
+        Main.eval('bests, gen_bests = DataMod.get_best_fitnesses(data)')
+        return (Main.bests, Main.gen_bests)

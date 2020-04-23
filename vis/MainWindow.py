@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         self.graphics_area = GraphicsArea(self.tree_tools, self.toolbar.getIndex())
         self.graphics_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
 
-        self.fitness_area = FitnessArea()
+        self.fitness_area = FitnessArea(self.data_tools)
         self.settings_area = SettingsArea()
         
         self.toolbar.indexChanged.connect(self.table_area.refresh)

@@ -339,4 +339,29 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
     table
 end
 
+function get_best_fitnesses(data::Data)
+    bests = Array{Float64, 1}()
+    gen_bests = Array{Float64, 1}()
+
+    best = nothing
+    for ea_step in 0 : data.run.step_range.step : data.run.ea_steps
+        gen_best = nothing
+        for pop_index in 1:data.run.pop_size
+            indiv = DataMod.get_indiv(data, ea_step, pop_index)
+            if gen_best == nothing || indiv.fitness < gen_best
+                gen_best = indiv.fitness
+                
+                #note: only need to update overall best if gen_best is updated
+                if best == nothing || gen_best < best
+                    best = gen_best
+                end
+            end
+        end
+        push!(bests, best)
+        push!(gen_bests, gen_best)
+    end
+
+    (bests, gen_bests)
+end
+
 end

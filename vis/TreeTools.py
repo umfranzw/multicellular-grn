@@ -81,7 +81,7 @@ class TreeTools():
             chart.addSeries(line_series)
 
         #create x axis and add to chart
-        categories = list(map(lambda i: str(i), range(num_concs)))
+        categories = list(map(str, range(num_concs)))
         x_axis = QtCharts.QBarCategoryAxis()
         x_axis.append(categories)
         chart.addAxis(x_axis, Qt.AlignBottom)
