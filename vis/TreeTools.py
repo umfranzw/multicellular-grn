@@ -1,5 +1,6 @@
-from PySide2.QtGui import QImage, QPainter, QPixmap, QPen
-from PySide2.QtWidgets import QGraphicsItem, QGraphicsLineItem
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
+from PySide2.QtCore import *
 from DataTools import DataTools
 from PySide2.QtCharts import QtCharts
 from PySide2.QtCore import Qt, QPointF
@@ -33,7 +34,7 @@ class TreeTools():
     def draw_tree(self, scene, node, depth, checked_info):
         pixmap = self.build_conc_graph(node.cell, checked_info)
         item = CustomGraphicsPixmapItem(pixmap, node.cell)
-        item.setOffset(QPointF(node.x * TreeTools.node_width, depth * TreeTools.node_height))
+        item.setPos(QPointF(node.x * TreeTools.node_width, depth * TreeTools.node_height))
         item.setFlags(QGraphicsItem.ItemIsSelectable)
         scene.addItem(item)
         
@@ -80,6 +81,7 @@ class TreeTools():
             series.append(bar_set)
         
         chart.addSeries(series)
+        series.attachAxis(x_axis)
         series.attachAxis(y_axis)
         chart.legend().setVisible(False)
         
