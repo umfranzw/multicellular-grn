@@ -8,6 +8,8 @@ from CellArea import CellArea
 from TableArea import TableArea
 from ToolbarArea import ToolbarArea
 from GraphicsArea import GraphicsArea
+from FitnessArea import FitnessArea
+from SettingsArea import SettingsArea, Settings
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -32,16 +34,22 @@ class MainWindow(QMainWindow):
         # graphics area
         self.graphics_area = GraphicsArea(self.tree_tools, self.toolbar.getIndex())
         self.graphics_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+
+        self.fitness_area = FitnessArea()
+        self.settings_area = SettingsArea()
         
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
         self.table_area.checksChanged.connect(self.refresh_graphics_area)
         self.graphics_area.selectionChanged.connect(self.relay_selection_changed)
+        self.settings_area.settingChanged.connect(lambda name: self.refresh_graphics_area(self.toolbar.getIndex()))
 
         #combine everything into a series of tabs
         tabs = QTabWidget()
         tabs.addTab(self.table_area, "Protein Info")
         tabs.addTab(self.cell_area, "Cell Info")
+        tabs.addTab(self.fitness_area, "Fitness Info")
+        tabs.addTab(self.settings_area, "Settings")
         
         splitter = QSplitter()
         splitter.addWidget(self.graphics_area)
@@ -62,6 +70,7 @@ class MainWindow(QMainWindow):
         self.graphics_area.disconnect_signals()
         self.data_tools.close()
 
+    #arg can be the current index (tuple) or checkedInfo (list)
     @Slot()
     def refresh_graphics_area(self, arg):
         if type(arg) == tuple:
