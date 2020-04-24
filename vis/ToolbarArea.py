@@ -2,6 +2,8 @@ from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 
+from CustomStyle import CustomStyle
+
 class ToolbarArea(QToolBar):
     indexChanged = Signal(tuple)
     
@@ -9,15 +11,18 @@ class ToolbarArea(QToolBar):
         QToolBar.__init__(self, *args, **kwargs)
         
         self.eaStepSpin = QSpinBox()
+        self.eaStepSpin.setStyle(CustomStyle())
         self.eaStepSpin.setRange(run.step_range.start, run.step_range.stop - 1) #note: in Julia the top bound is inclusive, in Python it's exclusive
         self.eaStepSpin.setSingleStep(run.step_range.step)
         self.eaStepSpin.valueChanged.connect(self.handle_index_changed)
 
         self.indivSpin = QSpinBox()
+        self.indivSpin.setStyle(CustomStyle())
         self.indivSpin.setRange(1, run.pop_size)
         self.indivSpin.valueChanged.connect(self.handle_index_changed)
         
         self.regStepSpin = QSpinBox()
+        self.regStepSpin.setStyle(CustomStyle())
         self.regStepSpin.setRange(0, run.reg_steps + 1)
         self.regStepSpin.valueChanged.connect(self.handle_index_changed)
 
