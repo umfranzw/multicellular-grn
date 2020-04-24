@@ -2,7 +2,39 @@ from PySide2.QtCore import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 
-class GraphicsArea(QGraphicsView):
+from Utils import Utils
+
+class GraphicsArea(QWidget):
+    selectionChanged = Signal(list)
+    
+    def __init__(self, tree_tools, initial_index, *args, **kwargs):
+        QWidget.__init__(self, *args, **kwargs)
+        layout = QVBoxLayout()
+
+        self.view = CustomGraphicsView(tree_tools, initial_index)
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        
+        save_button.clicked.connect(lambda: Utils.save_graphics_view(self.view))
+        self.view.selectionChanged.connect(self.handle_selectionChanged)
+
+        layout.addWidget(self.view)
+        layout.addWidget(save_button)
+
+        self.setLayout(layout)
+
+    @Slot()
+    def refresh(self, index, checked_info=[]):
+        self.view.refresh(index, checked_info)
+
+    @Slot()
+    def handle_selectionChanged(self, cells):
+        self.selectionChanged.emit(cells)
+
+    def disconnect_signals(self):
+        self.view.disconnect_signals()
+
+class CustomGraphicsView(QGraphicsView):
     selectionChanged = Signal(list)
     
     def __init__(self, tree_tools, initial_index, *args, **kwargs):

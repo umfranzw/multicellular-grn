@@ -3,6 +3,8 @@ from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCharts import QtCharts
 
+from Utils import Utils
+
 class CellArea(QWidget):
     def __init__(self, data_tools, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
@@ -66,6 +68,11 @@ class CellArea(QWidget):
         scroll_area.setWidget(self.interaction_img)
         layout.addWidget(scroll_area)
 
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_button.clicked.connect(lambda: Utils.save_pixmap(self.interaction_img.pixmap()))
+        layout.addWidget(save_button)
+
         tab.setLayout(layout)
         
         return tab
@@ -80,8 +87,13 @@ class CellArea(QWidget):
         chart_view = QtCharts.QChartView(self.probs_chart)
         chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.probs_chart.resize(300, 300)
+
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_button.clicked.connect(lambda: Utils.save_chart_view(chart_view))
         
         layout.addWidget(chart_view)
+        layout.addWidget(save_button)
         tab.setLayout(layout)
 
         scroll_area = QScrollArea()
@@ -96,43 +108,80 @@ class CellArea(QWidget):
 
     def build_sensors_tab(self):
         tab = QWidget()
-        layout = QGridLayout()
+        chart_widget = QWidget()
+        vbox_layout = QVBoxLayout()
+        grid_layout = QGridLayout()
         chart_size = (200, 200)
 
         self.top_chart = QtCharts.QChart()
         self.top_chart.legend().setVisible(False)
-        top_view = QtCharts.QChartView(self.top_chart)
-        top_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.top_view = QtCharts.QChartView(self.top_chart)
+        self.top_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.top_chart.resize(*chart_size)
 
         self.right_chart = QtCharts.QChart()
         self.right_chart.legend().setVisible(False)
-        right_view = QtCharts.QChartView(self.right_chart)
-        right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.right_view = QtCharts.QChartView(self.right_chart)
+        self.right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.right_chart.resize(*chart_size)
 
         self.bottom_chart = QtCharts.QChart()
         self.bottom_chart.legend().setVisible(False)
-        bottom_view = QtCharts.QChartView(self.bottom_chart)
-        bottom_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.bottom_view = QtCharts.QChartView(self.bottom_chart)
+        self.bottom_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.bottom_chart.resize(*chart_size)
 
         self.left_chart = QtCharts.QChart()
         self.left_chart.legend().setVisible(False)
-        left_view = QtCharts.QChartView(self.left_chart)
-        left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.left_view = QtCharts.QChartView(self.left_chart)
+        self.left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.left_chart.resize(*chart_size)
 
-        layout.addWidget(top_view, 0, 1)
-        layout.addWidget(right_view, 1, 2)
-        layout.addWidget(bottom_view, 2, 1)
-        layout.addWidget(left_view, 1, 0)
-        
-        tab.setLayout(layout)
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(tab)
+        grid_layout.addWidget(self.top_view, 0, 1)
+        grid_layout.addWidget(self.right_view, 1, 2)
+        grid_layout.addWidget(self.bottom_view, 2, 1)
+        grid_layout.addWidget(self.left_view, 1, 0)
 
-        return scroll_area
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_button.clicked.connect(lambda: self.save_sensor_charts(chart_size))
+        
+        chart_widget.setLayout(grid_layout)
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(chart_widget)
+
+        vbox_layout.addWidget(scroll_area)
+        vbox_layout.addWidget(save_button)
+        tab.setLayout(vbox_layout)
+
+        return tab
+
+    @Slot()
+    def save_sensor_charts(self, chart_size):
+        width, height = chart_size
+        pixmap = QPixmap(3 * width, 3 * height)
+        pixmap.fill(Qt.white)
+
+        top_pixmap = QPixmap(width, height)
+        self.top_view.render(top_pixmap)
+
+        bottom_pixmap = QPixmap(width, height)
+        self.bottom_view.render(bottom_pixmap)
+
+        left_pixmap = QPixmap(width, height)
+        self.left_view.render(left_pixmap)
+
+        right_pixmap = QPixmap(width, height)
+        self.right_view.render(right_pixmap)
+
+        painter = QPainter(pixmap)
+        painter.drawPixmap(QRect(width, 0, width, height), top_pixmap, top_pixmap.rect())
+        painter.drawPixmap(QRect(width, height * 2, width, height), bottom_pixmap, bottom_pixmap.rect())
+        painter.drawPixmap(QRect(0, height, width, height), left_pixmap, left_pixmap.rect())
+        painter.drawPixmap(QRect(width * 2, height, width, height), right_pixmap, right_pixmap.rect())
+        painter.end()
+
+        Utils.save_pixmap(pixmap)
 
     @Slot()
     def refresh(self, cells, index):

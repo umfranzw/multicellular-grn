@@ -103,7 +103,7 @@ class TreeTools():
         y_axis.setRange(0.0, 1.0)
 
         #title and legend
-        cell_label = str(cell.sym.val) if cell.sym != None else '_'
+        cell_label = str(cell.sym.val) if cell.sym != None else '(None)'
         chart.setTitle(cell_label)
         chart.legend().setVisible(False)
 

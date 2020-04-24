@@ -3,6 +3,8 @@ from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 from PySide2.QtCharts import *
 
+from Utils import Utils
+
 class FitnessArea(QWidget):
     def __init__(self, data_tools, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
@@ -13,10 +15,14 @@ class FitnessArea(QWidget):
         self.gen_button = QPushButton('Generate')
         self.gen_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         self.gen_button.clicked.connect(self.update_chart)
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_button.clicked.connect(lambda: Utils.save_chart_view(self.chart_view))
 
         layout = QVBoxLayout()
         layout.addWidget(self.gen_button)
         layout.addWidget(self.chart_view)
+        layout.addWidget(save_button)
 
         self.setLayout(layout)
 
