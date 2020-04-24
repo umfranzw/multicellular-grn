@@ -65,6 +65,10 @@ class TableArea(QWidget):
         return visible_rows
 
     @Slot()
+    def reset_colour_picker(self, new_ea_step):
+        self.model.reset_colour_picker()
+
+    @Slot()
     def refresh(self, index):
         data = self.data_tools.get_protein_info_for_tree(index)
         self.model.refresh(data)

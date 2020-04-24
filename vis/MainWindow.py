@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
+        self.toolbar.eaStepChanged.connect(self.table_area.reset_colour_picker)
         self.table_area.checksChanged.connect(self.refresh_graphics_area)
         self.graphics_area.selectionChanged.connect(self.relay_selection_changed)
         self.settings_area.settingChanged.connect(lambda name: self.refresh_graphics_area(self.toolbar.getIndex()))
