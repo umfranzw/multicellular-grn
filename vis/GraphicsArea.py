@@ -3,6 +3,7 @@ from PySide2.QtGui import *
 from PySide2.QtWidgets import *
 
 from Utils import Utils
+from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
 
 class GraphicsArea(QWidget):
     selectionChanged = Signal(list)
@@ -51,8 +52,14 @@ class CustomGraphicsView(QGraphicsView):
 
     @Slot()
     def refresh(self, index, checked_info=[]):
+        sel_items = self.scene.selectedItems()
+        sel_cell = sel_items[0].cell if sel_items else None
+        
         self.tree_tools.clear_scene(self.scene) #clear any previous tree
-        self.tree_tools.draw_scene(self.scene, index, checked_info)   
+        self.tree_tools.draw_scene(self.scene, index, checked_info)
+
+        if sel_cell is not None:
+            self.reselect_cell(sel_cell)
 
     @Slot()
     def handle_selectionChanged(self):
@@ -61,3 +68,16 @@ class CustomGraphicsView(QGraphicsView):
 
     def disconnect_signals(self):
         self.scene.selectionChanged.disconnect(self.handle_selectionChanged)
+
+    def reselect_cell(self, cell):
+        sel_id = cell.id
+        items = self.scene.items()
+
+        i = 0
+        found = False
+        while not found and i < len(items):
+            if isinstance(items[i], CustomGraphicsPixmapItem) and items[i].cell.id == sel_id:
+                items[i].setSelected(True)
+                found = True
+
+            i += 1

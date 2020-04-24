@@ -31,9 +31,9 @@ class CellArea(QWidget):
     def build_gene_states_tab(self):
         tab = QWidget()
         layout = QVBoxLayout()
-        num_bind_sites = self.data_tools.get_run().bind_sites_per_gene
         
         #build table
+        num_bind_sites = self.data_tools.get_run().bind_sites_per_gene
         headers = [
             'Gene Index',
             'Bind Logic',
@@ -48,8 +48,22 @@ class CellArea(QWidget):
 
         self.gs_table = QTableWidget(0, len(headers))
         self.gs_table.setHorizontalHeaderLabels(headers)
+
+        #build gene scores chart
+        self.gene_scores_chart = QtCharts.QChart()
+        self.gene_scores_chart.setTitle('Gene Scores')
+        self.gene_scores_view = QtCharts.QChartView(self.gene_scores_chart)
+        self.gene_scores_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        #save button
+        save_button = QPushButton('Save')
+        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_button.clicked.connect(lambda: Utils.save_chart_view(self.gene_scores_view))
         
+        #put everything together
         layout.addWidget(self.gs_table)
+        layout.addWidget(self.gene_scores_view)
+        layout.addWidget(save_button)
         tab.setLayout(layout)
         
         return tab
@@ -101,7 +115,7 @@ class CellArea(QWidget):
         
         return scroll_area
 
-    def clear_sensors_chart(self, chart):
+    def clear_chart(self, chart):
         chart.removeAllSeries()
         for axis in chart.axes(Qt.Horizontal | Qt.Vertical):
             chart.removeAxis(axis)
@@ -194,9 +208,12 @@ class CellArea(QWidget):
         self.refresh_interaction_tab(cell, index)
 
     def refresh_gene_states_tab(self, cell):
+        self.clear_chart(self.gene_scores_chart)
+        
         if cell is None: #if cell we deselected
             self.gs_table.setRowCount(0) #this deletes all the rows
         else:
+            #update the table
             table_data = self.data_tools.get_gs_table_data(cell, self.index) #this is a 2D array
             self.gs_table.setRowCount(len(table_data))
 
@@ -204,6 +221,26 @@ class CellArea(QWidget):
                 for col in range(len(table_data[row])):
                     item = QTableWidgetItem(table_data[row][col])
                     self.gs_table.setItem(row, col, item)
+
+            #update the scores chart
+            scores = self.data_tools.get_gene_scores(self.index)
+            num_genes = len(scores)
+
+            x_axis = QtCharts.QBarCategoryAxis()
+            categories = list(map(lambda i: str(i), range(num_genes)))
+            x_axis.append(categories)
+            self.gene_scores_chart.addAxis(x_axis, Qt.AlignBottom)
+
+            y_axis = QtCharts.QValueAxis()
+            y_axis.setRange(0.0, 1.0)
+            self.gene_scores_chart.addAxis(y_axis, Qt.AlignLeft)
+
+            series = QtCharts.QBarSeries()
+            bar_set = QtCharts.QBarSet('Scores')
+            bar_set.append(scores)
+            series.append(bar_set)
+            self.gene_scores_chart.addSeries(series)
+            series.attachAxis(y_axis)
 
     def refresh_probs_tab(self, cell):
         self.probs_chart.removeAllSeries()
@@ -229,7 +266,7 @@ class CellArea(QWidget):
         )
 
         for (loc, chart) in pairs:
-            self.clear_sensors_chart(chart)
+            self.clear_chart(chart)
 
             if cell is not None: #note: cell will be None when an item in the graphics area is de-selected
                 num_concs = len(sensor_concs[loc])
