@@ -22,7 +22,8 @@ import Base.close
 
 export Data
 
-cache_size = 10
+tree_cache_size = 20
+indiv_cache_size = 20
 
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
@@ -44,12 +45,12 @@ mutable struct Data
         
         #ea_step, index, reg_step
         #trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
-        trees = Cache{Tuple{Int64, Int64, Int64}, CellTree}(DataMod.cache_size)
+        trees = Cache{Tuple{Int64, Int64, Int64}, CellTree}(DataMod.tree_cache_size)
         trees_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
         
         #ea_step, index
         #indivs = Dict{Tuple{Int64, Int64}, Individual}()
-        indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.cache_size)
+        indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.indiv_cache_size)
         indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
         data = new(trees, trees_index, indivs, indivs_index, file_handle, nothing)
