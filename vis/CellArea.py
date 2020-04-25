@@ -237,7 +237,9 @@ class CellArea(QWidget):
 
             series = QtCharts.QBarSeries()
             bar_set = QtCharts.QBarSet('Scores')
-            bar_set.append(scores)
+            for score in scores:
+                bar_set.append(score)
+                
             series.append(bar_set)
             self.gene_scores_chart.addSeries(series)
             series.attachAxis(y_axis)
@@ -281,7 +283,9 @@ class CellArea(QWidget):
 
                 series = QtCharts.QBarSeries()
                 bar_set = QtCharts.QBarSet(loc)
-                bar_set.append(sensor_concs[loc])
+                for sensor_conc in sensor_concs[loc]:
+                    bar_set.append(sensor_conc)
+                    
                 series.append(bar_set)
                 chart.addSeries(series)
                 series.attachAxis(y_axis)

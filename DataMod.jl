@@ -262,7 +262,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
                 rates = GeneStateMod.get_prod_rates(gs)
                 for (prod_index, rate) in rates
                     if rate > 0
-                        prod_props = gene.prod_sites[prod_index]
+                        prod_props = gs.gene.prod_sites[prod_index]
                         #the produced protein should have been inserted into the store already
                         protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
                         #note: binding must occur in order for production to occur, so here, the gene is already in the graph
