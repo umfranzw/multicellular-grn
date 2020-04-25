@@ -144,13 +144,17 @@ function run_produce(indiv::Individual)
     CellTreeMod.traverse(cell -> run_produce_for_cell(indiv, cell), indiv.cell_tree)
 end
 
+function run_binding_consum(indiv::Individual)
+    CellTreeMod.traverse(run_binding_consum_for_cell, indiv.cell_tree)
+end
+
 function run_diffuse(indiv::Individual)
     DiffusionMod.diffuse_intra_cell_proteins(indiv.cell_tree)
     DiffusionMod.diffuse_inter_cell_proteins(indiv.cell_tree)
 end
 
 function run_decay(indiv::Individual)
-    CellTreeMod.traverse(cell -> run_decay_for_cell(cell), indiv.cell_tree)
+    CellTreeMod.traverse(run_decay_for_cell, indiv.cell_tree)
 end
 
 function run_age(indiv::Individual)
@@ -158,7 +162,7 @@ function run_age(indiv::Individual)
 end
 
 function run_fix_syms(indiv::Individual)
-    CellTreeMod.traverse(cell -> CellMod.fix_sym(cell), indiv.cell_tree)
+    CellTreeMod.traverse(CellMod.fix_sym, indiv.cell_tree)
 end
 
 function run_neighbour_comm(indiv::Individual)
@@ -307,6 +311,10 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, 
     end
 end
 
+function run_binding_consum_for_cell(cell::Cell)
+    foreach(GeneStateMod.run_binding_consum, cell.gene_states)
+end
+
 function run_bind_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gene = indiv.genes[gene_index]
@@ -366,7 +374,7 @@ function run_bind_for_site(gs::GeneState, gene_index::Int64, site_index::Int64, 
 
         sel_protein = eligible_proteins[sel_index]
 
-        @info @sprintf("%s binding to site %s", sel_protein, site_index)
+        #@info @sprintf("%s binding to site %s", sel_protein, site_index)
         GeneStateMod.bind(gs, sel_protein, site_index)
 
     else

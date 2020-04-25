@@ -59,13 +59,23 @@ function get_compatible_bind_site_indices(gs::GeneState, protein::Protein)
     indices
 end
 
+#binding consumes some of the bound protein
+#note: this must be called *after* produce()
+#since it may lower the bound protein's conc below the binding threshold
+function run_binding_consum(gs::GeneState)
+    #binding consumes some of the protein
+    for site_index in 1:length(gs.bindings)
+        protein = gs.bindings[site_index]
+        if protein != nothing
+            rate = gs.gene.bind_sites[site_index].consum_rate
+            col = gs.gene.genome_index
+            protein.concs[col] = clamp(protein.concs[col] - rate, 0.0, 1.0)
+        end
+    end
+end
+
 function bind(gs::GeneState, protein::Protein, site_index::Int64)
     gs.bindings[site_index] = protein
-
-    #binding consumes some of the protein
-    rate = gs.gene.bind_sites[site_index].consum_rate
-    col = gs.gene.genome_index
-    protein.concs[col] = clamp(protein.concs[col] - rate, 0.0, 1.0)
 end
 
 function unbind(gs::GeneState, site_index::Int64)

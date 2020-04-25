@@ -24,6 +24,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
             TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
 
             IndividualMod.run_produce(indiv)
+            IndividualMod.run_binding_consum(indiv)
             IndividualMod.run_diffuse(indiv)
             IndividualMod.run_neighbour_comm(indiv)
             IndividualMod.run_protein_app(indiv)
