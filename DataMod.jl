@@ -252,9 +252,9 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
                 #find all bindings and insert them into the graph
                 for bound_protein in gs.bindings
                     if bound_protein != nothing
-                        ChainGraphMod.add_node(graph, bound_protein)
+                        ChainGraphMod.add_node(graph, (bound_protein.props, bound_protein.is_initial))
                         ChainGraphMod.add_node(graph, gs.gene)
-                        ChainGraphMod.add_edge(graph, bound_protein, gs.gene)
+                        ChainGraphMod.add_edge(graph, (bound_protein.props, bound_protein.is_initial), gs.gene)
                     end
                 end
 
@@ -264,12 +264,12 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
                     if rate > 0
                         prod_props = gs.gene.prod_sites[prod_index]
                         #the produced protein should have been inserted into the store already
-                        protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
+                        #protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
                         #note: binding must occur in order for production to occur, so here, the gene is already in the graph
                         #(it was inserted above)
                         #Just need to add the protein and an edge
-                        ChainGraphMod.add_node(graph, protein)
-                        ChainGraphMod.add_edge(gs.gene, protein)
+                        ChainGraphMod.add_node(graph, (prod_props, false)) #produced proteins are never initial
+                        ChainGraphMod.add_edge(graph, gs.gene, (prod_props, false))
                     end
                 end
             end

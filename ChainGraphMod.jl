@@ -12,8 +12,8 @@ export ChainGraph
 
 mutable struct ChainGraph
     graph::DiGraph
-    id_to_obj::Dict{Int64, Union{Gene, Protein}}
-    obj_to_id::Dict{Union{Gene, Protein}, Int64}
+    id_to_obj::Dict{Int64, Union{Gene, Tuple{ProteinProps, Bool}}}
+    obj_to_id::Dict{Union{Gene, Tuple{ProteinProps, Bool}}, Int64}
     #note: it's possible for unlabelled edges to exist.
     #In that case, the edge will be in graph, but not in this dict.
     edge_labels::Dict{Tuple{Int64, Int64}, String}
@@ -23,14 +23,14 @@ mutable struct ChainGraph
         
         new(
             graph,
-            Dict{Int64, Union{Gene, Protein}}(),
-            Dict{Union{Gene, Protein}, Int64}(),
+            Dict{Int64, Union{Gene, Tuple{ProteinProps, Bool}}}(),
+            Dict{Union{Gene, Tuple{ProteinProps, Bool}}, Int64}(),
             Dict{Tuple{Int64, Int64}, String}()
         )
     end
 end
 
-function add_node(graph::ChainGraph, node::Union{Gene, Protein})
+function add_node(graph::ChainGraph, node::Union{Gene, Tuple{ProteinProps, Bool}})
     if node ∉ keys(graph.obj_to_id)
         add_vertex!(graph.graph)
         last_id = LightGraphs.nv(graph.graph)
@@ -39,7 +39,7 @@ function add_node(graph::ChainGraph, node::Union{Gene, Protein})
     end
 end
 
-function add_edge(graph::ChainGraph, src::Union{Gene, Protein}, dest::Union{Gene, Protein}, edge_label::Union{String, Nothing}=nothing)
+function add_edge(graph::ChainGraph, src::Union{Gene, Tuple{ProteinProps, Bool}}, dest::Union{Gene, Tuple{ProteinProps, Bool}}, edge_label::Union{String, Nothing}=nothing)
     src_id = graph.obj_to_id[src]
     dest_id = graph.obj_to_id[dest]
 
@@ -50,54 +50,54 @@ function add_edge(graph::ChainGraph, src::Union{Gene, Protein}, dest::Union{Gene
     end
 end
 
-function get_app_contributing_genes(graph::ChainGraph)
-    #Work backwards, starting from the app proteins and going up to the initial_proteins.
-    #Record all genes involved along the way.
-    #Don't forget to account for cycles!
-    app_contrib_genes = Set{Gene}()
+# function get_app_contributing_genes(graph::ChainGraph)
+#     #Work backwards, starting from the app proteins and going up to the initial_proteins.
+#     #Record all genes involved along the way.
+#     #Don't forget to account for cycles!
+#     app_contrib_genes = Set{Gene}()
     
-    #note: we start and end with protein ids
-    #grab all of the app protein ids
-    protein_ids = Set{Int64}()
-    for (id, obj) in graph.id_to_obj
-        if obj isa Protein && obj.props.type == ProteinPropsMod.Application
-            push!(protein_ids, id)
-        end
-    end
+#     #note: we start and end with protein ids
+#     #grab all of the app protein ids
+#     protein_ids = Set{Int64}()
+#     for (id, obj) in graph.id_to_obj
+#         if obj isa Protein && obj.props.type == ProteinPropsMod.Application
+#             push!(protein_ids, id)
+#         end
+#     end
 
-    #go back one step at a time (from protein -> gene -> protein)
-    while !isempty(protein_ids)
-        gene_ids = Set{Int64}()
-        for protein_id in protein_ids
-            #get ids of all (gene) nodes with an edge to node with protein_id
-            src_ids = LightGraphs.inneighbors(protein_id)
+#     #go back one step at a time (from protein -> gene -> protein)
+#     while !isempty(protein_ids)
+#         gene_ids = Set{Int64}()
+#         for protein_id in protein_ids
+#             #get ids of all (gene) nodes with an edge to node with protein_id
+#             src_ids = LightGraphs.inneighbors(protein_id)
 
-            #avoid cycles - filter out all app-contributing genes that we've already encountered
-            for id in src_ids
-                gene = graph.id_to_obj[id]
-                if gene ∉ app_contrib_genes
-                    push!(gene_ids, id)
-                    push!(app_contrib_genes, gene)
-                end
-            end
-        end
+#             #avoid cycles - filter out all app-contributing genes that we've already encountered
+#             for id in src_ids
+#                 gene = graph.id_to_obj[id]
+#                 if gene ∉ app_contrib_genes
+#                     push!(gene_ids, id)
+#                     push!(app_contrib_genes, gene)
+#                 end
+#             end
+#         end
 
-        protein_ids = Set{Int64}()
-        for gene_id in gene_ids
-            #get ids of all (protein) nodes with an edge to node with gene_id
-            src_ids = LightGraph.inneighbors(gene_id)
+#         protein_ids = Set{Int64}()
+#         for gene_id in gene_ids
+#             #get ids of all (protein) nodes with an edge to node with gene_id
+#             src_ids = LightGraph.inneighbors(gene_id)
             
-            #filter out all the initial proteins (since there's nothing before them)
-            for id in src_ids
-                if !graph.id_to_obj[id].is_initial
-                    push!(protein_ids, id)
-                end
-            end
-        end
-    end
+#             #filter out all the initial proteins (since there's nothing before them)
+#             for id in src_ids
+#                 if !graph.id_to_obj[id].is_initial
+#                     push!(protein_ids, id)
+#                 end
+#             end
+#         end
+#     end
 
-    app_contrib_genes
-end
+#     app_contrib_genes
+# end
 
 function gen_dot_code(graph::ChainGraph)
     graph_buf = IOBuffer()
@@ -111,10 +111,11 @@ function gen_dot_code(graph::ChainGraph)
 
     for obj in keys(graph.obj_to_id)
         id = graph.obj_to_id[obj]
-        if obj isa Protein
-            label = ProteinPropsMod.to_str(obj.props)
+        if obj isa Tuple
+            props, is_initial = obj
+            label = ProteinPropsMod.to_str(props)
             
-            if obj.is_initial
+            if is_initial
                 colour = "#FF0000"
             else
                 colour = "#000000"
@@ -159,52 +160,52 @@ function plot(graph::ChainGraph)
     GraphVizMod.plot(dot_code)
 end
 
-function append_for_tree(graph::ChainGraph, tree::CellTree, reg_step::Int64)
-    graph = ChainGraph()
-    CellTreeMod.traverse(cell -> append_for_cell(graph, cell, reg_step), tree.root)
-end
+# function append_for_tree(graph::ChainGraph, tree::CellTree, reg_step::Int64)
+#     graph = ChainGraph()
+#     CellTreeMod.traverse(cell -> append_for_cell(graph, cell, reg_step), tree.root)
+# end
 
-function append_for_cell(graph::ChainGraph, cell::Cell, reg_step::Int64)
-    for gene_index in 1:length(cell.gene_states)
-        gs = cell.gene_states[gene_index]
+# function append_for_cell(graph::ChainGraph, cell::Cell, reg_step::Int64)
+#     for gene_index in 1:length(cell.gene_states)
+#         gs = cell.gene_states[gene_index]
 
-        bound_proteins = Set{Protein}()
-        for protein in gs.reg_site_bindings
-            if protein != nothing
-                push!(bound_proteins, protein)
-            end
-        end
+#         bound_proteins = Set{Protein}()
+#         for protein in gs.reg_site_bindings
+#             if protein != nothing
+#                 push!(bound_proteins, protein)
+#             end
+#         end
 
-        prod_proteins = Set{Protein}() #note: produced proteins cannot be initial (so no need to track that here)
-        prod_rates = GeneStateMod.get_prod_rates(gs)
-        for (rate, props) in zip(prod_rates, gs.gene.prod_sites)
-            if rate != nothing
-                protein = ProteinStoreMod.get(cell.proteins, props)
-                push!(prod_proteins, protein)
-            end
-        end
+#         prod_proteins = Set{Protein}() #note: produced proteins cannot be initial (so no need to track that here)
+#         prod_rates = GeneStateMod.get_prod_rates(gs)
+#         for (rate, props) in zip(prod_rates, gs.gene.prod_sites)
+#             if rate != nothing
+#                 protein = ProteinStoreMod.get(cell.proteins, props)
+#                 push!(prod_proteins, protein)
+#             end
+#         end
         
-        if !isempty(bound_proteins) || !isempty(prod_proteins)
-            #add gene node
-            ChainGraphMod.add_node(graph, ChainGraphMod.GeneNode, gs.gene)
-        end
+#         if !isempty(bound_proteins) || !isempty(prod_proteins)
+#             #add gene node
+#             ChainGraphMod.add_node(graph, ChainGraphMod.GeneNode, gs.gene)
+#         end
 
-        for protein in bound_proteins
-            #add protein node
-            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein)
+#         for protein in bound_proteins
+#             #add protein node
+#             ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, (protein.props, protein.is_initial))
 
-            #add incoming protein edge
-            ChainGraphMod.add_edge(graph, protein, gs.gene, string(reg_step))
-        end
+#             #add incoming protein edge
+#             ChainGraphMod.add_edge(graph, protein, gs.gene, string(reg_step))
+#         end
 
-        for protein in prod_proteins
-            #add protein node
-            ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, protein)
+#         for protein in prod_proteins
+#             #add protein node
+#             ChainGraphMod.add_node(graph, ChainGraphMod.ProteinNode, (protein.props, protein.is_initial))
 
-            #add outgoing protein edge
-            ChainGraphMod.add_edge(graph, gs.gene, protein, string(reg_step))
-        end
-    end
-end
+#             #add outgoing protein edge
+#             ChainGraphMod.add_edge(graph, gs.gene, (protein.props, protein.is_initial), string(reg_step))
+#         end
+#     end
+# end
 
 end
