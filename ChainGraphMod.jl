@@ -30,6 +30,10 @@ mutable struct ChainGraph
     end
 end
 
+function is_empty(graph::ChainGraph)
+    length(graph.id_to_obj) == 0
+end
+
 function add_node(graph::ChainGraph, node::Union{Gene, Tuple{ProteinProps, Bool}})
     if node ∉ keys(graph.obj_to_id)
         add_vertex!(graph.graph)
@@ -55,7 +59,7 @@ end
 #     #Record all genes involved along the way.
 #     #Don't forget to account for cycles!
 #     app_contrib_genes = Set{Gene}()
-    
+
 #     #note: we start and end with protein ids
 #     #grab all of the app protein ids
 #     protein_ids = Set{Int64}()
@@ -86,7 +90,7 @@ end
 #         for gene_id in gene_ids
 #             #get ids of all (protein) nodes with an edge to node with gene_id
 #             src_ids = LightGraph.inneighbors(gene_id)
-            
+
 #             #filter out all the initial proteins (since there's nothing before them)
 #             for id in src_ids
 #                 if !graph.id_to_obj[id].is_initial
@@ -155,9 +159,13 @@ function gen_dot_code(graph::ChainGraph)
 end
 
 function plot(graph::ChainGraph)
-    dot_code = gen_dot_code(graph)
-    
-    GraphVizMod.plot(dot_code)
+    png_data = nothing
+    if !is_empty(graph)
+        dot_code = gen_dot_code(graph)
+        png_data = GraphVizMod.plot(dot_code)
+    end
+
+    png_data
 end
 
 # function append_for_tree(graph::ChainGraph, tree::CellTree, reg_step::Int64)

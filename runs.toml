@@ -27,7 +27,7 @@ max_prod_rate = 0.5
 decay_rate = 0.05
 
 #note: actual number of initial proteins may be less than this (they must be unique)
-num_initial_proteins = 10
+num_initial_proteins = 20
 
 initial_cell_sensor_conc = 0.5
 
@@ -58,7 +58,7 @@ bind_sites_per_gene = 2
 division_age_limit = 40
 
 #cells can only divide when the (application) division protein exceeds this threshold
-cell_division_threshold = 0.5
+cell_division_threshold = 0.25
 
 #maximum number of children per cell (i.e. max airity of functions)
 max_children = 2
@@ -80,6 +80,6 @@ rng_seed = 2000
 # Tracking #
 ############
 log_data = true
-step_range = "0:2:10"
+step_range = "0:1:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

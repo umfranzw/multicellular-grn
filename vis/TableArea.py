@@ -10,7 +10,7 @@ class TableArea(QWidget):
     def __init__(self, data_tools, initial_index, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
         self.data_tools = data_tools
-        data = self.data_tools.get_protein_info_for_tree(initial_index)
+        data = self.data_tools.get_protein_info_for_indiv(initial_index)
         
         vlayout = QVBoxLayout()
 
@@ -70,7 +70,7 @@ class TableArea(QWidget):
 
     @Slot()
     def refresh(self, index):
-        data = self.data_tools.get_protein_info_for_tree(index)
+        data = self.data_tools.get_protein_info_for_indiv(index)
         self.model.refresh(data)
 
     @Slot()

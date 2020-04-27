@@ -13,12 +13,16 @@ class DataTools():
         Main.eval('DataMod.close(data)')
 
     def get_tree(self, index):
-        Main.eval('tree = DataMod.get_tree(data, {}, {}, {})'.format(*index))
+        self.get_indiv(index)
+        Main.eval('tree = indiv.cell_tree')
         return Main.tree
 
     def get_indiv(self, index):
         #note: get_indiv does not require the reg_step arg to be passed
-        Main.eval('indiv = DataMod.get_indiv(data, {}, {})'.format(*index[:2]))
+        Main.ea_step = index[0]
+        Main.pop_index = index[1]
+        Main.reg_step = index[2]
+        Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)')
         return Main.indiv
 
     def get_run(self):
@@ -33,9 +37,9 @@ class DataTools():
         to_str_fcn = Main.eval('ProteinPropsMod.to_str')
         return to_str_fcn(props)
 
-    def get_protein_info_for_tree(self, index):
-        self.get_tree(index)
-        Main.eval('info = DataMod.get_protein_info_for_tree(tree)')
+    def get_protein_info_for_indiv(self, index):
+        self.get_indiv(index)
+        Main.eval('info = DataMod.get_protein_info_for_indiv(indiv)')
         
         return Main.info
 

@@ -108,8 +108,8 @@ function get_prod_rates(gs::GeneState)
             end
         end
 
-    #if all sites are active, first prod site is activated
-    #rate is determined by the average excess across all binding sites    
+        #if all sites are active, first prod site is activated
+        #rate is determined by the average excess across all binding sites    
     elseif logic == GeneMod.And
         sum = 0 #sum of excess
         max_sum = 0 #max possible excess
@@ -131,8 +131,8 @@ function get_prod_rates(gs::GeneState)
             push!(rates, (prod_index=1, rate=rate))
         end
 
-    #if at least one site is active, first prod site is activated
-    #rate is determined by the average excess across all binding sites that are active    
+        #if at least one site is active, first prod site is activated
+        #rate is determined by the average excess across all binding sites that are active    
     elseif logic == GeneMod.Or
         count = 0
         sum = 0
@@ -157,8 +157,8 @@ function get_prod_rates(gs::GeneState)
             push!(rates, (prod_index=1, rate=rate))
         end
 
-    #if exactly one site is active, first prod site is activated
-    #rate is determined by the excess on the binding site that is active
+        #if exactly one site is active, first prod site is activated
+        #rate is determined by the excess on the binding site that is active
     elseif logic == GeneMod.Xor
         count = 0
         excess = 0

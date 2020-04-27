@@ -8,7 +8,7 @@ using CellTreeMod
 using Printf
 
 @enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 IndivState CellTreeState RunState
+@enum TagType::UInt8 IndivState RunState
 
 export Tracker
 
@@ -16,7 +16,7 @@ tracker = nothing
 
 #in bytes (max that CodecZlib.GzipCompressor can handle is 2^32 - 1)
 #note: 2^20 bytes = 1MB
-const cache_size = 512 * 2^20
+#const cache_size = 512 * 2^20
 
 mutable struct Tracker
     run::Run
@@ -111,23 +111,23 @@ function save_run()
     end
 end
 
-function save_ea_state(pop::Array{Individual, 1}, ea_step::Int64, force::Bool=false)
-    global tracker
+# function save_ea_state(pop::Array{Individual, 1}, ea_step::Int64, force::Bool=false)
+#     global tracker
     
-    if tracker.run.log_data
-        for i in 1:length(pop)
-            if ea_step in tracker.run.step_range || force
-                write_obj(IndivState, Array{Int64, 1}([ea_step, i]), pop[i])
-            end
-        end
-    end
-end
+#     if tracker.run.log_data
+#         for i in 1:length(pop)
+#             if ea_step in tracker.run.step_range || force
+#                 write_obj(IndivState, Array{Int64, 1}([ea_step, i]), pop[i])
+#             end
+#         end
+#     end
+# end
 
-function save_reg_state(tree::CellTree, ea_step::Int64, reg_step::Int64, index::Int64)
+function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, index::Int64)
     global tracker
 
     if tracker.run.log_data
-        write_obj(CellTreeState, Array{Int64, 1}([ea_step, reg_step, index]), tree)
+        write_obj(IndivState, Array{Int64, 1}([ea_step, reg_step, index]), indiv)
     end
 end
 

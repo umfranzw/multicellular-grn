@@ -14,14 +14,14 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         indiv = pop[pop_index]
         indiv_trees = Array{CellTree, 1}()
         #save initial state under index 0
-        TrackerMod.save_reg_state(indiv.cell_tree, ea_step, 0, pop_index)
+        TrackerMod.save_reg_state(indiv, ea_step, 0, pop_index)
         
         for reg_step in 1:run.reg_steps
             #@info @sprintf("Reg step %d\n", reg_step)
 
             IndividualMod.run_bind(indiv)
 
-            TrackerMod.save_reg_state(indiv.cell_tree, ea_step, reg_step, pop_index)
+            TrackerMod.save_reg_state(indiv, ea_step, reg_step, pop_index)
 
             IndividualMod.run_produce(indiv)
             IndividualMod.run_binding_consum(indiv)
@@ -34,7 +34,7 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
 
         IndividualMod.run_fix_syms(indiv)
         #save final state under index run.reg_step + 1
-        TrackerMod.save_reg_state(indiv.cell_tree, ea_step, run.reg_steps + 1, pop_index)
+        TrackerMod.save_reg_state(indiv, ea_step, run.reg_steps + 1, pop_index)
         FitnessMod.eval(indiv, ea_step)
     end
 end

@@ -3,8 +3,10 @@ module MutateMod
 using RunMod
 using IndividualMod
 using GeneMod
+using GeneStateMod
 using ProteinMod
 using ProteinPropsMod
+using ProteinStoreMod
 using RandUtilsMod
 
 import Random
@@ -25,11 +27,15 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
             mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
             if mut_copy != nothing
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
+                insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config, mut_copy)) #insert a new GeneState into the root cell
                 insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
 
-                #insert a new conc into the initial proteins
-                for protein in indiv.initial_cell_proteins
-                    insert!(protein.concs, gene_index + 1, RandUtilsMod.rand_float(indiv.config))
+                #insert a new conc into the initial proteins, and into the corresponding copy that is in the root cell
+                for init_protein in indiv.initial_cell_proteins
+                    conc = RandUtilsMod.rand_float(indiv.config)
+                    insert!(init_protein.concs, gene_index + 1, conc)
+                    active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
+                    insert!(active_protein.concs, gene_index + 1, conc)
                 end
                 
                 gene_index += 1 #skip over the copy
@@ -40,6 +46,9 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
         
         gene_index += 1
     end
+
+    #update genome_indices
+    foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
 end
 
 function dup_and_mutate_gene(gene::Gene, ea_step::Int64)

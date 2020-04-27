@@ -39,7 +39,7 @@ end
 function rand_init(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    fcn::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
     arg::Union{UInt8, Nothing}=nothing

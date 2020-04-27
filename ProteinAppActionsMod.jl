@@ -23,6 +23,7 @@ function divide(args::AppArgs)
     src_cell = arg.cell
     if (length(src_cell.children) < src_cell.config.run.max_children &&
         cell.age < src_cell.config.run.division_age_limit)
+        
         max_children = src_cell.config.run.max_children
         num_concs = length(arg.genes)
         chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
@@ -34,6 +35,8 @@ function divide(args::AppArgs)
 
         new_cell = Cell(src_cell.config, src_cell.genes)
         CellMod.add_parent(new_cell, src_cell)
+        
+        println("Added new cell")
 
         for (props, protein) in src_cell.proteins
             new_protein = Protein(src_cell.config, copy(src_cell.props), false, false, num_concs, src_cell.src_cell_ptr)

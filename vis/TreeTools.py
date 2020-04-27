@@ -57,7 +57,7 @@ class TreeTools():
         chart = QtCharts.QChart() #note: we're not going to show this widget in the GUI, it's just for generating charts
         num_concs = self.data_tools.get_num_genes(cell)
 
-        #bar bar_series
+        #build bar_series
         bar_series = QtCharts.QBarSeries()
         for props, colour in checked_info:
             protein = self.data_tools.get_protein(cell, props)
@@ -69,7 +69,8 @@ class TreeTools():
             props_str = self.data_tools.get_props_str(props)
             bar_set = QtCharts.QBarSet(props_str)
             bar_set.setColor(colour)
-            bar_set.append(concs)
+            for conc in concs:
+                bar_set.append(conc)
             bar_series.append(bar_set)
             
         #line_series

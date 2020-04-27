@@ -61,8 +61,8 @@ function rand_init(run::Run, seed::UInt64)
     initial_proteins = Array{Protein, 1}()
     
     for i in 1:config.run.num_initial_proteins
-        #all initial proteins should have type=Internal
-        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal])
+        #all initial proteins should have type=Internal, and Fcn=Activate
+        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal], fcn=[ProteinPropsMod.Activate])
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         protein = Protein(config, props, true, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
@@ -132,6 +132,10 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
         protein = pair[1]
         action_fcn = pair[3]
         args = AppArgs(tree, cell, genes, protein)
+        
+        # protein_str = ProteinPropsMod.to_str(protein.props)
+        # println("Applying protein: $(protein_str)")
+        
         action_fcn(args)
     end
 end

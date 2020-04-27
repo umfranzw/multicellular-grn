@@ -22,20 +22,20 @@ import Base.close
 
 export Data
 
-tree_cache_size = 20
+#tree_cache_size = 20
 indiv_cache_size = 20
 
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
     #trees::Dict{Tuple{Int64, Int64, Int64}, CellTree}
-    trees::Cache{Tuple{Int64, Int64, Int64}, CellTree}
+    indivs::Cache{Tuple{Int64, Int64, Int64}, Individual}
     #(ea_step, index, reg_step) => (position, size)
-    trees_index::Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}
+    indivs_index::Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}
     #dictionary order is ea_step, index
     #indivs::Dict{Tuple{Int64, Int64}, Individual}
-    indivs::Cache{Tuple{Int64, Int64}, Individual}
+    #indivs::Cache{Tuple{Int64, Int64}, Individual}
     #(ea_step, index) => (position, size)
-    indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
+    #indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
     file_handle::IOStream
     run::Union{Run, Nothing}
 
@@ -45,15 +45,15 @@ mutable struct Data
         
         #ea_step, index, reg_step
         #trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
-        trees = Cache{Tuple{Int64, Int64, Int64}, CellTree}(DataMod.tree_cache_size)
-        trees_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
+        indivs = Cache{Tuple{Int64, Int64, Int64}, Individual}(DataMod.indiv_cache_size)
+        indivs_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
         
         #ea_step, index
         #indivs = Dict{Tuple{Int64, Int64}, Individual}()
-        indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.indiv_cache_size)
-        indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
+        #indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.indiv_cache_size)
+        #indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
-        data = new(trees, trees_index, indivs, indivs_index, file_handle, nothing)
+        data = new(indivs, indivs_index, file_handle, nothing)
         data.run = get_run(data)
         create_index(data)
 
@@ -80,14 +80,14 @@ function get_run(data::Data)
     read_obj(data, position(data.file_handle), size)
 end
 
-function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
-    key = (ea_step,  pop_index)
-    get_obj(data, key, :indivs, :indivs_index)
-end
+# function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
+#     key = (ea_step,  pop_index)
+#     get_obj(data, key, :indivs, :indivs_index)
+# end
 
-function get_tree(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
+function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
     key = (ea_step, pop_index, reg_step)
-    get_obj(data, key, :trees, :trees_index)
+    get_obj(data, key, :indivs, :indivs_index)
 end
 
 function get_obj(data::Data, key::Any, store_field::Symbol, index_field::Symbol)
@@ -122,20 +122,12 @@ function create_index(data::Data)
             
         elseif tag_type == TrackerMod.IndivState
             ea_step = read(data.file_handle, Int64)
-            pop_index = read(data.file_handle, Int64)
-            size = read(data.file_handle, Int64)
-            
-            key = (ea_step, pop_index)
-            data.indivs_index[key] = (position(data.file_handle), size)
-
-        elseif tag_type == TrackerMod.CellTreeState
-            ea_step = read(data.file_handle, Int64)
             reg_step = read(data.file_handle, Int64)
             pop_index = read(data.file_handle, Int64)
             size = read(data.file_handle, Int64)
 
             key = (ea_step, pop_index, reg_step)
-            data.trees_index[key] = (position(data.file_handle), size)
+            data.indivs_index[key] = (position(data.file_handle), size)
         end
 
         #go to next item
@@ -182,10 +174,10 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
     result    
 end
 
-function get_protein_info_for_tree(tree::CellTree)
+function get_protein_info_for_indiv(indiv::Individual)
     info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps, UInt64}}()
-    if tree.root != nothing
-        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), tree.root)
+    if indiv.cell_tree.root != nothing
+        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
     end
 
     array = collect(info)
@@ -245,7 +237,8 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
     graph = ChainGraph()
 
     for reg_step in 1:data.run.reg_steps + 1
-        tree = DataMod.get_tree(data, ea_step, pop_index, reg_step)
+        indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+        tree = indiv.cell_tree
         cur_cell = CellTreeMod.find_by_id(tree, cell.id)
         if cur_cell != nothing
             for gs in cur_cell.gene_states
@@ -277,18 +270,6 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell
     end
 
     ChainGraphMod.plot(graph)
-end
-
-#currently unused, but could be useful...
-function get_cell_from_prev_reg_step(data::Data, cur_cell::Cell, ea_step::Int64, indiv_index::Int64, cur_reg_step::Int64)
-    prev_cell = nothing
-
-    if cur_reg_step != 0
-        prev_tree = get_tree(data, ea_step, indiv_index, cur_reg_step - 1)
-        prev_cell = CellTreeMod.find_by_id(prev_tree, cur_cell.id)
-    end
-
-    prev_cell #will be nothing if not present
 end
 
 function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::Int64, reg_step::Int64)
@@ -343,12 +324,13 @@ end
 function get_best_fitnesses(data::Data)
     bests = Array{Float64, 1}()
     gen_bests = Array{Float64, 1}()
+    final_reg_step = self.run.reg_steps + 1
 
     best = nothing
     for ea_step in 0 : data.run.step_range.step : data.run.ea_steps
         gen_best = nothing
         for pop_index in 1:data.run.pop_size
-            indiv = DataMod.get_indiv(data, ea_step, pop_index)
+            indiv = DataMod.get_indiv(data, ea_step, pop_index, final_reg_step)
             if gen_best == nothing || indiv.fitness < gen_best
                 gen_best = indiv.fitness
                 
