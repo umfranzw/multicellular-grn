@@ -102,8 +102,14 @@ class DataTools():
         return table_data
 
     def get_best_fitnesses(self):
-        Main.eval('bests, gen_bests = DataMod.get_best_fitnesses(data)')
-        return (Main.bests, Main.gen_bests)
+        Main.eval('bests, gen_bests, gen_avgs = DataMod.get_best_fitnesses(data)')
+        return (Main.bests, Main.gen_bests, Main.gen_avgs)
+
+    def get_indiv_fitness(self, index):
+        self.get_indiv(index)
+        Main.eval('fitness = indiv.fitness')
+        
+        return Main.fitness
 
     def get_gene_scores(self, index):
         self.get_indiv(index)

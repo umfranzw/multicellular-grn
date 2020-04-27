@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self.cell_area = CellArea(self.data_tools)
 
         # graphics area
-        self.graphics_area = GraphicsArea(self.tree_tools, self.toolbar.getIndex())
+        self.graphics_area = GraphicsArea(self.data_tools, self.tree_tools, self.toolbar.getIndex())
         self.graphics_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
 
         self.fitness_area = FitnessArea(self.data_tools)

@@ -41,6 +41,7 @@ class CellArea(QWidget):
         for i in range(num_bind_sites):
             headers.append('Bind Site {}'.format(i + 1))
             headers.append('Bound Protein {}'.format(i + 1))
+            headers.append('Threshold')
 
         for i in range(num_bind_sites):
             headers.append('Prod Site {}'.format(i + 1))

@@ -8,25 +8,30 @@ from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
 class GraphicsArea(QWidget):
     selectionChanged = Signal(list)
     
-    def __init__(self, tree_tools, initial_index, *args, **kwargs):
+    def __init__(self, data_tools, tree_tools, initial_index, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
+        self.data_tools = data_tools
         layout = QVBoxLayout()
 
         self.view = CustomGraphicsView(tree_tools, initial_index)
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        self.fitness_label = QLabel('Fitness: ')
         
         save_button.clicked.connect(lambda: Utils.save_graphics_view(self.view))
         self.view.selectionChanged.connect(self.handle_selectionChanged)
 
         layout.addWidget(self.view)
+        layout.addWidget(self.fitness_label)
         layout.addWidget(save_button)
 
         self.setLayout(layout)
+        self.update_fitness_label(initial_index)
 
     @Slot()
     def refresh(self, index, checked_info=[]):
         self.view.refresh(index, checked_info)
+        self.update_fitness_label(index)
 
     @Slot()
     def handle_selectionChanged(self, cells):
@@ -34,6 +39,10 @@ class GraphicsArea(QWidget):
 
     def disconnect_signals(self):
         self.view.disconnect_signals()
+
+    def update_fitness_label(self, index):
+        fitness = self.data_tools.get_indiv_fitness(index)
+        self.fitness_label.setText('Fitness: {:.2f}'.format(fitness))
 
 class CustomGraphicsView(QGraphicsView):
     selectionChanged = Signal(list)

@@ -284,9 +284,11 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
         bind_logic = string(gs.gene.bind_logic)
 
         bind_sites = Array{String, 1}()
+        thresholds = Array{String, 1}()
         bound_proteins = Array{String, 1}()
         for i in 1:length(gs.gene.bind_sites)
             push!(bind_sites, GeneMod.get_bind_site_str(gs.gene, i))
+            push!(thresholds, @sprintf("%0.2f", gs.gene.bind_sites[i].threshold))
             if gs.bindings[i] == nothing
                 push!(bound_proteins, "")
             else
@@ -308,6 +310,7 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
         for i in 1:length(gs.gene.bind_sites)
             push!(row, bind_sites[i])
             push!(row, bound_proteins[i])
+            push!(row, thresholds[i])
         end
 
         for i in 1:length(gs.gene.bind_sites)
@@ -324,13 +327,17 @@ end
 function get_best_fitnesses(data::Data)
     bests = Array{Float64, 1}()
     gen_bests = Array{Float64, 1}()
-    final_reg_step = self.run.reg_steps + 1
+    gen_avgs = Array{Float64, 1}()
+    final_reg_step = data.run.reg_steps + 1
 
     best = nothing
     for ea_step in 0 : data.run.step_range.step : data.run.ea_steps
+        gen_avg = 0.0
         gen_best = nothing
         for pop_index in 1:data.run.pop_size
             indiv = DataMod.get_indiv(data, ea_step, pop_index, final_reg_step)
+            gen_avg += indiv.fitness
+            
             if gen_best == nothing || indiv.fitness < gen_best
                 gen_best = indiv.fitness
                 
@@ -340,11 +347,14 @@ function get_best_fitnesses(data::Data)
                 end
             end
         end
+        gen_avg /= data.run.pop_size
+        
         push!(bests, best)
         push!(gen_bests, gen_best)
+        push!(gen_avgs, gen_avg)
     end
 
-    (bests, gen_bests)
+    (bests, gen_bests, gen_avgs)
 end
 
 end

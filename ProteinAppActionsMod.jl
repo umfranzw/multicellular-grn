@@ -25,6 +25,8 @@ function divide(args::AppArgs)
     if (length(src_cell.children) < src_cell.config.run.max_children &&
         src_cell.age < src_cell.config.run.division_age_limit)
         
+        println("Adding new cell")
+        
         max_children = src_cell.config.run.max_children
         num_concs = length(args.genes)
         chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
@@ -37,7 +39,6 @@ function divide(args::AppArgs)
         new_cell = Cell(src_cell.config, args.genes, -1) #age is -1 since it'll be incremented at end of this reg step, and we want this cell to be younger than its parent even if the division occurs on reg step 1
         CellMod.add_parent(new_cell, src_cell)
         
-        println("Added new cell")
 
         for protein in ProteinStoreMod.get_all(src_cell.proteins)
             new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, pointer_from_objref(src_cell))
@@ -56,6 +57,7 @@ end
 function alter_sym_prob(args::AppArgs)
     cell = args.cell
     if cell.sym == nothing #if symbol has not yet been fixed
+        println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
         sym_index = args.app_protein.props.arg % length(cell.probs)
@@ -73,6 +75,7 @@ function alter_sym_prob(args::AppArgs)
 end
 
 function alter_sensor(args::AppArgs)
+    println("Altering sensor")
     cell = args.cell
     loc = args.app_protein.props.loc
     #note: can only increase (not decrease) the amount of sensor protein

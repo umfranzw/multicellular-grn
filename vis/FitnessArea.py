@@ -28,7 +28,7 @@ class FitnessArea(QWidget):
 
     @Slot()
     def update_chart(self):
-        bests, gen_bests = self.data_tools.get_best_fitnesses()
+        bests, gen_bests, gen_avgs = self.data_tools.get_best_fitnesses()
         chart = QtCharts.QChart()
 
         x_axis = QtCharts.QValueAxis()
@@ -39,7 +39,7 @@ class FitnessArea(QWidget):
         x_axis.setTitleText('EA Step')
 
         y_axis = QtCharts.QValueAxis()
-        y_axis.setRange(0.0, 2.0)
+        y_axis.setRange(0.0, 1.0)
         y_axis.setTitleText('Fitness')
 
         chart.addAxis(x_axis, Qt.AlignBottom)
@@ -49,19 +49,26 @@ class FitnessArea(QWidget):
         best_series.setName('Best Fitness')
         gen_best_series = QtCharts.QLineSeries()
         gen_best_series.setName('Gen Best Fitness')
+        avg_series = QtCharts.QLineSeries()
+        avg_series.setName('Gen Avg')
+
         chart.addSeries(gen_best_series)
         chart.addSeries(best_series)
+        chart.addSeries(avg_series)
 
         i = 0
         for ea_step in range(0, self.run.ea_steps + 1, self.run.step_range.step):
             best_series.append(QPointF(ea_step, bests[i]))
             gen_best_series.append(QPointF(ea_step, gen_bests[i]))
+            avg_series.append(QPointF(ea_step, gen_avgs[i]))
             i += 1
 
         best_series.attachAxis(x_axis)
         best_series.attachAxis(y_axis)
         gen_best_series.attachAxis(x_axis)
         gen_best_series.attachAxis(y_axis)
+        avg_series.attachAxis(x_axis)
+        avg_series.attachAxis(y_axis)
 
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
