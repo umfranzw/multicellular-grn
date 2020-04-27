@@ -175,7 +175,7 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
 end
 
 function get_protein_info_for_indiv(indiv::Individual)
-    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps, UInt64}}()
+    info = Set{Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     if indiv.cell_tree.root != nothing
         CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
     end
@@ -187,7 +187,7 @@ function get_protein_info_for_indiv(indiv::Individual)
 end
 
 function get_protein_info_for_cell(cell::Cell)
-    info = Set{Tuple{String, String, String, String, Int8, Bool, ProteinProps, UInt64}}()
+    info = Set{Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         item  = (

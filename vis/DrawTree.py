@@ -6,7 +6,7 @@ class DrawTree():
         
         self.children = []
         for i, child in enumerate(data_tools.get_cell_children(cell)):
-            self.children.append(DrawTree(child, self, depth + 1, i + 1))
+            self.children.append(DrawTree(child, data_tools, self, depth + 1, i + 1))
             
         self.parent = parent
         self.thread = None

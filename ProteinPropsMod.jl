@@ -33,14 +33,14 @@ mutable struct ProteinProps
     fcn::ProteinFcn
     action::ProteinAction
     loc::ProteinLoc
-    arg::Int8
+    arg::UInt8
 end
 
 function rand_init(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
-    action::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
     arg::Union{UInt8, Nothing}=nothing
 )
@@ -62,7 +62,7 @@ function rand_init(
     end
 
     if arg == nothing
-        arg_val = Random.rand(config.rng, Int8)
+        arg_val = Random.rand(config.rng, UInt8)
     else
         arg_val = arg
     end

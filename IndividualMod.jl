@@ -33,39 +33,42 @@ mutable struct Individual
     gene_scores::Array{Int64, 1}
 end
 
-function show(io::IO, indiv::Individual, ilevel::Int64=0)
-    iprintln(io, "Individual:", ilevel)
-    iprintln(io, "genes:", ilevel + 1)
-    foreach(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
-
-    iprintln(io, "gene_scores:", ilevel + 1)
-    iprintln(io, join(indiv.gene_scores, ", "), ilevel + 2)
-             
-    iprintln(io, "cell_tree:", ilevel + 1)
-    iprintln(io, indiv.cell_tree, ilevel + 2)
-
-    iprintln(io, "initial_cell_proteins:", ilevel + 1)
-    foreach(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
-
-    iprintln(io, "fitness: $(indiv.fitness)", ilevel + 1)
-end
-
 function rand_init(run::Run, seed::UInt64)
     rng = Random.MersenneTwister(seed)
     config = Config(run, rng)
     
-    genes = map(i -> GeneMod.rand_init(config, i), 1:config.run.num_initial_genes)
+    genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal]), 1:config.run.num_initial_genes)
+    #genes = Array{Gene, 1}()
+
+
     root_cell = Cell(config, genes)
     cell_tree = CellTree(root_cell)
     
     initial_proteins = Array{Protein, 1}()
-    
     for i in 1:config.run.num_initial_proteins
-        #all initial proteins should have type=Internal, and Fcn=Activate
-        props = ProteinPropsMod.rand_init(config, type=[ProteinPropsMod.Internal], fcn=[ProteinPropsMod.Activate])
+        gene = genes[(i % length(genes)) + 1]
+        types = Array{ProteinPropsMod.ProteinType, 1}()
+        actions = Array{ProteinPropsMod.ProteinAction, 1}()
+        locs = Array{ProteinPropsMod.ProteinLoc, 1}()
+        max_thresh = 0.0
+        for site in gene.bind_sites
+            push!(types, site.type)
+            push!(actions, site.action)
+            push!(locs, site.loc)
+            max_thresh = max(site.threshold, max_thresh)
+        end
+        
+        props = ProteinPropsMod.rand_init(
+            config,
+            type=types,
+            fcn=[ProteinPropsMod.Activate],
+            action=actions,
+            loc=locs
+        )
 
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, props, true, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
+        protein = Protein(config, props, false, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
+        protein.concs = RandUtilsMod.rand_floats(config, max_thresh, 1.0, length(genes))
         push!(initial_proteins, protein)
     end
     
@@ -97,6 +100,23 @@ function run_protein_app(indiv::Individual)
     for cell in bfs_list
         run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
     end
+end
+
+function show(io::IO, indiv::Individual, ilevel::Int64=0)
+    iprintln(io, "Individual:", ilevel)
+    iprintln(io, "genes:", ilevel + 1)
+    foreach(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
+
+    iprintln(io, "gene_scores:", ilevel + 1)
+    iprintln(io, join(indiv.gene_scores, ", "), ilevel + 2)
+             
+    iprintln(io, "cell_tree:", ilevel + 1)
+    iprintln(io, indiv.cell_tree, ilevel + 2)
+
+    iprintln(io, "initial_cell_proteins:", ilevel + 1)
+    foreach(p -> ProteinMod.show(io, p, ilevel + 2), indiv.initial_cell_proteins)
+
+    iprintln(io, "fitness: $(indiv.fitness)", ilevel + 1)
 end
 
 function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
@@ -212,7 +232,7 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
 
             #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
             opposite_loc = ProteinPropsMod.get_opposite_loc(src_loc)
-            neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, ptr_from_objectref(neighbour))
+            neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, pointer_from_objref(neighbour))
 
             #compute the max amount of each protein that we can accept
             accept_amount = sensor_amount / length(neighbour_proteins)
@@ -234,7 +254,7 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
                 dest_protein = ProteinStoreMod.get(cell.proteins, props)
                 if dest_protein == nothing
                     if ProteinStore.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-                        dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), ptr_from_objectref(neighbour))
+                        dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), pointer_from_objref(neighbour))
                         ProteinStoreMod.insert(cell.proteins, dest_protein)
                     end
                 end
@@ -302,7 +322,8 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, 
         if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
             #note: protein will be initialized with conc values of zero
             #@info @sprintf("Produced protein: %s", props)
-            protein = Protein(cell.config, props, false, false, length(cell.gene_states), pointer_from_objref(cell))
+            #note: remember to deepcopy the props, so that if this prod site is mutated, the protein's props don't also
+            protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states), pointer_from_objref(cell))
             ProteinStoreMod.insert(cell.proteins, protein)
         end
     end

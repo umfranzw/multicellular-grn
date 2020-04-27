@@ -242,7 +242,7 @@ function show_tree(io::IO, cell::Cell, ilevel::Int64)
     cell_str = cell.sym == nothing ? "_" : string(cell.sym)[1:1] #note: the range keeps it a String (rather than a Char)
     iprint(io, cell_str, ilevel)
     for child in cell.children
-        show_tree(child, ilevel + 1)
+        show_tree(io, child, ilevel + 1)
     end
 end
 

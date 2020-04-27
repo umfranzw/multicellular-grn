@@ -25,21 +25,21 @@ mutable struct Cell
     sensors::Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}
     sym::Union{Sym, Nothing}
     age::Int64
-    id::Union{UInt64, Nothing}
+    id::Union{UInt64, Nothing} #for use in the UI
 
-    function Cell(config::Config, genes::Array{Gene, 1})
+    function Cell(config::Config, genes::Array{Gene, 1}, age::Int64=0)
         gene_states = map(g -> GeneState(config, g), genes)
         proteins = ProteinStore()
         children = Array{Cell, 1}()
 
-        cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(config.run, length(genes)), nothing, 0, nothing)
+        cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(config.run, length(genes)), nothing, age, nothing)
         cell.id = hash(cell)
         
         cell
     end
 
-    function Cell(config::Config, gene_states::Array{GeneState, 1})
-        cell = new(config, gene_states, ProteinStore(), nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing, 0)
+    function Cell(config::Config, gene_states::Array{GeneState, 1}, age::Int64=0)
+        cell = new(config, gene_states, ProteinStore(), nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing, age, nothing)
         
         cell
     end

@@ -6,6 +6,7 @@ using CellMod
 using CellTreeMod
 using SymMod
 using GeneMod
+using ProteinStoreMod
 using Printf
 
 export AppArgs
@@ -20,12 +21,12 @@ end
 #note: the methods in this module assume that the app_protein has exceeded the appropriate threshold
 
 function divide(args::AppArgs)
-    src_cell = arg.cell
+    src_cell = args.cell
     if (length(src_cell.children) < src_cell.config.run.max_children &&
-        cell.age < src_cell.config.run.division_age_limit)
+        src_cell.age < src_cell.config.run.division_age_limit)
         
         max_children = src_cell.config.run.max_children
-        num_concs = length(arg.genes)
+        num_concs = length(args.genes)
         chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
         truncated_chunk_size = num_concs ÷ max_children
         chunk_start = chunk_index * truncated_chunk_size + 1
@@ -33,15 +34,15 @@ function divide(args::AppArgs)
         chunk_end = (chunk_index == max_children - 1) ? num_concs : chunk_start + truncated_chunk_size
         chunk_range = chunk_start:chunk_end
 
-        new_cell = Cell(src_cell.config, src_cell.genes)
+        new_cell = Cell(src_cell.config, args.genes, -1) #age is -1 since it'll be incremented at end of this reg step, and we want this cell to be younger than its parent even if the division occurs on reg step 1
         CellMod.add_parent(new_cell, src_cell)
         
         println("Added new cell")
 
-        for (props, protein) in src_cell.proteins
-            new_protein = Protein(src_cell.config, copy(src_cell.props), false, false, num_concs, src_cell.src_cell_ptr)
+        for protein in ProteinStoreMod.get_all(src_cell.proteins)
+            new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, pointer_from_objref(src_cell))
             #child gains half of the (magnitude of the) parent's concs in the chunk range
-            protein.concs[chunk_range] = protein.concs[chunk_range] / 2
+            protein.concs[chunk_range] = protein.concs[chunk_range] ./ 2
             new_protein.concs[chunk_range] = protein.concs[chunk_range]
 
             ProteinStoreMod.insert(new_cell.proteins, new_protein)

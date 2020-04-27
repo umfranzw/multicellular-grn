@@ -11,7 +11,7 @@ import Base.show
 
 export Gene, BindSite
 
-@enum BindLogic::Int8 Id=1 And Or Xor
+@enum BindLogic::UInt8 Id=1 And Or Xor
 
 mutable struct BindSite
     #from the protein
@@ -123,14 +123,14 @@ function rand_bind_site(
     BindSite(type_val, action_val, loc_val, threshold_val, consum_rate_val)
 end
 
-function rand_init(config::Config, genome_index::Int64)
+#note: binding sites should never be of type Application
+function rand_init(config::Config, genome_index::Int64, bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion])
     bind_sites = Array{BindSite, 1}()
     prod_sites = Array{ProteinProps, 1}()
     for i in 1:config.run.bind_sites_per_gene
         bind_site = rand_bind_site(
             config,
-            #note: binding sites should never be of type Application
-            type=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion]
+            type=bind_site_types
         )
         push!(bind_sites, bind_site)
 

@@ -22,7 +22,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     copy_locations = Array{Int64, 1}()
     gene_index = 1
     while gene_index <= length(indiv.genes)
-        normal_score = indiv.gene_scores[gene_index] / score_total
+        normal_score = indiv.gene_scores[gene_index] / score_total #note: will be Inf if score_total is 0
         if normal_score > indiv.config.run.gene_score_threshold
             mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
             if mut_copy != nothing
@@ -114,7 +114,7 @@ function mutate_props(
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
-    arg::Union{Array{Float64, 1}, Nothing}=nothing
+    arg::Union{Array{UInt8, 1}, Nothing}=nothing
 )
     i = 1
     enum_info = (
@@ -142,11 +142,18 @@ function mutate_props(
     #mutate props.arg
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         if arg == nothing
-            max_int8 = 2^7 - 1
+            max_uint8 = 2^8 - 1
             time_factor = 1.0 - ea_step / config.run.ea_steps
-            range = Int64(floor(time_factor * max_int8))
+            range = Int64(floor(time_factor * max_uint8))
             delta = RandUtilsMod.rand_int(config, 0, range) - range ÷ 2
-            props.arg = Int8(clamp(props.arg + delta, -max_int8, max_int8))
+            #watch out for overflow
+            if props.arg + delta > max_uint8
+                props.arg = UInt8(max_uint8)
+            elseif props.arg + delta < 0
+                props.arg = UInt8(0)
+            else
+                props.arg = UInt8(props.arg + delta)
+            end
         else
             props.arg = Random.rand(config.rng, arg)
         end

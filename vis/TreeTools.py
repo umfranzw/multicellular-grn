@@ -12,7 +12,6 @@ from SettingsArea import Settings
 class TreeTools():
     node_width = 200
     node_height = 200
-    node_space = 50
 
     def __init__(self, data_tools):
         self.data_tools = data_tools
@@ -41,13 +40,13 @@ class TreeTools():
         scene.addItem(item)
         
         for child in node.children:
-            draw_tree(scene, child, depth + 1, checked_info)
+            self.draw_tree(scene, child, depth + 1, checked_info)
 
     def draw_edges(self, scene, node, depth):
         pen = QPen(Qt.black, 1)
         for child in node.children:
-            line = QGraphicsLineItem(node.x * TreeTools.node_width + (TreeTools.node_space / 2), depth * TreeTools.node_height + (TreeTools.node_space / 2),
-                 child.x * TreeTools.node_width + (TreeTools.node_space / 2), (depth + 1) * TreeTools.node_height + (TreeTools.node_space / 2))
+            line = QGraphicsLineItem(node.x * TreeTools.node_width + (TreeTools.node_width / 2), (depth + 1) * TreeTools.node_height - 5,
+                                     child.x * TreeTools.node_width + (TreeTools.node_width / 2), (depth + 1) * TreeTools.node_height + 5)
             line.setPen(pen)
             scene.addItem(line)
             
@@ -111,7 +110,7 @@ class TreeTools():
         #view
         chartView = QtCharts.QChartView(chart)
         chartView.setRenderHint(QPainter.RenderHint.Antialiasing)
-        chartView.resize(200, 200)
+        chartView.resize(TreeTools.node_width, TreeTools.node_height)
         pixmap = QPixmap(chartView.size())
         chartView.render(pixmap)
 
