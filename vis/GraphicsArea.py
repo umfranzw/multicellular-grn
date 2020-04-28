@@ -17,7 +17,9 @@ class GraphicsArea(QWidget):
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         self.fitness_label = QLabel('Fitness: ')
+        self.fitness_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.code_label = QLabel('Code: ')
+        self.code_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         
         save_button.clicked.connect(lambda: Utils.save_graphics_view(self.view))
         self.view.selectionChanged.connect(self.handle_selectionChanged)

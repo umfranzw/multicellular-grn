@@ -1,3 +1,8 @@
+import socket
+if socket.gethostname() == 'ibis':
+    from julia.api import Julia
+    jl = Julia(compiled_modules=False)
+    
 from julia import Main
 
 class DataTools():
@@ -7,6 +12,7 @@ class DataTools():
         Main.using('DataMod')
         Main.using('ProteinStoreMod')
         Main.using('ProteinPropsMod')
+        Main.using('CellTreeMod')
         Main.eval('data = Data("{}")'.format(filename))
 
     def close(self):

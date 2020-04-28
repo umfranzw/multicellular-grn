@@ -241,7 +241,7 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
             #compute the max amount of each protein that we can accept
             accept_amount = sensor_amount / length(neighbour_proteins)
             for neighbour_protein in neighbour_proteins
-                transfer_amount = min.(neightbour_protein.concs, accept_amount)
+                transfer_amount = min.(neighbour_protein.concs, accept_amount)
                 cell.sensors[src_loc] -= transfer_amount
                 neighbour_protein.concs -= transfer_amount
                 
@@ -356,12 +356,23 @@ end
 
 function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index::Int64)
     #Binding logic:
-    #  -protein's type must match site's type
-    #  -protein's conc must be >= site's threshold
-    #  -if the type is neighbour or diffusion, the protein's src_cell_ptr must not be equal to this cell ptr (to prevent self-binding)
-    #  -protein's action must match site's action
-    #  -protein's loc must match site's loc
+    # For proteins of type Internal:
+    # -protein type must match site type
+    # -protein fcn is unrestricted
+    # -protein action must match site action
+    # -protein loc must match site loc
+    # -protein arg is unrestricted
+    # -protein's conc must be >= site's threshold
 
+    #For proteins of type Neighbour:
+    # -same restrictions as type Internal, plus:
+    # -protein's src_cell_ptr must not point to the current cell (to prevent self-binding)
+
+    #For proteins of type Diffusion:
+    # -same restrictions as type Neighbour
+
+    #Proteins of type Application do not bind
+    
     site = gene.bind_sites[site_index]
     eligible_proteins = Array{Protein, 1}()
     for protein in values(ProteinStoreMod.get_by_type(cell.proteins, site.type))

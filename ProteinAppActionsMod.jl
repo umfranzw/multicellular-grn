@@ -82,11 +82,12 @@ function alter_sensor(args::AppArgs)
     cell = args.cell
     num_concs = length(args.app_protein.concs)
     loc = args.app_protein.props.loc
-    #note: can only increase (not decrease) the amount of sensor protein
-    #it will decrease as it is used, and through decay
+
+    #sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
     max_excess = 1.0 - cell.config.run.sensor_reinforcement_threshold #max possible excess
     scale_factor = 1.0 / max_excess
     excess = max.(args.app_protein.concs .- cell.config.run.sensor_reinforcement_threshold, 0.0)
+    #delta = sign * excess .* scale_factor
     delta = excess .* scale_factor
     CellMod.adjust_sensor(cell, loc, delta)
 
