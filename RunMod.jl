@@ -48,6 +48,7 @@ struct Run
     division_age_limit::Int64
     cell_division_threshold::Float64
     max_children::Int64
+    max_tree_size::Int64
     max_sensor_amount::Float64
     sensor_reinforcement_threshold::Float64
     sym_prob_threshold::Float64

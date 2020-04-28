@@ -175,19 +175,19 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
 end
 
 function get_protein_info_for_indiv(indiv::Individual)
-    info = Set{Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
+    info = Dict{ProteinProps, Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     if indiv.cell_tree.root != nothing
-        CellTreeMod.traverse(cell -> union!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
+        CellTreeMod.traverse(cell -> merge!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
     end
 
-    array = collect(info)
+    array = collect(values(info))
     sort!(array, by=row -> row[end])
     
     array
 end
 
 function get_protein_info_for_cell(cell::Cell)
-    info = Set{Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
+    info = Dict{ProteinProps, Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         item  = (
@@ -198,15 +198,10 @@ function get_protein_info_for_cell(cell::Cell)
             protein.props.arg,
             protein.is_initial,
             protein.props,
-            hash((protein.props.type,
-                  protein.props.fcn,
-                  protein.props.action,
-                  protein.props.loc,
-                  protein.props.arg,
-                  protein.is_initial)) #note: if the same protein is present in two different cells, they'll hash the same
+            hash(protein.props) #note: if the same protein is present in two different cells, they'll hash the same
             #this means they'll be considered identical in the gui
         )
-        push!(info, item)
+        info[protein.props] = item
     end
 
     info

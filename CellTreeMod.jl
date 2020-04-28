@@ -119,20 +119,8 @@ end
 
 function size(tree::CellTree)
     count = 0
-    if tree.root != nothing
-        count = size(tree.root, 0)
-    end
+    CellTreeMod.traverse(cell -> count += 1, tree)
 
-    count
-end
-
-function size(node::Cell, count::Int64)
-    count += 1
-
-    for child in node.children
-        count += size(child, count)
-    end
-    
     count
 end
 
@@ -142,19 +130,24 @@ end
 
 function to_expr_str(node::Cell, expr_str::String)
     sym = node.sym
-    expr_str *= "$(sym.val)"
-    if sym.type == SymMod.FcnCall
+    if sym == nothing
+        expr_str *= "_"
+    else
+        expr_str *= "$(sym.val)"
+    end
+    
+    if sym != nothing && sym.type == SymMod.FcnCall
         expr_str *= "("
     end
     
     for i in 1:length(node.children)
         expr_str = to_expr_str(node.children[i], expr_str)
-        if sym.type == SymMod.FcnCall && i < length(node.children)
+        if sym != nothing && (sym.type == SymMod.FcnCall && i < length(node.children))
             expr_str *= ", "
         end
     end
     
-    if sym.type == SymMod.FcnCall
+    if sym != nothing && sym.type == SymMod.FcnCall
         expr_str *= ")"
     end
 

@@ -16,8 +16,11 @@ class Utils():
     @staticmethod
     def save_graphics_view(graphics_view):
         filename = Utils.run_save_image_dialog()
-        pixmap = QPixmap(graphics_view.size())
-        graphics_view.render(pixmap)
+        pixmap = QPixmap(graphics_view.scene.width(), graphics_view.scene.height())
+        pixmap.fill(Qt.white)
+        painter = QPainter(pixmap)
+        graphics_view.scene.render(painter)
+        painter.end()
         pixmap.save(filename, format='png')
 
     @Slot()

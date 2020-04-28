@@ -40,23 +40,40 @@ function search_cells(data::Data, ea_step_range::StepRange{Int64, Int64}, pop_in
     results
 end
 
-function search_indivs(data::Data, ea_step_range::StepRange{Int64, Int64}, pop_index_range::UnitRange{Int64}, indiv_fcn::Function)
-    results = Array{Tuple{Tuple{Int64, Int64}, Any}, 1}()
+function search_indivs(data::Data, ea_step_range::StepRange{Int64, Int64}, pop_index_range::UnitRange{Int64}, reg_step_range::UnitRange{Int64}, indiv_fcn::Function)
+    results = Array{Tuple{Tuple{Int64, Int64, Int64}, Any}, 1}()
     
     for ea_step in ea_step_range
         for pop_index in pop_index_range
-            indiv = DataMod.get_indiv(data, ea_step, pop_index)
-            accept, custom_data = indiv_fcn(row_cells[col])
-            if accept
-                result = ((ea_step, pop_index),
-                          custom_data
-                          )
-                push!(results, result)
+            for reg_step in reg_step_range
+                indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+                accept, custom_data = indiv_fcn(indiv)
+                if accept
+                    result = ((ea_step, pop_index, reg_step),
+                              custom_data
+                              )
+                    push!(results, result)
+                end
             end
         end
     end
 
     results
+end
+
+function reduce_indivs(data::Data, ea_step_range::StepRange{Int64, Int64}, pop_index_range::UnitRange{Int64}, reg_step_range::UnitRange{Int64}, indiv_fcn::Function)
+    last_result = nothing
+    
+    for ea_step in ea_step_range
+        for pop_index in pop_index_range
+            for reg_step in reg_step_range
+                indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+                last_result = indiv_fcn(indiv, (ea_step, pop_index, reg_step), last_result)
+            end
+        end
+    end
+
+    last_result
 end
 
 end

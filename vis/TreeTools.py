@@ -12,6 +12,7 @@ from SettingsArea import Settings
 class TreeTools():
     node_width = 200
     node_height = 200
+    node_space = 20
 
     def __init__(self, data_tools):
         self.data_tools = data_tools
@@ -35,7 +36,10 @@ class TreeTools():
     def draw_tree(self, scene, node, depth, checked_info):
         pixmap = self.build_conc_graph(node.cell, checked_info)
         item = CustomGraphicsPixmapItem(pixmap, node.cell)
-        item.setPos(QPointF(node.x * TreeTools.node_width, depth * TreeTools.node_height))
+        item.setPos(QPointF(
+            node.x * TreeTools.node_width + node.x * TreeTools.node_space,
+            depth * TreeTools.node_height + node.y * TreeTools.node_space
+        ))
         item.setFlags(QGraphicsItem.ItemIsSelectable)
         scene.addItem(item)
         
@@ -45,8 +49,13 @@ class TreeTools():
     def draw_edges(self, scene, node, depth):
         pen = QPen(Qt.black, 1)
         for child in node.children:
-            line = QGraphicsLineItem(node.x * TreeTools.node_width + (TreeTools.node_width / 2), (depth + 1) * TreeTools.node_height - 5,
-                                     child.x * TreeTools.node_width + (TreeTools.node_width / 2), (depth + 1) * TreeTools.node_height + 5)
+            line = QGraphicsLineItem(
+                node.x * TreeTools.node_width + (TreeTools.node_width / 2) + node.x * TreeTools.node_space,
+                (depth + 1) * TreeTools.node_height + (depth) * TreeTools.node_space - 5,
+
+                child.x * TreeTools.node_width + (TreeTools.node_width / 2) + child.x * TreeTools.node_space,
+                (depth + 1) * TreeTools.node_height + (depth + 1) * TreeTools.node_space + 5
+            )
             line.setPen(pen)
             scene.addItem(line)
             

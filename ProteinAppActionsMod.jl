@@ -24,7 +24,8 @@ end
 function divide(args::AppArgs)
     src_cell = args.cell
     if (length(src_cell.children) < src_cell.config.run.max_children &&
-        src_cell.age < src_cell.config.run.division_age_limit)
+        src_cell.age < src_cell.config.run.division_age_limit &&
+        CellTreeMod.size(args.tree) < args.cell.config.run.max_tree_size) #note: save the most expensive check for last
         
         #println("Adding new cell")
         

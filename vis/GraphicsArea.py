@@ -17,21 +17,23 @@ class GraphicsArea(QWidget):
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         self.fitness_label = QLabel('Fitness: ')
+        self.code_label = QLabel('Code: ')
         
         save_button.clicked.connect(lambda: Utils.save_graphics_view(self.view))
         self.view.selectionChanged.connect(self.handle_selectionChanged)
 
         layout.addWidget(self.view)
         layout.addWidget(self.fitness_label)
+        layout.addWidget(self.code_label)
         layout.addWidget(save_button)
 
         self.setLayout(layout)
-        self.update_fitness_label(initial_index)
+        self.update_info_labels(initial_index)
 
     @Slot()
     def refresh(self, index, checked_info=[]):
         self.view.refresh(index, checked_info)
-        self.update_fitness_label(index)
+        self.update_info_labels(index)
 
     @Slot()
     def handle_selectionChanged(self, cells):
@@ -40,9 +42,11 @@ class GraphicsArea(QWidget):
     def disconnect_signals(self):
         self.view.disconnect_signals()
 
-    def update_fitness_label(self, index):
+    def update_info_labels(self, index):
         fitness = self.data_tools.get_indiv_fitness(index)
+        code = self.data_tools.get_indiv_code(index)
         self.fitness_label.setText('Fitness: {:.2f}'.format(fitness))
+        self.code_label.setText('Code: {}'.format(code))
 
 class CustomGraphicsView(QGraphicsView):
     selectionChanged = Signal(list)

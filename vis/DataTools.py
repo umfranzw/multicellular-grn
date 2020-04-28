@@ -111,6 +111,12 @@ class DataTools():
         
         return Main.fitness
 
+    def get_indiv_code(self, index):
+        self.get_indiv(index)
+        Main.eval('code = CellTreeMod.to_expr_str(indiv.cell_tree)')
+
+        return Main.code
+
     def get_gene_scores(self, index):
         self.get_indiv(index)
         Main.eval('scores = indiv.gene_scores')
