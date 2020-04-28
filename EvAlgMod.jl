@@ -31,7 +31,7 @@ function ev_alg(run::Run)
         RegSimMod.reg_sim(run, pop, ea_step)
 
         TrackerMod.update_bests(pop)
-        print_trees(pop)
+        #print_trees(pop)
 
         #reset the individuals before the next iteration
         foreach(IndividualMod.reset_cell_tree, pop)

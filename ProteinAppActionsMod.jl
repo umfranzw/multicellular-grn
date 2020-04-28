@@ -25,7 +25,7 @@ function divide(args::AppArgs)
     if (length(src_cell.children) < src_cell.config.run.max_children &&
         src_cell.age < src_cell.config.run.division_age_limit)
         
-        println("Adding new cell")
+        #println("Adding new cell")
         
         max_children = src_cell.config.run.max_children
         num_concs = length(args.genes)
@@ -57,7 +57,7 @@ end
 function alter_sym_prob(args::AppArgs)
     cell = args.cell
     if cell.sym == nothing #if symbol has not yet been fixed
-        println("Altering Sym Prob")
+        #println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
         sym_index = args.app_protein.props.arg % length(cell.probs)
@@ -75,7 +75,8 @@ function alter_sym_prob(args::AppArgs)
 end
 
 function alter_sensor(args::AppArgs)
-    println("Altering sensor")
+    #println("Altering sensor")
+    
     cell = args.cell
     loc = args.app_protein.props.loc
     #note: can only increase (not decrease) the amount of sensor protein
