@@ -241,24 +241,23 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
             #compute the max amount of each protein that we can accept
             accept_amount = sensor_amount / length(neighbour_proteins)
             for neighbour_protein in neighbour_proteins
-                transfer_amount = min.(protein.concs, accept_amount)
+                transfer_amount = min.(neightbour_protein.concs, accept_amount)
                 cell.sensors[src_loc] -= transfer_amount
-                neighbour_protein.concs -= amount
+                neighbour_protein.concs -= transfer_amount
                 
                 #add the neighbour protein into the source cell, flipping the loc
                 dest_props = ProteinProps(
-                    cell.config,
-                    neighbour_protein.type,
-                    neighbour_protein.fcn,
-                    neighbour_protein.action,
+                    neighbour_protein.props.type,
+                    neighbour_protein.props.fcn,
+                    neighbour_protein.props.action,
                     src_loc, #flip the loc
-                    neighbour_protein.arg
+                    neighbour_protein.props.arg
                 )
 
-                dest_protein = ProteinStoreMod.get(cell.proteins, props)
+                dest_protein = ProteinStoreMod.get(cell.proteins, dest_props)
                 if dest_protein == nothing
-                    if ProteinStore.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-                        dest_protein = Protein(cell.config, dest_props, false, false, length(cell.genes), pointer_from_objref(neighbour))
+                    if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+                        dest_protein = Protein(cell.config, dest_props, false, false, length(cell.gene_states), pointer_from_objref(neighbour))
                         ProteinStoreMod.insert(cell.proteins, dest_protein)
                     end
                 end

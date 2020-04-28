@@ -61,7 +61,7 @@ function alter_sym_prob(args::AppArgs)
         #println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
-        sym_index = Int64(args.app_protein.props.arg % length(cell.probs))
+        sym_index = Int64(args.app_protein.props.arg % length(cell.probs)) + 1
         sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
         
         max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess
