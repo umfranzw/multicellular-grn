@@ -76,7 +76,7 @@ end
 
 function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc, src_cell_ptr::Ptr{Nothing})
     neighbours = Array{Protein, 1}()
-    for protein in ps.proteins[ProteinPropsMod.Neighbour]
+    for protein in values(ps.proteins[ProteinPropsMod.Neighbour])
         if protein.props.loc == loc && protein.src_cell_ptr == src_cell_ptr
             push!(neighbours, protein)
         end

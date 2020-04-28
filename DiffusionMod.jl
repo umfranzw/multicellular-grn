@@ -74,18 +74,22 @@ function diffuse_inter_cell_proteins(tree::CellTree)
         for ((level, col), new_concs) in results
             #println(new_concs)
             cell = info.level_to_cell[level][col]
-            ProteinStoreMod.get(cell.proteins, protein.props).concs = new_concs
+            cell_protein = ProteinStoreMod.get(cell.proteins, protein.props)
+            if cell_protein != nothing #may not be present if cell already contained max # of proteins and we couldn't insert it
+                cell_protein.concs = new_concs
+            end
         end
     end
 end
 
-function diffuse_inter_cell_protein(cell::Cell, protein::Protein, results::Dict{Tuple{Int64, Int64}, Array{Float64, 1}}, info::TreeInfo)
+function diffuse_inter_cell_protein(cell::Cell, diffusing_protein::Protein, results::Dict{Tuple{Int64, Int64}, Array{Float64, 1}}, info::TreeInfo)
     #if the protein that's diffusing doesn't exist in this cell, create it (with zeroed concs).
     #Note: If the diffusion results in zeroed or very low concs, the decay step will remove it later.
+    protein = ProteinStoreMod.get(cell.proteins, diffusing_protein.props)
     if protein == nothing
         if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-            protein = Protein(cell.config, deepcopy(props), false, false, length(cell.gene_states), pointer_from_objref(cell))
-            ProteinStoreMod.insert(cell.proteins, protein, false)
+            protein = Protein(cell.config, deepcopy(diffusing_protein.props), false, false, length(cell.gene_states), pointer_from_objref(cell))
+            ProteinStoreMod.insert(cell.proteins, protein)
         end
     end
     

@@ -55,7 +55,15 @@ function build_sensors(run::Run, num_concs::Int64)
 end
 
 function adjust_sensor(cell::Cell, loc::ProteinPropsMod.ProteinLoc, delta::Array{Float64, 1})
+    #println(length(cell.sensors[loc]))
+    #println(length(delta))
     cell.sensors[loc] = clamp.(cell.sensors[loc] .+ delta, 0.0, cell.config.run.max_sensor_amount)
+end
+
+function extend_sensors(cell::Cell, index::Int64)
+    for loc in keys(cell.sensors)
+        insert!(cell.sensors[loc], index, cell.config.run.initial_cell_sensor_conc)
+    end
 end
 
 function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})

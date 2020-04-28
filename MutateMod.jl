@@ -29,6 +29,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
                 insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config, mut_copy)) #insert a new GeneState into the root cell
                 insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
+                IndividualMod.extend_sensors(indiv, gene_index + 1)
 
                 #insert a new conc into the initial proteins, and into the corresponding copy that is in the root cell
                 for init_protein in indiv.initial_cell_proteins

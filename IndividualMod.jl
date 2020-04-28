@@ -90,6 +90,10 @@ function reset_gene_scores(indiv::Individual)
     indiv.gene_scores .= 0
 end
 
+function extend_sensors(indiv::Individual, index::Int64)
+    CellTreeMod.traverse(cell -> CellMod.extend_sensors(cell, index), indiv.cell_tree)
+end
+
 function run_protein_app(indiv::Individual)
     #we want to visit cells in breadth-first order
     #build an array of the cells (in bfs order) so that as the tree is modified,
