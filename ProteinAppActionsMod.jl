@@ -7,6 +7,7 @@ using CellTreeMod
 using SymMod
 using GeneMod
 using ProteinStoreMod
+using SymProbsMod
 using Printf
 
 export AppArgs
@@ -60,7 +61,7 @@ function alter_sym_prob(args::AppArgs)
         #println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
-        sym_index = args.app_protein.props.arg % length(cell.probs)
+        sym_index = Int64(args.app_protein.props.arg % length(cell.probs))
         sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
         
         max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess
@@ -83,8 +84,8 @@ function alter_sensor(args::AppArgs)
     #it will decrease as it is used, and through decay
     max_excess = 1.0 - cell.config.run.sensor_reinforcement_threshold #max possible excess
     scale_factor = 1.0 / max_excess
-    excess = maximum(args.app_protein.concs) - cell.config.run.sensor_reinforcement_threshold #should be positive, given that this method has been called
-    delta = sign * excess * scale_factor
+    excess = max.(args.app_protein.concs - cell.config.run.sensor_reinforcement_threshold, zeros(length(args.app_protein.concs)))
+    delta = excess * scale_factor
     CellMod.adjust_sensor(cell, loc, delta)
 
     ProteinStoreMod.remove(cell.proteins, args.app_protein)

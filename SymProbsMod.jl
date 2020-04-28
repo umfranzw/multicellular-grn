@@ -36,8 +36,10 @@ function alter_prob(probs::SymProbs, index::Int64, amount::Float64)
     probs.probs[sym] = new_prob
 
     #normalize so the sum stays equal to one
-    total = sum(probs.probs)
-    probs.probs ./= total
+    total = sum(values(probs.probs))
+    for key in keys(probs.probs)
+        probs.probs[key] /= total
+    end
 end
 
 function choose_sym(probs::SymProbs, config::Config)
