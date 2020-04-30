@@ -21,4 +21,6 @@ push!(terms,
       Sym(:3, SymMod.IntConst)
       )
 
+num_syms = length(fcns) + length(terms)
+
 end

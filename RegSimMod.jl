@@ -9,6 +9,7 @@ import TrackerMod
 
 function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
     pop_trees = Array{Array{CellTree, 1}, 1}()
+    #Threads.@threads for pop_index in 1:length(pop)
     for pop_index in 1:length(pop)
         #@info @sprintf("Individual %d\n", pop_index)
         indiv = pop[pop_index]
@@ -33,9 +34,9 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         end
 
         IndividualMod.run_fix_syms(indiv)
+        FitnessMod.eval(indiv, ea_step)
         #save final state under index run.reg_step + 1
         TrackerMod.save_reg_state(indiv, ea_step, run.reg_steps + 1, pop_index)
-        FitnessMod.eval(indiv, ea_step)
     end
 end
 

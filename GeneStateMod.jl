@@ -11,15 +11,15 @@ import Base.show
 export GeneState
 
 mutable struct GeneState
-    config::Config
+    run::Run
     gene::Gene
     bindings::Array{Union{Protein, Nothing}, 1}
 
-    function GeneState(config::Config, gene::Gene)
+    function GeneState(run::Run, gene::Gene)
         new(
-            config,
+            run,
             gene,
-            repeat([nothing], config.run.bind_sites_per_gene)
+            repeat([nothing], run.bind_sites_per_gene)
         )
     end
 end
@@ -103,7 +103,7 @@ function get_prod_rates(gs::GeneState)
                 excess = protein_conc - threshold #will be >= 0, since it's already bound
 
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
-                rate = excess * (gs.config.run.max_prod_rate / (1 - threshold))
+                rate = excess * (gs.run.max_prod_rate / (1 - threshold))
                 push!(rates, (prod_index=i, rate=rate))
             end
         end
@@ -127,7 +127,7 @@ function get_prod_rates(gs::GeneState)
             avg = sum / length(gs.bindings)
             max_avg = max_sum / length(gs.bindings) #max possible avg
             #scale avg from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
-            rate = excess * (gs.config.run.max_prod_rate / (1 - max_avg))
+            rate = excess * (gs.run.max_prod_rate / (1 - max_avg))
             push!(rates, (prod_index=1, rate=rate))
         end
 
@@ -153,7 +153,7 @@ function get_prod_rates(gs::GeneState)
             avg = sum / count
             max_avg = max_sum / count
             #scale it from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
-            rate = excess * (gs.config.run.max_prod_rate / (1 - max_avg))
+            rate = excess * (gs.run.max_prod_rate / (1 - max_avg))
             push!(rates, (prod_index=1, rate=rate))
         end
 
@@ -178,7 +178,7 @@ function get_prod_rates(gs::GeneState)
 
         if count == 1
             #scale excess from [0.0, 1.0 - max_excess] to [0.0, run.max_prod_rate]
-            rate = excess * (gs.config.run.max_prod_rate / (1 - max_excess))
+            rate = excess * (gs.run.max_prod_rate / (1 - max_excess))
             push!(rates, (prod_index=1, rate=rate))
         end
     end

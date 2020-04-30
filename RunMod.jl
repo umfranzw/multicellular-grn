@@ -21,6 +21,8 @@ struct Run
     ea_steps::Int64
     mut_prob::Float64
     num_initial_genes::Int64
+    tourn_size::Int64
+    use_tourn_replacement::Bool
     fitness_term_threshold::Float64
     gene_score_threshold::Float64
     
@@ -52,6 +54,7 @@ struct Run
     max_sensor_amount::Float64
     sensor_reinforcement_threshold::Float64
     sym_prob_threshold::Float64
+    max_protein_arg::UInt8
     
     fix_rng_seed::Bool
     rng_seed::UInt64

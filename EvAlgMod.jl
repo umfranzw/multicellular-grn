@@ -3,12 +3,14 @@ module EvAlgMod
 using RunMod
 using IndividualMod
 using MutateMod
+using SelectionMod
 using RegSimMod
 using TrackerMod
 using Printf
 import Random
 
 function ev_alg(run::Run)
+    selector = Selector(run)
     data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
     TrackerMod.create_tracker(run, data_filename)
     pop = create_pop(run)
@@ -22,6 +24,7 @@ function ev_alg(run::Run)
         @info @sprintf("EA step: %d", ea_step)
         
         #run the genetic operators
+        SelectionMod.select(selector, pop)
         MutateMod.mutate(pop, ea_step)
 
         #TrackerMod.save_ea_state(pop, ea_step)

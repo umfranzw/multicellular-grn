@@ -21,16 +21,21 @@ tracker = nothing
 mutable struct Tracker
     run::Run
     path::String
-    file_handle::IOStream
+    file_handle::Union{IOStream, Nothing}
     run_best::Union{Individual, Nothing}
     gen_best::Union{Individual, Nothing}
+    file_handle_lock::ReentrantLock
 end
 
 function create_tracker(run::Run, path::String)
     global tracker
 
-    file_handle = open(path, "w")
-    tracker = Tracker(run, path, file_handle, nothing, nothing)
+    if run.log_data
+        file_handle = open(path, "w")
+    else
+        file_handle = nothing
+    end
+    tracker = Tracker(run, path, file_handle, nothing, nothing, ReentrantLock())
     save_run()
 
     tracker
@@ -44,7 +49,9 @@ end
 function destroy_tracker()
     global tracker
 
-    close(tracker.file_handle)
+    if tracker.run.log_data
+        close(tracker.file_handle)
+    end
     tracker = nothing
 end
 
@@ -91,16 +98,19 @@ end
 
 function write_obj(tag_type::TagType, tag::Array{Int64, 1}, obj::Any)
     global tracker
-    
+
     buf = IOBuffer()
     Serialization.serialize(buf, obj)
     compressed = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+    
+    lock(tracker.file_handle_lock)
     write(tracker.file_handle, UInt8(tag_type)) #write type
     for tag_val in tag
         write(tracker.file_handle, tag_val) #write tag
     end
     write(tracker.file_handle, Int64(length(compressed))) #write size
     write(tracker.file_handle, compressed) #write obj
+    unlock(tracker.file_handle_lock)
 end
 
 function save_run()

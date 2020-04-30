@@ -8,10 +8,12 @@ using ProteinMod
 using ProteinPropsMod
 using ProteinStoreMod
 using RandUtilsMod
+using SettingsMod
 
 import Random
 
 function mutate(pop::Array{Individual, 1}, ea_step::Int64)
+    #Threads.@threads for indiv in pop
     for indiv in pop
         mutate_indiv(indiv, ea_step)
     end
@@ -27,7 +29,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
             mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
             if mut_copy != nothing
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
-                insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config, mut_copy)) #insert a new GeneState into the root cell
+                insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config.run, mut_copy)) #insert a new GeneState into the root cell
                 insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
                 IndividualMod.extend_sensors(indiv, gene_index + 1)
 
@@ -143,13 +145,12 @@ function mutate_props(
     #mutate props.arg
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         if arg == nothing
-            max_uint8 = 2^8 - 1
             time_factor = 1.0 - ea_step / config.run.ea_steps
-            range = Int64(floor(time_factor * max_uint8))
+            range = Int64(floor(time_factor * config.run.max_protein_arg))
             delta = RandUtilsMod.rand_int(config, 0, range) - range ÷ 2
             #watch out for overflow
-            if props.arg + delta > max_uint8
-                props.arg = UInt8(max_uint8)
+            if props.arg + delta > config.run.max_protein_arg
+                props.arg = UInt8(config.run.max_protein_arg)
             elseif props.arg + delta < 0
                 props.arg = UInt8(0)
             else

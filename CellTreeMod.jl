@@ -46,6 +46,26 @@ function build_info(cell::Cell, cell_to_level::Dict{Cell, Int64}, level_to_cell:
     end
 end
 
+function contains_sym(tree::CellTree, sym::Symbol)
+    result = false
+    if tree.root != nothing
+        result = contains_sym(tree.root, sym)
+    end
+
+    result
+end
+
+function contains_sym(cell::Cell, sym::Symbol)
+    result = cell.sym != nothing && cell.sym.val == sym
+    i = 1
+    while !result && i <= length(cell.children)
+        result = contains_sym(cell.children[i], sym)
+        i += 1
+    end
+
+    result
+end
+
 #depth-first traversal
 function traverse(f::Function, start_node::Cell)
     f(start_node)

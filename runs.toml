@@ -3,9 +3,12 @@
 # GA #
 ######
 pop_size = 50
-ea_steps = 20
+ea_steps = 15
 mut_prob = 0.2
 num_initial_genes = 1
+
+tourn_size = 10
+use_tourn_replacement = false
 
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
@@ -71,6 +74,8 @@ sensor_reinforcement_threshold = 0.5
 #cell symbol probs can only be changed when the (application) sym protein exceeds this threshold
 sym_prob_threshold = 0.5
 
+max_protein_arg = 9 #must be in range [max(max_children, num_symbols), 2^8 - 1]
+
 ###########################
 #Random Number Generation #
 ###########################
@@ -81,6 +86,6 @@ rng_seed = 2000
 # Tracking #
 ############
 log_data = true
-step_range = "0:1:20"
+step_range = "0:1:15"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

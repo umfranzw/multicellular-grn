@@ -28,7 +28,7 @@ mutable struct Cell
     id::Union{UInt64, Nothing} #for use in the UI
 
     function Cell(config::Config, genes::Array{Gene, 1}, age::Int64=0)
-        gene_states = map(g -> GeneState(config, g), genes)
+        gene_states = map(g -> GeneState(config.run, g), genes)
         proteins = ProteinStore()
         children = Array{Cell, 1}()
 

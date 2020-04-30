@@ -349,7 +349,7 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
 
         for site_index in 1:length(gene.bind_sites)
             eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site_index)
-            run_bind_for_site(cell.gene_states[gene_index], gene_index, site_index, eligible_proteins)
+            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, site_index, eligible_proteins)
         end
     end
 end
@@ -392,7 +392,7 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     eligible_proteins
 end
 
-function run_bind_for_site(gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
@@ -406,7 +406,7 @@ function run_bind_for_site(gs::GeneState, gene_index::Int64, site_index::Int64, 
         wheel[end] = 1.0 #just in case we've got some floating point error
 
         sel_index = 1
-        r = RandUtilsMod.rand_float(gs.config) #random value in [0, 1)
+        r = RandUtilsMod.rand_float(config) #random value in [0, 1)
         while r >= wheel[sel_index]
             sel_index += 1
         end
