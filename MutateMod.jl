@@ -25,7 +25,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     gene_index = 1
     while gene_index <= length(indiv.genes)
         normal_score = indiv.gene_scores[gene_index] / score_total #note: will be Inf if score_total is 0
-        if normal_score > indiv.config.run.gene_score_threshold
+        if normal_score > indiv.config.run.gene_score_threshold && length(indiv.genes) < indiv.config.run.max_genes
             mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
             if mut_copy != nothing
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
