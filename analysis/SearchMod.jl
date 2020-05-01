@@ -17,8 +17,8 @@ function search_cells(data::Data, ea_step_range::StepRange{Int64, Int64}, pop_in
     for ea_step in ea_step_range
         for pop_index in pop_index_range
             for reg_step in reg_step_range
-                tree = DataMod.get_tree(data, ea_step, pop_index, reg_step)
-                info = TreeInfo(tree)
+                indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+                info = TreeInfo(indiv.cell_tree)
                 levels = sort(collect(keys(info.level_to_cell)))
                 for level in levels
                     row_cells = info.level_to_cell[level]

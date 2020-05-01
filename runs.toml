@@ -2,10 +2,10 @@
 ######
 # GA #
 ######
-pop_size = 50
+pop_size = 10
 ea_steps = 15
 mut_prob = 0.2
-num_initial_genes = 1
+num_initial_genes = 10
 max_genes = 50
 
 tourn_size = 10
@@ -26,14 +26,14 @@ reg_steps = 50
 #proteins are deleted when all conc values are below this threshold
 protein_deletion_threshold = 0.04
 
-max_prod_rate = 0.5
+max_prod_rate = 0.75
 
 decay_rate = 0.05
 
 #note: actual number of initial proteins may be less than this (they must be unique)
-num_initial_proteins = 20
+num_initial_proteins = 10
 
-initial_cell_sensor_conc = 0.5
+initial_cell_sensor_conc = 0.75
 
 #proteins will stop being produced when this count is exceeded
 max_proteins_per_cell = 50
@@ -53,7 +53,7 @@ max_acc_weight = 1.0
 min_ev_weight = 0.0
 
 #note: number of production sites = number of bind sites
-bind_sites_per_gene = 2
+bind_sites_per_gene = 1
 
 #################################
 # Genotype -> Phenotype Mapping #
@@ -62,7 +62,7 @@ bind_sites_per_gene = 2
 division_age_limit = 40
 
 #cells can only divide when the (application) division protein exceeds this threshold
-cell_division_threshold = 0.25
+cell_division_threshold = 0.2
 
 #maximum number of children per cell (i.e. max airity of functions)
 max_children = 2
@@ -71,11 +71,11 @@ max_tree_size = 50
 #max conc value for sensor proteins (controls how much neighbour protein can be transferred between cells)
 max_sensor_amount = 0.75
 #cell sensors can only be reinforced when the (application) sensor protein exceeds this threshold
-sensor_reinforcement_threshold = 0.5
+sensor_reinforcement_threshold = 0.2
 #cell symbol probs can only be changed when the (application) sym protein exceeds this threshold
-sym_prob_threshold = 0.5
+sym_prob_threshold = 0.2
 
-max_protein_arg = 9 #must be in range [max(max_children, num_symbols), 2^8 - 1]
+max_protein_arg = 255 #must be in range [max(max_children, num_symbols), 2^8 - 1=255]
 
 ###########################
 #Random Number Generation #

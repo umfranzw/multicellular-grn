@@ -58,18 +58,39 @@ function cell_with_binding(cell::Cell)
     result
 end
 
+function cell_with_neighbour_binding(cell::Cell)
+    bind_strs = Array{String, 1}()
+    for gs in cell.gene_states
+        for binding in gs.bindings
+            if binding != nothing && binding.props.type == ProteinPropsMod.Neighbour# && binding.src_cell_ptr != pointer_from_objref(cell)
+                push!(bind_strs, ProteinPropsMod.to_str(binding.props))
+            end
+        end
+    end
+
+    if length(bind_strs) > 0
+        result = (true, bind_strs)
+    else
+        result = (false, nothing)
+    end
+
+    result
+end
+
 data = Data("data")
 run = DataMod.get_run(data)
 
-ea_step_range = 0:1:20#run.step_range
+ea_step_range = 0:2:50 #run.step_range
 pop_index_range = 1:run.pop_size
 reg_step_range = run.reg_steps + 1:run.reg_steps + 1
 
-# results = SearchMod.search_cells(data, ea_step_range, pop_index_range, reg_step_range, cell_with_binding)
-result = SearchMod.reduce_indivs(data, ea_step_range, pop_index_range, reg_step_range, indiv_with_biggest_tree)
-indiv, index, size = result
-println("Index: $(index)")
-println("Size: $(size)")
+results = SearchMod.search_cells(data, ea_step_range, pop_index_range, reg_step_range, cell_with_neighbour_binding)
+println(results)
+
+#result = SearchMod.reduce_indivs(data, ea_step_range, pop_index_range, reg_step_range, indiv_with_biggest_tree)
+#indiv, index, size = result
+#println("Index: $(index)")
+#println("Size: $(size)")
 
 DataMod.close(data)
 # save_cell_results("results.csv", results, bind_strs -> join(bind_strs, ","))

@@ -75,6 +75,7 @@ function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
         #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
         #in the root cell
         copy = deepcopy(proteins[i])
+        copy.src_cell_ptr = pointer_from_objref(cell)
         ProteinStoreMod.insert(cell.proteins, copy)
 
         i += 1

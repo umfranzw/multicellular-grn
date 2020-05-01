@@ -37,15 +37,13 @@ function rand_init(run::Run, seed::UInt64)
     rng = Random.MersenneTwister(seed)
     config = Config(run, rng)
     
-    genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal]), 1:config.run.num_initial_genes)
-    #genes = Array{Gene, 1}()
-
+    genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)
 
     root_cell = Cell(config, genes)
     cell_tree = CellTree(root_cell)
     
     initial_proteins = Array{Protein, 1}()
-    for i in 1:config.run.num_initial_proteins
+    for i in 0:config.run.num_initial_proteins - 1
         gene = genes[(i % length(genes)) + 1]
         types = Array{ProteinPropsMod.ProteinType, 1}()
         actions = Array{ProteinPropsMod.ProteinAction, 1}()

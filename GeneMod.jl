@@ -124,7 +124,12 @@ function rand_bind_site(
 end
 
 #note: binding sites should never be of type Application
-function rand_init(config::Config, genome_index::Int64, bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion])
+function rand_init(
+    config::Config,
+    genome_index::Int64,
+    bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion],
+    bind_logic::Union{Array{BindLogic, 1}, Nothing}=nothing
+)
     bind_sites = Array{BindSite, 1}()
     prod_sites = Array{ProteinProps, 1}()
     for i in 1:config.run.bind_sites_per_gene
@@ -140,12 +145,16 @@ function rand_init(config::Config, genome_index::Int64, bind_site_types::Array{P
         push!(prod_sites, prod_site)
     end
 
-    bind_logic = RandUtilsMod.rand_enum_val(config, BindLogic)
+    if bind_logic == nothing
+        logic = RandUtilsMod.rand_enum_val(config, BindLogic)
+    else
+        logic = Random.rand(config.rng, bind_logic)
+    end
     
     Gene(
         config,
         genome_index,
-        bind_logic,
+        logic,
         bind_sites,
         prod_sites
     )
