@@ -13,8 +13,8 @@ using SettingsMod
 import Random
 
 function mutate(pop::Array{Individual, 1}, ea_step::Int64)
-    #Threads.@threads for indiv in pop
-    for indiv in pop
+    Threads.@threads for indiv in pop
+    #for indiv in pop
         mutate_indiv(indiv, ea_step)
     end
 end

@@ -16,7 +16,7 @@ function ev_alg(run::Run)
     pop = create_pop(run)
     #TrackerMod.save_ea_state(pop, 0, true)
     RegSimMod.reg_sim(run, pop, 0)
-    TrackerMod.update_bests(pop)
+    TrackerMod.update_bests(pop, 0)
     foreach(IndividualMod.reset_cell_tree, pop)
 
     ea_step = 1
@@ -33,7 +33,7 @@ function ev_alg(run::Run)
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop, ea_step)
 
-        TrackerMod.update_bests(pop)
+        TrackerMod.update_bests(pop, ea_step)
         #print_trees(pop)
 
         #reset the individuals before the next iteration
@@ -42,6 +42,7 @@ function ev_alg(run::Run)
         ea_step += 1
     end
 
+    TrackerMod.save_run_best()
     TrackerMod.destroy_tracker()
 end
 
@@ -66,7 +67,7 @@ end
 function terminate(run::Run)
     tracker = TrackerMod.get_tracker()
     
-    tracker.run_best != nothing && tracker.run_best.fitness <= run.fitness_term_threshold
+    TrackerMod.is_set(tracker.run_best) && tracker.run_best.indiv.fitness <= run.fitness_term_threshold
 end
 
 function create_pop(run::Run)

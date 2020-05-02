@@ -8,9 +8,9 @@ using CellTreeMod
 using Printf
 
 @enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 IndivState RunState
+@enum TagType::UInt8 IndivState RunState RunBestInfoState
 
-export Tracker
+export Tracker, BestInfo
 
 tracker = nothing
 
@@ -18,12 +18,41 @@ tracker = nothing
 #note: 2^20 bytes = 1MB
 #const cache_size = 512 * 2^20
 
+mutable struct BestInfo
+    index::Union{Nothing, Tuple{Int64, Int64, Int64}} #(ea_step, pop_index, reg_step) - reg step will always be run.reg_steps + 1
+    indiv::Union{Nothing, Individual}
+
+    function BestInfo()
+        new(nothing, nothing)
+    end
+end
+
+function update(info::BestInfo, indiv::Individual, ea_step::Int64, pop_index::Int64, reg_step::Int64; make_copy::Bool=true)
+    updated = false
+    if !is_set(info) || indiv.fitness < info.indiv.fitness
+        if make_copy
+            info.indiv = deepcopy(indiv)
+        else
+            info.indiv = indiv
+        end
+        
+        info.index = (ea_step, pop_index, reg_step)
+        updated = true
+    end
+
+    updated
+end
+
+function is_set(info::BestInfo)
+    info.indiv != nothing
+end
+
 mutable struct Tracker
     run::Run
     path::String
     file_handle::Union{IOStream, Nothing}
-    run_best::Union{Individual, Nothing}
-    gen_best::Union{Individual, Nothing}
+    run_best::BestInfo
+    gen_best::BestInfo
     file_handle_lock::ReentrantLock
 end
 
@@ -35,7 +64,7 @@ function create_tracker(run::Run, path::String)
     else
         file_handle = nothing
     end
-    tracker = Tracker(run, path, file_handle, nothing, nothing, ReentrantLock())
+    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), ReentrantLock())
     save_run()
 
     tracker
@@ -55,44 +84,31 @@ function destroy_tracker()
     tracker = nothing
 end
 
-function update_bests(pop::Array{Individual, 1})
+function update_bests(pop::Array{Individual, 1}, ea_step::Int64)
     global tracker
     
     rb_updated = false
     gb_updated = false
-    for indiv in pop
-        if tracker.gen_best == nothing || indiv.fitness < tracker.gen_best.fitness
-            tracker.gen_best = deepcopy(indiv)
+    for pop_index in 1:length(pop)
+        indiv = pop[pop_index]
+        if update(tracker.gen_best, indiv, ea_step, pop_index, tracker.run.reg_steps + 1)
             gb_updated = true
-            
-            if tracker.run_best == nothing || indiv.fitness < tracker.run_best.fitness
-                tracker.run_best = tracker.gen_best #can just use the copy that was already made
+            #note: we only ever need to update run best if gen best was updated
+            if update(tracker.run_best, tracker.gen_best.indiv, ea_step, pop_index, tracker.run.reg_steps + 1, make_copy=false) #can just use the copy that was already made for gen best
                 rb_updated = true
-                
             end
         end
     end
 
-    if gb_updated
-        # @info join(
-        #     (
-        #         "gen_best:",
-        #         @sprintf("fitness: %0.2f", tracker.gen_best.fitness),
-        #         CellTreeMod.to_expr_str(tracker.gen_best.cell_tree)
-        #     ),
-        #     "\n"
-        # )
-        
-        if rb_updated
-            @info join(
-                (
-                    "run_best:",
-                    @sprintf("fitness: %0.2f", tracker.run_best.fitness),
-                    CellTreeMod.to_expr_str(tracker.run_best.cell_tree)
-                ),
-                "\n"
-            )
-        end
+    if rb_updated
+        @info join(
+            (
+                "run_best:",
+                @sprintf("fitness: %0.2f", tracker.run_best.indiv.fitness),
+                CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)
+            ),
+            "\n"
+        )
     end
 end
 
@@ -118,6 +134,14 @@ function save_run()
 
     if tracker.run.log_data
         write_obj(RunState, Array{Int64, 1}(), tracker.run)
+    end
+end
+
+function save_run_best()
+    global tracker
+
+    if tracker.run.log_data
+        write_obj(RunBestInfoState, Array{Int64, 1}(), tracker.run_best)
     end
 end
 

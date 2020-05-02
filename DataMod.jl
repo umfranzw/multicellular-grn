@@ -14,7 +14,7 @@ using ChainGraphMod
 using GeneStateMod
 using Statistics
 using Printf
-import TrackerMod
+using TrackerMod
 import Serialization
 import CodecZlib
 
@@ -37,6 +37,7 @@ mutable struct Data
     #(ea_step, index) => (position, size)
     #indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
     file_handle::IOStream
+    run_best::Union{BestInfo, Nothing}
     run::Union{Run, Nothing}
 
     function Data(filename::String)
@@ -53,9 +54,9 @@ mutable struct Data
         #indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.indiv_cache_size)
         #indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
-        data = new(indivs, indivs_index, file_handle, nothing)
-        data.run = get_run(data)
-        create_index(data)
+        data = new(indivs, indivs_index, file_handle, nothing, nothing)
+        #data.run = get_run(data)
+        create_index(data) #note: this also initializes run_best and run
 
         data
     end
@@ -65,20 +66,20 @@ function close(data::Data)
     close(data.file_handle)
 end
 
-function get_run(data::Data)
-    seek(data.file_handle, 0)
-    tag_type = read(data.file_handle, TrackerMod.TagType)
+# function get_run(data::Data)
+#     seek(data.file_handle, 0)
+#     tag_type = read(data.file_handle, TrackerMod.TagType)
     
-    if tag_type != TrackerMod.RunState
-        println("Error - the run is not the first thing in the data file.")
-        close(data)
-        exit(1)
-    end
+#     if tag_type != TrackerMod.RunState
+#         println("Error - the run is not the first thing in the data file.")
+#         close(data)
+#         exit(1)
+#     end
     
-    size = read(data.file_handle, Int64)
+#     size = read(data.file_handle, Int64)
 
-    read_obj(data, position(data.file_handle), size)
-end
+#     read_obj(data, position(data.file_handle), size)
+# end
 
 # function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
 #     key = (ea_step,  pop_index)
@@ -87,19 +88,22 @@ end
 
 function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
     key = (ea_step, pop_index, reg_step)
-    get_obj(data, key, :indivs, :indivs_index)
+    if key == data.run_best.index
+        indiv = data.run_best.indiv
+    else
+        indiv = get_obj(data, key)
+    end
+
+    indiv
 end
 
-function get_obj(data::Data, key::Any, store_field::Symbol, index_field::Symbol)
-    store = getfield(data, store_field)
-    index = getfield(data, index_field)
-    
-    if key ∉ keys(store)
-        pos, size = index[key]
-        store[key] = read_obj(data, pos, size)
+function get_obj(data::Data, key::Any)
+    if key ∉ keys(data.indivs)
+        pos, size = data.indivs_index[key]
+        data.indivs[key] = read_obj(data, pos, size)
     end    
     
-    store[key]
+    data.indivs[key]
 end
 
 function read_obj(data::Data, pos::Int64, size::Int64)
@@ -118,7 +122,8 @@ function create_index(data::Data)
         if tag_type == TrackerMod.RunState
             #note: no tag here
             size = read(data.file_handle, Int64)
-            #no need to add this to an index - it's always at the start of the data file
+            #no need to add this to an index - we'll save it in the data object
+            data.run = read_obj(data, position(data.file_handle), size)
             
         elseif tag_type == TrackerMod.IndivState
             ea_step = read(data.file_handle, Int64)
@@ -128,10 +133,16 @@ function create_index(data::Data)
 
             key = (ea_step, pop_index, reg_step)
             data.indivs_index[key] = (position(data.file_handle), size)
-        end
 
-        #go to next item
-        seek(data.file_handle, position(data.file_handle) + size)
+            #go to next item
+            seek(data.file_handle, position(data.file_handle) + size)
+
+        elseif tag_type == TrackerMod.RunBestInfoState
+            #note: no tag here
+            size = read(data.file_handle, Int64)
+            #no need to add this to an index - we'll save it in the data object
+            data.run_best = read_obj(data, position(data.file_handle), size)
+        end
     end
 end
 

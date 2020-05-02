@@ -128,3 +128,7 @@ class DataTools():
         Main.eval('scores = indiv.gene_scores')
         
         return Main.scores
+
+    def get_run_best_index(self):
+        Main.eval('best_index = data.run_best.index')
+        return Main.best_index

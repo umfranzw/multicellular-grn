@@ -8,8 +8,8 @@ using CellTreeMod
 import TrackerMod
 
 function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
-    #Threads.@threads for pop_index in 1:length(pop)
-    for pop_index in 1:length(pop)
+    Threads.@threads for pop_index in 1:length(pop)
+    #for pop_index in 1:length(pop)
         #@info @sprintf("Individual %d\n", pop_index)
         indiv = pop[pop_index]
         indiv_trees = Array{CellTree, 1}()

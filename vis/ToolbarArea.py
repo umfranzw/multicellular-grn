@@ -7,6 +7,7 @@ from CustomStyle import CustomStyle
 class ToolbarArea(QToolBar):
     indexChanged = Signal(tuple) #fires when anything changes
     eaStepChanged = Signal(int)
+    showBestChanged = Signal(bool)
     
     def __init__(self, run, *args, **kwargs):
         QToolBar.__init__(self, *args, **kwargs)
@@ -28,16 +29,50 @@ class ToolbarArea(QToolBar):
         self.regStepSpin.setRange(0, run.reg_steps + 1)
         self.regStepSpin.valueChanged.connect(self.handle_index_changed)
 
+        self.show_best_checkbox = QCheckBox()
+        self.show_best_checkbox.stateChanged.connect(self.handle_show_best_changed)
+
         self.addWidget(QLabel("EA Step:"))
         self.addWidget(self.eaStepSpin)
         self.addWidget(QLabel("Indiv:"))
         self.addWidget(self.indivSpin)
         self.addWidget(QLabel("Reg Step:"))
         self.addWidget(self.regStepSpin)
+        self.addWidget(QLabel("Show Best"))
+        self.addWidget(self.show_best_checkbox)
 
     def getIndex(self):
         return (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())
-        
+
+    def setIndex(self, index):
+        ea_step, pop_index, reg_step = index
+
+        #self.blockSignals(True)
+        #ea_step_changed = self.eaStepSpin.value() != ea_step
+        self.eaStepSpin.setValue(ea_step)
+        #index_changed = ea_step_changed or self.indivSpin.value() != pop_index
+        self.indivSpin.setValue(pop_index)
+        #index_changed = index_changed or self.regStepSpin.value() != reg_step
+        self.regStepSpin.setValue(reg_step)
+        #self.blockSignals(False)
+
+        #fire each signal *once* (if necessary) to update the view
+        # if index_changed:
+        #     self.handle_index_changed(reg_step) #assume they've just changed the reg_step (not great but works)
+        # if ea_step_changed:
+        #     self.handle_ea_step_changed(ea_step)
+
+    def disable_spin_buttons(self):
+        self.set_enabled_state(False)
+
+    def enable_spin_buttons(self):
+        self.set_enabled_state(True)
+
+    def set_enabled_state(self, state):
+        self.eaStepSpin.setEnabled(state)
+        self.indivSpin.setEnabled(state)
+        self.regStepSpin.setEnabled(state)
+    
     @Slot()
     def handle_index_changed(self, new_val):
         self.indexChanged.emit(self.getIndex())
@@ -45,4 +80,8 @@ class ToolbarArea(QToolBar):
     @Slot()
     def handle_ea_step_changed(self, new_val):
         self.eaStepChanged.emit(new_val)
+
+    @Slot()
+    def handle_show_best_changed(self, new_val):
+        self.showBestChanged.emit(new_val == Qt.Checked)
     
