@@ -12,7 +12,6 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
     #for pop_index in 1:length(pop)
         #@info @sprintf("Individual %d\n", pop_index)
         indiv = pop[pop_index]
-        indiv_trees = Array{CellTree, 1}()
         #save initial state under index 0
         TrackerMod.save_reg_state(indiv, ea_step, 0, pop_index)
         

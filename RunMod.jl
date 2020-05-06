@@ -23,7 +23,6 @@ struct Run
     num_initial_genes::Int64
     max_genes::Int64
     tourn_size::Int64
-    use_tourn_replacement::Bool
     fitness_term_threshold::Float64
     gene_score_threshold::Float64
     

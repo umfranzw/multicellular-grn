@@ -24,7 +24,7 @@ function ev_alg(run::Run)
         @info @sprintf("EA step: %d", ea_step)
         
         #run the genetic operators
-        SelectionMod.select(selector, pop)
+        pop = SelectionMod.select(selector, pop)
         MutateMod.mutate(pop, ea_step)
 
         #TrackerMod.save_ea_state(pop, ea_step)

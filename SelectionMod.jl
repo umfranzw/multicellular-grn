@@ -28,45 +28,15 @@ mutable struct Selector
 end
 
 function select(selector::Selector, pop::Array{Individual, 1})
-    num_tourns = selector.config.run.pop_size ÷ selector.config.run.tourn_size
-    #get the indices of the sorted population (from worst (highest) to best (lowest))
-    sorted_indices = sortperm(pop, by=indiv -> indiv.fitness, rev=true)
-
-    replacements = Array{Individual, 1}()
-    if selector.config.run.use_tourn_replacement #random selection (individuals may be picked twice
-        for i in 1:num_tourns
-            winner = nothing
-            for j in 1:selector.config.run.tourn_size
-                indiv = Random.rand(config.rng, pop)
-                if winner == nothing || indiv.fitness < winner.fitness
-                    winner = indiv
-                end
-            end
-            push!(replacements, winner)
-        end
-        
-    else #individuals should never be picked more than once
-        perm = Random.shuffle(selector.config.rng, 1:selector.config.run.pop_size)
-        for i in 1:num_tourns
-            winner = nothing
-            for j in 1:selector.config.run.tourn_size
-                perm_index = (i - 1) * selector.config.run.tourn_size + j
-                pop_index = perm[perm_index]
-                indiv = pop[pop_index]
-                if winner == nothing || indiv.fitness < winner.fitness
-                    winner = indiv
-                end
-            end
-            push!(replacements, winner)
-        end
+    new_pop = Array{Individual, 1}()
+    for i in 1:selector.config.run.pop_size
+        tourn = Random.rand(selector.config.rng, pop, selector.config.run.tourn_size)
+        winner = foldl((cur_best, next) -> next.fitness < cur_best.fitness ? next : cur_best, tourn)
+        #insert a *copy*, since we may pick the same winner more than once
+        push!(new_pop, deepcopy(winner))
     end
-
-    for i in 1:num_tourns
-        replace_index = sorted_indices[i]
-        #println("Replacing $(pop[replace_index].fitness) with $(replacements[i].fitness)")
-        replacement = replacements[i]
-        pop[replace_index] = deepcopy(replacements[i])
-    end
+    
+    new_pop
 end
 
 end

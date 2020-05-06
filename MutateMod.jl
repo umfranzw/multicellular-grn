@@ -33,12 +33,17 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
                 insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
                 IndividualMod.extend_sensors(indiv, gene_index + 1)
 
+                new_num_concs = length(indiv.genes)
                 #insert a new conc into the initial proteins, and into the corresponding copy that is in the root cell
                 for init_protein in indiv.initial_cell_proteins
+                    active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
                     conc = RandUtilsMod.rand_float(indiv.config)
                     insert!(init_protein.concs, gene_index + 1, conc)
-                    active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
-                    insert!(active_protein.concs, gene_index + 1, conc)
+                    
+                    #this is needed since there can be duplicate proteins with identical props in cell.initial_cell_proteins
+                    if length(active_protein.concs) < new_num_concs
+                        insert!(active_protein.concs, gene_index + 1, conc)
+                    end
                 end
                 
                 gene_index += 1 #skip over the copy

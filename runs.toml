@@ -2,14 +2,13 @@
 ######
 # GA #
 ######
-pop_size = 10
+pop_size = 50
 ea_steps = 15
 mut_prob = 0.2
-num_initial_genes = 10
+num_initial_genes = 1
 max_genes = 50
 
-tourn_size = 10
-use_tourn_replacement = false
+tourn_size = 7
 
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
