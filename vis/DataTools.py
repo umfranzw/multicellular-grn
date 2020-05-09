@@ -2,13 +2,16 @@ import socket
 if socket.gethostname() == 'ibis':
     from julia.api import Julia
     jl = Julia(compiled_modules=False)
+    module_path = '/home/umfranzw/multicellular-grn'
+else:
+    module_path = '/home/wayne/Documents/school/thesis/multicellular-grn'
     
 from julia import Main
 
 class DataTools():
     def __init__(self, filename):
         Main.using('Distributed')
-        Main.eval('@everywhere push!(LOAD_PATH, "/home/wayne/Documents/school/thesis/multicellular-grn")')
+        Main.eval('@everywhere push!(LOAD_PATH, "{}")'.format(module_path))
         Main.using('DataMod')
         Main.using('ProteinStoreMod')
         Main.using('ProteinPropsMod')
