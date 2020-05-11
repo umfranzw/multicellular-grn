@@ -239,7 +239,13 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
             #compute the max amount of each protein that we can accept
             accept_amount = sensor_amount / length(neighbour_proteins)
             for neighbour_protein in neighbour_proteins
-                transfer_amount = min.(neighbour_protein.concs, accept_amount)
+                if src_loc == ProteinPropsMod.Top
+                    transfer_amount = min.(neighbour_protein.concs / length(cell.parent.children), accept_amount)
+                elseif src_loc == ProteinPropsMod.Bottom
+                    transfer_amount = min.(neighbour_protein.concs / length(cell.children), accept_amount)
+                else
+                    transfer_amount = min.(neighbour_protein.concs, accept_amount)
+                end
                 cell.sensors[src_loc] -= transfer_amount
                 neighbour_protein.concs -= transfer_amount
                 
