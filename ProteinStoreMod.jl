@@ -89,6 +89,15 @@ function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
     values(ps.proteins[type])
 end
 
+function get_by_types(ps::ProteinStore, types::Array{ProteinPropsMod.ProteinType, 1})
+    result = Array{Protein, 1}()
+    for type in types
+        append!(result, values(ps.proteins[type]))
+    end
+
+    result
+end
+
 function get_all(ps::ProteinStore)
     proteins = Array{Protein, 1}()
     for type in instances(ProteinPropsMod.ProteinType)

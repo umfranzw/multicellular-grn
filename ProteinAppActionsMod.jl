@@ -31,16 +31,21 @@ function divide(args::AppArgs)
         
         max_children = src_cell.config.run.max_children
         num_concs = length(args.genes)
-        chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
-        truncated_chunk_size = num_concs ÷ max_children
-        chunk_start = chunk_index * truncated_chunk_size + 1
-        #last chunk gets the extra concs (if there are any)
-        chunk_end = (chunk_index == max_children - 1) ? num_concs : chunk_start + truncated_chunk_size
+        chunk_index = (args.app_protein.props.arg % 2) #even = left, odd = right
+        mid_index = num_concs ÷ 2
+        chunk_start = mid_index * chunk_index + 1
+        chunk_end = Bool(chunk_index) ? num_concs : mid_index
         chunk_range = chunk_start:chunk_end
+        
+        # chunk_index = args.app_protein.props.arg % max_children #in [0, max_children - 1]
+        # truncated_chunk_size = num_concs ÷ max_children
+        # chunk_start = chunk_index * truncated_chunk_size + 1
+        # #last chunk gets the extra concs (if there are any)
+        # chunk_end = (chunk_index == max_children - 1) ? num_concs : chunk_start + truncated_chunk_size
+        # chunk_range = chunk_start:chunk_end
 
         new_cell = Cell(src_cell.config, args.genes, -1) #age is -1 since it'll be incremented at end of this reg step, and we want this cell to be younger than its parent even if the division occurs on reg step 1
         CellMod.add_parent(new_cell, src_cell)
-        
 
         for protein in ProteinStoreMod.get_all(src_cell.proteins)
             new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, pointer_from_objref(src_cell))
