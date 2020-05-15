@@ -16,6 +16,8 @@ else
     const DATA_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/data"
 end
 
+@enum LogLevel::UInt8 LogNone=0 LogFitnesses LogIndivs
+
 struct Run
     pop_size::Int64
     ea_steps::Int64
@@ -59,7 +61,7 @@ struct Run
     fix_rng_seed::Bool
     rng_seed::UInt64
 
-    log_data::Bool
+    log_level::LogLevel
     step_range::StepRange{Int64, Int64}
     data_output_file::String
 
@@ -69,6 +71,8 @@ struct Run
             name_str = string(name_sym)
             if name_str == "step_range"
                 push!(args, parse_step_range(run[name_str]))
+            elseif name_str == "log_level"
+                push!(args, LogLevel(run[name_str]))
             else
                 push!(args, run[name_str])
             end

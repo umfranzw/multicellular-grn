@@ -8,7 +8,7 @@ using CellTreeMod
 using Printf
 
 @enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 IndivState RunState RunBestInfoState
+@enum TagType::UInt8 IndivState RunState RunBestInfoState FitnessesState
 
 export Tracker, BestInfo
 
@@ -53,18 +53,19 @@ mutable struct Tracker
     file_handle::Union{IOStream, Nothing}
     run_best::BestInfo
     gen_best::BestInfo
+    fitnesses::Array{Array{Float64, 1}, 1}
     file_handle_lock::ReentrantLock
 end
 
 function create_tracker(run::Run, path::String)
     global tracker
 
-    if run.log_data
+    if run.log_level > RunMod.LogNone
         file_handle = open(path, "w")
     else
         file_handle = nothing
     end
-    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), ReentrantLock())
+    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), Array{Array{Float64, 1}, 1}(), ReentrantLock())
     save_run()
 
     tracker
@@ -78,19 +79,22 @@ end
 function destroy_tracker()
     global tracker
 
-    if tracker.run.log_data
+    if tracker.run.log_level > RunMod.LogNone
         close(tracker.file_handle)
     end
     tracker = nothing
 end
 
-function update_bests(pop::Array{Individual, 1}, ea_step::Int64)
+function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64)
     global tracker
     
     rb_updated = false
     gb_updated = false
+    fitnesses = Array{Float64, 1}()
     for pop_index in 1:length(pop)
         indiv = pop[pop_index]
+        push!(fitnesses, indiv.fitness)
+        
         if update(tracker.gen_best, indiv, ea_step, pop_index, tracker.run.reg_steps + 1)
             gb_updated = true
             #note: we only ever need to update run best if gen best was updated
@@ -110,6 +114,7 @@ function update_bests(pop::Array{Individual, 1}, ea_step::Int64)
             "\n"
         )
     end
+    push!(tracker.fitnesses, fitnesses)
 end
 
 function write_obj(tag_type::TagType, tag::Array{Int64, 1}, obj::Any)
@@ -132,7 +137,7 @@ end
 function save_run()
     global tracker
 
-    if tracker.run.log_data
+    if tracker.run.log_level >= RunMod.LogFitnesses
         write_obj(RunState, Array{Int64, 1}(), tracker.run)
     end
 end
@@ -140,8 +145,16 @@ end
 function save_run_best()
     global tracker
 
-    if tracker.run.log_data
+    if tracker.run.log_level >= RunMod.LogIndivs
         write_obj(RunBestInfoState, Array{Int64, 1}(), tracker.run_best)
+    end
+end
+
+function save_fitnesses()
+    global tracker
+
+    if tracker.run.log_level >= RunMod.LogFitnesses
+        write_obj(FitnessesState, Array{Int64, 1}(), tracker.fitnesses)
     end
 end
 
@@ -160,7 +173,7 @@ end
 function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, index::Int64)
     global tracker
 
-    if tracker.run.log_data
+    if tracker.run.log_level >= RunMod.LogIndivs
         write_obj(IndivState, Array{Int64, 1}([ea_step, reg_step, index]), indiv)
     end
 end

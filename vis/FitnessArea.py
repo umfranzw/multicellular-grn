@@ -33,9 +33,9 @@ class FitnessArea(QWidget):
 
         x_axis = QtCharts.QValueAxis()
         x_axis.setRange(0, self.run.ea_steps)
-        x_axis.setTickInterval(self.run.step_range.step)
-        x_axis.setTickCount(self.run.ea_steps // self.run.step_range.step + 1)        
-        x_axis.setLabelFormat('%0.0f') #display as integer
+        #x_axis.setTickInterval(self.run.step_range.step)
+        #x_axis.setTickCount(self.run.ea_steps // self.run.step_range.step + 1)        
+        #x_axis.setLabelFormat('%0.0f') #display as integer
         x_axis.setTitleText('EA Step')
 
         y_axis = QtCharts.QValueAxis()
@@ -56,12 +56,10 @@ class FitnessArea(QWidget):
         chart.addSeries(best_series)
         chart.addSeries(avg_series)
 
-        i = 0
-        for ea_step in range(0, self.run.ea_steps + 1, self.run.step_range.step):
-            best_series.append(QPointF(ea_step, bests[i]))
-            gen_best_series.append(QPointF(ea_step, gen_bests[i]))
-            avg_series.append(QPointF(ea_step, gen_avgs[i]))
-            i += 1
+        for ea_step in range(0, self.run.ea_steps + 1):
+            best_series.append(QPointF(ea_step, bests[ea_step]))
+            gen_best_series.append(QPointF(ea_step, gen_bests[ea_step]))
+            avg_series.append(QPointF(ea_step, gen_avgs[ea_step]))
 
         best_series.attachAxis(x_axis)
         best_series.attachAxis(y_axis)

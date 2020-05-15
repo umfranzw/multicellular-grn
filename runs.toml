@@ -2,13 +2,13 @@
 ######
 # GA #
 ######
-pop_size = 50
-ea_steps = 15
+pop_size = 10
+ea_steps = 10
 mut_prob = 0.2
 num_initial_genes = 1
 max_genes = 50
 
-tourn_size = 7
+tourn_size = 3
 
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
@@ -65,7 +65,7 @@ cell_division_threshold = 0.2
 
 #maximum number of children per cell (i.e. max airity of functions)
 max_children = 2
-max_tree_size = 50
+max_tree_size = 7
 
 #max conc value for sensor proteins (controls how much neighbour protein can be transferred between cells)
 max_sensor_amount = 0.75
@@ -79,13 +79,16 @@ max_protein_arg = 255 #must be in range [max(max_children, num_symbols), 2^8 - 1
 ###########################
 #Random Number Generation #
 ###########################
-fix_rng_seed = true
+fix_rng_seed = false
 rng_seed = 2000
 
 ############
 # Tracking #
 ############
-log_data = true
-step_range = "0:1:15"
+#0 = nothing
+#1 = fitnesses
+#2 = fitnesses & indivs
+log_level = 2
+step_range = "0:5:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"

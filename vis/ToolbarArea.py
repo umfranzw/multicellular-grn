@@ -38,7 +38,7 @@ class ToolbarArea(QToolBar):
         self.addWidget(self.indivSpin)
         self.addWidget(QLabel("Reg Step:"))
         self.addWidget(self.regStepSpin)
-        self.addWidget(QLabel("Show Best"))
+        self.addWidget(QLabel("Show Best Captured"))
         self.addWidget(self.show_best_checkbox)
 
     def getIndex(self):

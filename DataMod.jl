@@ -22,20 +22,15 @@ import Base.close
 
 export Data
 
-#tree_cache_size = 20
 indiv_cache_size = 20
 
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
-    #trees::Dict{Tuple{Int64, Int64, Int64}, CellTree}
     indivs::Cache{Tuple{Int64, Int64, Int64}, Individual}
     #(ea_step, index, reg_step) => (position, size)
     indivs_index::Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}
-    #dictionary order is ea_step, index
-    #indivs::Dict{Tuple{Int64, Int64}, Individual}
-    #indivs::Cache{Tuple{Int64, Int64}, Individual}
-    #(ea_step, index) => (position, size)
-    #indivs_index::Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}
+    #ea_step, pop_index
+    fitnesses::Union{Array{Array{Float64, 1}, 1}, Nothing}
     file_handle::IOStream
     run_best::Union{BestInfo, Nothing}
     run::Union{Run, Nothing}
@@ -44,17 +39,11 @@ mutable struct Data
         file_path = join((RunMod.DATA_PATH, filename), "/")
         file_handle = open(file_path, "r")
         
-        #ea_step, index, reg_step
-        #trees = Dict{Tuple{Int64, Int64, Int64}, CellTree}()
         indivs = Cache{Tuple{Int64, Int64, Int64}, Individual}(DataMod.indiv_cache_size)
         indivs_index = Dict{Tuple{Int64, Int64, Int64}, Tuple{Int64, Int64}}()
         
-        #ea_step, index
-        #indivs = Dict{Tuple{Int64, Int64}, Individual}()
-        #indivs = Cache{Tuple{Int64, Int64}, Individual}(DataMod.indiv_cache_size)
-        #indivs_index = Dict{Tuple{Int64, Int64}, Tuple{Int64, Int64}}()
         
-        data = new(indivs, indivs_index, file_handle, nothing, nothing)
+        data = new(indivs, indivs_index, nothing, file_handle, nothing, nothing)
         #data.run = get_run(data)
         create_index(data) #note: this also initializes run_best and run
 
@@ -142,6 +131,12 @@ function create_index(data::Data)
             size = read(data.file_handle, Int64)
             #no need to add this to an index - we'll save it in the data object
             data.run_best = read_obj(data, position(data.file_handle), size)
+
+        elseif tag_type == TrackerMod.FitnessesState
+            #note: no tag here
+            size = read(data.file_handle, Int64)
+            #no need to add this to an index - we'll save it in the data object
+            data.fitnesses = read_obj(data, position(data.file_handle), size)
         end
     end
 end
@@ -334,19 +329,18 @@ function get_best_fitnesses(data::Data)
     bests = Array{Float64, 1}()
     gen_bests = Array{Float64, 1}()
     gen_avgs = Array{Float64, 1}()
-    final_reg_step = data.run.reg_steps + 1
 
     best = nothing
-    for ea_step in 0 : data.run.step_range.step : data.run.ea_steps
+    for ea_step in 1:length(data.fitnesses)
         gen_avg = 0.0
         gen_best = nothing
         for pop_index in 1:data.run.pop_size
-            indiv = DataMod.get_indiv(data, ea_step, pop_index, final_reg_step)
-            gen_avg += indiv.fitness
-            
-            if gen_best == nothing || indiv.fitness < gen_best
-                gen_best = indiv.fitness
-                
+            fitness = data.fitnesses[ea_step][pop_index]
+            gen_avg += fitness
+
+            if gen_best == nothing || fitness < gen_best
+                gen_best = fitness
+
                 #note: only need to update overall best if gen_best is updated
                 if best == nothing || gen_best < best
                     best = gen_best
