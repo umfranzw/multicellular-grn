@@ -15,12 +15,30 @@ class FitnessArea(QWidget):
         self.gen_button = QPushButton('Generate')
         self.gen_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         self.gen_button.clicked.connect(self.update_chart)
+        
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         save_button.clicked.connect(lambda: Utils.save_chart_view(self.chart_view))
 
+        self.show_best_checkbox = QCheckBox("Show Best")
+        self.show_best_checkbox.setCheckState(Qt.Checked)
+        self.show_gbest_checkbox = QCheckBox("Show Gen Best")
+        self.show_gbest_checkbox.setCheckState(Qt.Checked)
+        self.show_gbest_avg_checkbox = QCheckBox("Show Gen Avg")
+        self.show_gbest_avg_checkbox.setCheckState(Qt.Checked)
+
+        self.show_best_checkbox
+        
         layout = QVBoxLayout()
-        layout.addWidget(self.gen_button)
+        checks_group_widget = QWidget()
+        checks_vbox = QVBoxLayout()
+        checks_vbox.addWidget(self.show_best_checkbox)
+        checks_vbox.addWidget(self.show_gbest_checkbox)
+        checks_vbox.addWidget(self.show_gbest_avg_checkbox)
+        checks_vbox.addWidget(self.gen_button)
+        checks_group_widget.setLayout(checks_vbox)
+        
+        layout.addWidget(checks_group_widget)
         layout.addWidget(self.chart_view)
         layout.addWidget(save_button)
 
@@ -45,33 +63,38 @@ class FitnessArea(QWidget):
         chart.addAxis(x_axis, Qt.AlignBottom)
         chart.addAxis(y_axis, Qt.AlignLeft)
 
-        best_series = QtCharts.QLineSeries()
-        best_series.setName('Best Fitness')
-        gen_best_series = QtCharts.QLineSeries()
-        gen_best_series.setName('Gen Best Fitness')
-        avg_series = QtCharts.QLineSeries()
-        avg_series.setName('Gen Avg')
+        if self.show_best_checkbox.isChecked():
+            best_series = QtCharts.QLineSeries()
+            best_series.setName('Best Fitness')
+            chart.addSeries(best_series)
+            for ea_step in range(0, self.run.ea_steps + 1):
+                best_series.append(QPointF(ea_step, bests[ea_step]))
+                
+            best_series.attachAxis(x_axis)
+            best_series.attachAxis(y_axis)
 
-        chart.addSeries(gen_best_series)
-        chart.addSeries(best_series)
-        chart.addSeries(avg_series)
+        if self.show_gbest_checkbox.isChecked():
+            gen_best_series = QtCharts.QLineSeries()
+            gen_best_series.setName('Gen Best Fitness')
+            chart.addSeries(gen_best_series)
+            for ea_step in range(0, self.run.ea_steps + 1):
+                gen_best_series.append(QPointF(ea_step, gen_bests[ea_step]))
+                
+            gen_best_series.attachAxis(x_axis)
+            gen_best_series.attachAxis(y_axis)
 
-        for ea_step in range(0, self.run.ea_steps + 1):
-            best_series.append(QPointF(ea_step, bests[ea_step]))
-            gen_best_series.append(QPointF(ea_step, gen_bests[ea_step]))
-            avg_series.append(QPointF(ea_step, gen_avgs[ea_step]))
-
-        best_series.attachAxis(x_axis)
-        best_series.attachAxis(y_axis)
-        gen_best_series.attachAxis(x_axis)
-        gen_best_series.attachAxis(y_axis)
-        avg_series.attachAxis(x_axis)
-        avg_series.attachAxis(y_axis)
+        if self.show_gbest_avg_checkbox.isChecked():
+            avg_series = QtCharts.QLineSeries()
+            avg_series.setName('Gen Avg')
+            chart.addSeries(avg_series)
+            for ea_step in range(0, self.run.ea_steps + 1):
+                avg_series.append(QPointF(ea_step, gen_avgs[ea_step]))
+                
+            avg_series.attachAxis(x_axis)
+            avg_series.attachAxis(y_axis)
 
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
 
         self.chart_view.setChart(chart)
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        self.gen_button.hide()        
