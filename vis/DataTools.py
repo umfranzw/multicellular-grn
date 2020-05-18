@@ -85,17 +85,25 @@ class DataTools():
 
         return concs
 
-    def get_interaction_graph(self, ea_step, pop_index, cell):
+    def get_interaction_graph(self, index, cell):
         if cell is None:
             pixmap_data = []
         else:
             Main.cell = cell
-            Main.ea_step = ea_step
-            Main.pop_index = pop_index
-            Main.eval('pixmap_data = DataMod.build_graph_for_cell(data, ea_step, pop_index, cell)')
+            Main.ea_step = index[0]
+            Main.pop_index = index[1]
+            Main.reg_step = index[2]
+            Main.eval('pixmap_data = DataMod.build_graph_for_cell(data, ea_step, pop_index, reg_step, cell)')
             pixmap_data = Main.pixmap_data
 
         return pixmap_data
+
+    def save_all_interaction_graphs(self, index, cell, path):
+        Main.ea_step = index[0]
+        Main.pop_index = index[1]
+        Main.cell = cell
+        Main.path = path
+        Main.eval('DataMod.save_all_graphs_for_cell(data, ea_step, pop_index, cell, path)')
 
     def get_gs_table_data(self, cell, index):
         if cell is None:
@@ -109,6 +117,14 @@ class DataTools():
             table_data = Main.table_data
 
         return table_data
+
+    def save_all_gs_table_data(self, cell, index, filename):
+        if cell is not None:
+            Main.cell = cell
+            Main.ea_step = index[0]
+            Main.indiv_index = index[1]
+            Main.filename = filename
+            Main.eval('DataMod.save_all_gs_table_data(data, cell, ea_step, indiv_index, filename)')
 
     def get_best_fitnesses(self):
         Main.eval('bests, gen_bests, gen_avgs = DataMod.get_best_fitnesses(data)')

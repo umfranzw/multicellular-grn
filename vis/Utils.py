@@ -32,13 +32,31 @@ class Utils():
 
     @staticmethod
     def run_save_image_dialog():
+        return Utils.run_save_file_dialog('PNG Image (*.png)', '.png')
+
+    @staticmethod
+    def run_save_csv_dialog():
+        return Utils.run_save_file_dialog('Comma Separated Value (*.csv)', '.csv')
+
+    @staticmethod
+    def run_save_file_dialog(filter_text, file_suffix):
         filename = QFileDialog.getSaveFileName(
             caption='Save File',
-            filter='PNG Image (*.png)'
+            filter=filter_text
         )
         
         filename = filename[0]
-        if not filename.endswith('.png'):
-            filename += '.png'
+        if not filename.endswith(file_suffix):
+            filename += file_suffix
             
         return filename
+
+    @staticmethod
+    def run_save_folder_dialog():
+        path = QFileDialog.getExistingDirectory(
+            caption='Save All Steps'
+        )
+        
+        return path
+
+    

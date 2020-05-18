@@ -9,7 +9,7 @@ class CellArea(QWidget):
     def __init__(self, data_tools, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
         self.data_tools = data_tools
-        self.interaction_cell = None
+        self.cell = None
         self.index = None
         
         layout = QVBoxLayout()
@@ -56,18 +56,29 @@ class CellArea(QWidget):
         self.gene_scores_view = QtCharts.QChartView(self.gene_scores_chart)
         self.gene_scores_view.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        #save button
+        export_button = QPushButton('Export All Steps')
+        export_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        export_button.clicked.connect(self.export_gs_data)
+
+        #gene scores graph save button
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         save_button.clicked.connect(lambda: Utils.save_chart_view(self.gene_scores_view))
         
         #put everything together
         layout.addWidget(self.gs_table)
+        layout.addWidget(export_button)
         layout.addWidget(self.gene_scores_view)
         layout.addWidget(save_button)
         tab.setLayout(layout)
         
         return tab
+
+    @Slot()
+    def export_gs_data(self):
+        filename = Utils.run_save_csv_dialog()
+        self.data_tools.save_all_gs_table_data(self.cell, self.index, filename)
+        QMessageBox.information(self, 'Data Exported', 'Done.')
 
     def build_interaction_tab(self):
         tab = QWidget()
@@ -92,11 +103,26 @@ class CellArea(QWidget):
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         save_button.clicked.connect(lambda: Utils.save_pixmap(self.interaction_img.pixmap()))
-        layout.addWidget(save_button)
-
+        save_all_button = QPushButton('Save for all Reg Steps')
+        save_all_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        save_all_button.clicked.connect(self.save_all_interaction_steps)
+        buttons_widget = QWidget()
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(save_button)
+        buttons_layout.addWidget(save_all_button)
+        buttons_widget.setLayout(buttons_layout)
+        
+        layout.addWidget(buttons_widget)
         tab.setLayout(layout)
         
         return tab
+
+    @Slot()
+    def save_all_interaction_steps(self):
+        if self.cell:
+            path = Utils.run_save_folder_dialog()
+            self.data_tools.save_all_interaction_graphs(self.index, self.cell, path)
+            QMessageBox.information(self, 'Images Saved', 'Done.')
 
     def build_probs_tab(self):
         tab = QWidget()
@@ -208,20 +234,22 @@ class CellArea(QWidget):
     def refresh(self, cells, index):
         self.index = index
         cell = cells[0] if cells else None
+        deselected = self.cell and cell == None
+        self.cell = cell
         
-        self.refresh_probs_tab(cell)
-        self.refresh_sensors_tab(cell)
-        self.refresh_gene_states_tab(cell)
-        self.refresh_interaction_tab(cell, index)
+        self.refresh_probs_tab()
+        self.refresh_sensors_tab()
+        self.refresh_gene_states_tab()
+        self.refresh_interaction_tab(deselected)
 
-    def refresh_gene_states_tab(self, cell):
+    def refresh_gene_states_tab(self):
         self.clear_chart(self.gene_scores_chart)
         
-        if cell is None: #if cell we deselected
+        if self.cell is None: #if self.cell we deselected
             self.gs_table.setRowCount(0) #this deletes all the rows
         else:
             #update the table
-            table_data = self.data_tools.get_gs_table_data(cell, self.index) #this is a 2D array
+            table_data = self.data_tools.get_gs_table_data(self.cell, self.index) #this is a 2D array
             self.gs_table.setRowCount(len(table_data))
 
             for row in range(len(table_data)):
@@ -239,7 +267,7 @@ class CellArea(QWidget):
             self.gene_scores_chart.addAxis(x_axis, Qt.AlignBottom)
 
             y_axis = QtCharts.QValueAxis()
-            y_axis.setRange(0.0, 1.0)
+            #y_axis.setRange(0.0, 1.0)
             self.gene_scores_chart.addAxis(y_axis, Qt.AlignLeft)
 
             series = QtCharts.QBarSeries()
@@ -251,11 +279,11 @@ class CellArea(QWidget):
             self.gene_scores_chart.addSeries(series)
             series.attachAxis(y_axis)
 
-    def refresh_probs_tab(self, cell):
+    def refresh_probs_tab(self):
         self.probs_chart.removeAllSeries()
         
-        if cell is not None:
-            info = self.data_tools.get_probs_info_for_cell(cell) #[(sym_label, prob), ...]
+        if self.cell is not None:
+            info = self.data_tools.get_probs_info_for_cell(self.cell) #[(sym_label, prob), ...]
             series = QtCharts.QPieSeries()
             for (label, prob) in info:
                 qslice = QtCharts.QPieSlice(label, prob)
@@ -264,8 +292,8 @@ class CellArea(QWidget):
             series.setLabelsVisible(True)
             self.probs_chart.addSeries(series)
 
-    def refresh_sensors_tab(self, cell):
-        sensor_concs = self.data_tools.get_sensor_concs(cell)
+    def refresh_sensors_tab(self):
+        sensor_concs = self.data_tools.get_sensor_concs(self.cell)
         
         pairs = (
             ('Top', self.top_chart),
@@ -277,7 +305,7 @@ class CellArea(QWidget):
         for (loc, chart) in pairs:
             self.clear_chart(chart)
 
-            if cell is not None: #note: cell will be None when an item in the graphics area is de-selected
+            if self.cell is not None: #note: self.cell will be None when an item in the graphics area is de-selected
                 num_concs = len(sensor_concs[loc])
                 categories = list(map(lambda i: str(i), range(num_concs)))
                 x_axis = QtCharts.QBarCategoryAxis()
@@ -297,22 +325,20 @@ class CellArea(QWidget):
                 chart.addSeries(series)
                 series.attachAxis(y_axis)
 
-    def refresh_interaction_tab(self, cell, index):
-        deselected = self.interaction_cell and cell == None
-        self.interaction_cell = cell
-        
+    def refresh_interaction_tab(self, deselected):
         if deselected:
             self.update_interaction_img()
 
+    @Slot()
     def update_interaction_img(self):
-        if self.interaction_cell is None: #if cell was deselected
+        if self.cell is None: #if cell was deselected
             pixmap = QPixmap(0, 0)
             self.interaction_img.setPixmap(pixmap)
             self.interaction_img.resize(0, 0)
             self.interaction_img.hide()
             self.no_interaction_msg.hide()
         else:
-            pixmap_data = self.data_tools.get_interaction_graph(self.index[0], self.index[1], self.interaction_cell)
+            pixmap_data = self.data_tools.get_interaction_graph(self.index, self.cell)
             if pixmap_data is None:
                 self.no_interaction_msg.show()
                 self.interaction_img.hide()

@@ -15,6 +15,7 @@ using GeneStateMod
 using Statistics
 using Printf
 using TrackerMod
+using Formatting
 import Serialization
 import CodecZlib
 
@@ -234,43 +235,58 @@ function get_sensor_concs(cell::Cell)
     concs
 end
 
-function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell::Cell)
+function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, cell::Cell)
     graph = ChainGraph()
-
-    for reg_step in 1:data.run.reg_steps + 1
-        indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
-        tree = indiv.cell_tree
-        cur_cell = CellTreeMod.find_by_id(tree, cell.id)
-        if cur_cell != nothing
-            for gs in cur_cell.gene_states
-                #find all bindings and insert them into the graph
-                for bound_protein in gs.bindings
-                    if bound_protein != nothing
-                        ChainGraphMod.add_node(graph, (bound_protein.props, bound_protein.is_initial))
-                        ChainGraphMod.add_node(graph, gs.gene)
-                        ChainGraphMod.add_edge(graph, (bound_protein.props, bound_protein.is_initial), gs.gene)
-                    end
+    indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+    tree = indiv.cell_tree
+    cur_cell = CellTreeMod.find_by_id(tree, cell.id)
+    if cur_cell != nothing
+        for gs in cur_cell.gene_states
+            #find all bindings and insert them into the graph
+            for bound_protein in gs.bindings
+                if bound_protein != nothing
+                    ChainGraphMod.add_node(graph, (bound_protein.props, bound_protein.is_initial))
+                    ChainGraphMod.add_node(graph, gs.gene)
+                    ChainGraphMod.add_edge(graph, (bound_protein.props, bound_protein.is_initial), gs.gene)
                 end
+            end
 
-                #recalc all productions and insert them into the graph
-                rates = GeneStateMod.get_prod_rates(gs)
-                for (prod_index, rate) in rates
-                    if rate > 0
-                        prod_props = gs.gene.prod_sites[prod_index]
-                        #the produced protein should have been inserted into the store already
-                        #protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
-                        #note: binding must occur in order for production to occur, so here, the gene is already in the graph
-                        #(it was inserted above)
-                        #Just need to add the protein and an edge
-                        ChainGraphMod.add_node(graph, (prod_props, false)) #produced proteins are never initial
-                        ChainGraphMod.add_edge(graph, gs.gene, (prod_props, false))
-                    end
+            #recalc all productions and insert them into the graph
+            rates = GeneStateMod.get_prod_rates(gs)
+            for (prod_index, rate) in rates
+                if rate > 0
+                    prod_props = gs.gene.prod_sites[prod_index]
+                    #the produced protein should have been inserted into the store already
+                    #protein = ProteinStoreMod.get(cur_cell.proteins, prod_props)
+                    #note: binding must occur in order for production to occur, so here, the gene is already in the graph
+                    #(it was inserted above)
+                    #Just need to add the protein and an edge
+                    ChainGraphMod.add_node(graph, (prod_props, false)) #produced proteins are never initial
+                    ChainGraphMod.add_edge(graph, gs.gene, (prod_props, false))
                 end
             end
         end
     end
 
     ChainGraphMod.plot(graph)
+end
+
+function save_all_graphs_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell::Cell, path::String)
+    if !endswith(path, '/')
+        path = string(path, '/')
+    end
+
+    digits_needed = Int64(floor(log10(data.run.reg_steps + 1)))
+    fmt_spec = Formatting.FormatSpec("0$(digits_needed)d")
+    for reg_step in 1:data.run.reg_steps + 1
+        png_data = build_graph_for_cell(data, ea_step, pop_index, reg_step, cell)
+        if png_data != nothing
+            filename = string(path, Formatting.fmt(fmt_spec, reg_step), ".png")
+            handle = open(filename, "w")
+            write(handle, png_data)
+            close(handle)
+        end
+    end
 end
 
 function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::Int64, reg_step::Int64)
@@ -323,6 +339,40 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
     end
 
     table
+end
+
+#saves for all reg steps
+function save_all_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::Int64, filename::String)
+    handle = open(filename, "w")
+    headers = ["Reg Step", "Gene Index", "Bind Logic"]
+    for i in 1:data.run.bind_sites_per_gene
+        push!(headers, "Bind Site $(i)")
+        push!(headers, "Bound Protein $(i)")
+    end
+    push!(headers, "Threshold")
+    for i in 1:data.run.bind_sites_per_gene
+        push!(headers, "Prod Site $(i)")
+        push!(headers, "Prod Rate $(i)")
+    end
+    write(handle, join(headers, ","))
+    write(handle, "\n")
+    
+    for reg_step in 1:data.run.reg_steps + 1
+        indiv = DataMod.get_indiv(data, ea_step, indiv_index, reg_step)
+        tree = indiv.cell_tree
+        cur_cell = CellTreeMod.find_by_id(tree, cell.id)
+
+        if cur_cell != nothing
+            step_data = get_gs_table_data(data, cur_cell, ea_step, indiv_index, reg_step)
+            for row in step_data
+                write(handle, "$(reg_step),")
+                write(handle, join(row, ","))
+                write(handle, "\n")
+            end
+        end
+    end
+
+    close(handle)
 end
 
 function get_best_fitnesses(data::Data)
