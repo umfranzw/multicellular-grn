@@ -107,9 +107,13 @@ end
                                           p1.action == p2.action &&
                                           p1.arg == p2.arg)
 
-function to_str(props::ProteinProps)
+function to_str(props::ProteinProps, is_initial::Bool)
     buf = IOBuffer()
     show(buf, props)
+    if is_initial
+        seek(buf, buf.size - sizeof("\n"))
+        write(buf, "*\n")
+    end
     seek(buf, 0)
 
     string(chomp(read(buf, String))) #protein sequence string (remove the newline)

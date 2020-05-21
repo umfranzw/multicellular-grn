@@ -25,7 +25,7 @@ function ev_alg(run::Run)
         
         #run the genetic operators
         pop = SelectionMod.select(selector, pop)
-        MutateMod.mutate(pop, ea_step)
+        MutateMod.mutate(run, pop, ea_step)
 
         #TrackerMod.save_ea_state(pop, ea_step)
         foreach(IndividualMod.reset_gene_scores, pop)

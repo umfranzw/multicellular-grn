@@ -65,6 +65,7 @@ struct Run
     log_level::LogLevel
     step_range::StepRange{Int64, Int64}
     data_output_file::String
+    multithreaded::Bool
 
     function Run(run::Dict{AbstractString, Any})
         args = Array{Any, 1}()

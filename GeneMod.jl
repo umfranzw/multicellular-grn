@@ -74,7 +74,7 @@ function get_bind_site_str(gene::Gene, index::Int64)
 end
 
 function get_prod_site_str(gene::Gene, index::Int64)
-    ProteinPropsMod.to_str(gene.prod_sites[index])
+    ProteinPropsMod.to_str(gene.prod_sites[index], false)
 end
 
 function show(io::IO, gene::Gene, ilevel::Int64=0)
@@ -102,7 +102,7 @@ function rand_bind_site(
     if action == nothing
         action_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinAction)
     else
-        action_val = Random.rand(config.rng, type)
+        action_val = Random.rand(config.rng, action)
     end
     if loc == nothing
         loc_val = RandUtilsMod.rand_enum_val(config, ProteinPropsMod.ProteinLoc)
@@ -128,6 +128,7 @@ function rand_init(
     config::Config,
     genome_index::Int64,
     bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=[ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion],
+    prod_site_types::Array{ProteinPropsMod.ProteinType, 1}=[],
     bind_logic::Union{Array{BindLogic, 1}, Nothing}=nothing
 )
     bind_sites = Array{BindSite, 1}()

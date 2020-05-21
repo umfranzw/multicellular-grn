@@ -11,7 +11,7 @@ function eval(indiv::Individual, ea_step::Int64)
     completeness = ea_step / run.ea_steps #low -> high
     inv_completeness = 1.0 - completeness #high -> low
 
-    size_fitness = get_size_fitness(indiv, 5)
+    size_fitness = get_size_fitness(indiv, 3)
     contains_x_fitness = get_contains_x_fitness(indiv)
     non_term_fitness = get_non_term_fitness(indiv)
     prod_genes_fitness = get_prod_genes_fitness(indiv)
@@ -89,10 +89,10 @@ function get_accuracy_fitness(indiv::Individual)
     expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 
     #f(x) = x * 2
-    #test_data = [(1, 2), (2, 4)]
+    test_data = [(1, 2), (2, 4)]
 
     #f(x) = x * 2 + 1
-    test_data = [(1, 3), (2, 5), (3, 7)]
+    #test_data = [(1, 3), (2, 5), (3, 7)]
     
     fitness = 1.0
     chunk = 1 / length(test_data)
