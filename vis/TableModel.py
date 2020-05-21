@@ -10,7 +10,7 @@ class TableModel(QAbstractTableModel):
     def __init__(self, data, headers):
         super(TableModel, self).__init__()
         self._data = data
-        self._checks = {} # julia hash value (from _data[row][-1] -> (Qt.Checked/UnChecked, julia props obj)
+        self._checks = {} # julia hash value from _data[row][-1] -> (Qt.Checked/UnChecked, julia props obj, is_initial)
         self._headers = headers
         self.colour_picker = ColourPicker()
 
@@ -27,7 +27,7 @@ class TableModel(QAbstractTableModel):
         self._checks.clear()
         for row in row_indices:
             key = self._data[row][-1]
-            value = (Qt.Checked, self._data[row][-2])
+            value = (Qt.Checked, self._data[row][-2], self._data[row][-3])
             self._checks[key] = value
         self.endResetModel()
         
@@ -40,13 +40,14 @@ class TableModel(QAbstractTableModel):
             return Qt.Unchecked
 
     def getCheckedInfo(self):
-        #return a list of the form [(julia_props_obj, QColor), ...] that contains one entry for each checked row
+        #return a list of the form [(julia_props_obj, QColor, is_initial), ...] that contains one entry for each checked row
         info = []
         for key in self._checks.keys():
             if self.checkState(key) == Qt.Checked:
                 props = self._checks[key][1]
+                is_initial = self._checks[key][2]
                 colour = self.colour_picker.get(key)
-                info.append((props, colour))
+                info.append((props, colour, is_initial))
 
         return info
 
@@ -69,7 +70,7 @@ class TableModel(QAbstractTableModel):
         if not index.isValid():
             return False
         if role == Qt.CheckStateRole:
-            self._checks[self._data[index.row()][-1]] = (value, self._data[index.row()][-2])
+            self._checks[self._data[index.row()][-1]] = (value, self._data[index.row()][-2], self._data[index.row()][-3])
             if emit:
                 self.rowChanged.emit(self.getCheckedInfo())
             return True

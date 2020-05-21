@@ -24,6 +24,7 @@ class DataTools():
     def get_tree(self, index):
         self.get_indiv(index)
         Main.eval('tree = indiv.cell_tree')
+        
         return Main.tree
 
     def get_indiv(self, index):
@@ -32,6 +33,7 @@ class DataTools():
         Main.pop_index = index[1]
         Main.reg_step = index[2]
         Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)')
+        
         return Main.indiv
 
     def get_run(self):
@@ -39,12 +41,20 @@ class DataTools():
         return Main.run
 
     def get_protein(self, cell, props):
-        get_fcn = Main.eval('ProteinStoreMod.get')
-        return get_fcn(cell.proteins, props)
+        #get_fcn = Main.eval('ProteinStoreMod.get')
+        #return get_fcn(cell.proteins, props)
+        Main.proteins = cell.proteins
+        Main.props = props
+        Main.eval('protein = ProteinStoreMod.get(proteins, props)')
+        
+        return Main.protein
 
-    def get_props_str(self, props):
-        to_str_fcn = Main.eval('ProteinPropsMod.to_str')
-        return to_str_fcn(props)
+    def get_props_str(self, props, is_initial):
+        Main.props = props
+        Main.is_initial = is_initial
+        Main.eval('props_str = ProteinPropsMod.to_str(props, is_initial)')
+        
+        return Main.props_str
 
     def get_protein_info_for_indiv(self, index):
         self.get_indiv(index)

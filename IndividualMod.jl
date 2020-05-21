@@ -24,7 +24,7 @@ export Individual,
     rand_init, run_bind
 
 initial_threshold = 0.1
-initial_consum_rate = 0.1
+initial_consum_rate = 0.05
 
 mutable struct Individual
     config::Config
@@ -77,15 +77,6 @@ function make_initial_genes(config::Config)
         g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
         push!(genes, g1)
 
-        #initial protein that will bind to gene 1
-        push!(initial_protein_props, ProteinPropsMod.rand_init(
-            config,
-            type=[g1_bind_site.type],
-            fcn=[ProteinPropsMod.Activate],
-            action=[g1_bind_site.action],
-            loc=[g1_bind_site.loc]
-        ))
-
         #gene 2's first sites
         genome_index += 1
         g2_bind_site = GeneMod.rand_bind_site(
@@ -125,6 +116,15 @@ function make_initial_genes(config::Config)
         )
         g3 = pop_remaining_sites(config, genome_index, g3_bind_site, g3_prod_site)
         push!(genes, g3)
+
+        #initial protein that will bind to gene 2
+        push!(initial_protein_props, ProteinPropsMod.rand_init(
+            config,
+            type=[g2_bind_site.type],
+            fcn=[ProteinPropsMod.Activate],
+            action=[g2_bind_site.action],
+            loc=[g2_bind_site.loc]
+        ))
     end
 
     (genes, initial_protein_props)
@@ -147,10 +147,11 @@ end
 
 function make_initial_proteins(config::Config, initial_props::Array{ProteinProps, 1}, num_concs::Int64, root_cell::Cell)
     proteins = Array{Protein, 1}()
+    half = (1.0 - IndividualMod.initial_threshold) / 2
     for props in initial_props
         #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
         protein = Protein(config, props, false, true, length(root_cell.gene_states), pointer_from_objref(root_cell))
-        protein.concs = RandUtilsMod.rand_floats(config, IndividualMod.initial_threshold, 1.0, num_concs)
+        protein.concs = RandUtilsMod.rand_floats(config, IndividualMod.initial_threshold + half, 1.0, num_concs)
         push!(proteins, protein)
     end
 
@@ -353,8 +354,8 @@ end
 function run_decay_for_cell(cell::Cell)
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
-        #decrease the concentration using deca_rate
-        protein.concs = max.(protein.concs .- protein.concs * cell.config.run.decay_rate, zeros(length(protein.concs)))
+        #decrease the concentration
+        protein.concs = max.(protein.concs .- cell.config.run.decay_rate, zeros(length(protein.concs)))
 
         #remove any proteins that have decayed below the allowable threshold
         if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
@@ -373,10 +374,10 @@ function run_decay_for_cell(cell::Cell)
     end
 
     #run decay on the cell sensors
-    for loc in keys(cell.sensors)
-        cell.sensors[loc] = max.(cell.sensors[loc] .- cell.sensors[loc] * cell.config.run.decay_rate, zeros(length(cell.sensors[loc])))
-        #note: sensor proteins are never removed
-    end
+    # for loc in keys(cell.sensors)
+    #     cell.sensors[loc] = max.(cell.sensors[loc] .- cell.config.run.decay_rate, zeros(length(cell.sensors[loc])))
+    #     #note: sensor proteins are never removed
+    # end
 end
 
 function run_produce_for_cell(indiv::Individual, cell::Cell)

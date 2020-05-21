@@ -10,8 +10,8 @@ from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
 from SettingsArea import Settings
 
 class TreeTools():
-    node_width = 200
-    node_height = 200
+    node_width = 400
+    node_height = 300
     node_space = 20
 
     def __init__(self, data_tools):
@@ -67,14 +67,14 @@ class TreeTools():
 
         #build bar_series
         bar_series = QtCharts.QBarSeries()
-        for props, colour in checked_info:
+        for props, colour, is_initial in checked_info:
             protein = self.data_tools.get_protein(cell, props)
             if protein is not None:
                 concs = protein.concs
             else:
                 concs = []
 
-            props_str = self.data_tools.get_props_str(props)
+            props_str = self.data_tools.get_props_str(props, is_initial)
             bar_set = QtCharts.QBarSet(props_str)
             bar_set.setColor(colour)
             for conc in concs:
@@ -93,6 +93,11 @@ class TreeTools():
         categories = list(map(str, range(num_concs)))
         x_axis = QtCharts.QBarCategoryAxis()
         x_axis.append(categories)
+
+        #turn these off, since the chart will be too small to see them anyway
+        x_axis.setTitleVisible(False)
+        x_axis.setLabelsVisible(False)
+
         chart.addAxis(x_axis, Qt.AlignBottom)
 
         #attach x axis to series
