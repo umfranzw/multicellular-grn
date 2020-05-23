@@ -102,6 +102,7 @@ function get_prod_rates(gs::GeneState)
                 threshold = gs.gene.bind_sites[i].threshold
                 excess = protein_conc - threshold #will be >= 0, since it's already bound
 
+                excess = clamp(excess * 2, 0, 1 - threshold)
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
                 rate = excess * (gs.run.max_prod_rate / (1 - threshold))
                 push!(rates, (prod_index=i, rate=rate))

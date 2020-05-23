@@ -19,7 +19,6 @@ mutable struct ChainGraph
     #note: it's possible for unlabelled edges to exist.
     #In that case, the edge will be in graph, but not in this dict.
     edge_labels::Dict{Tuple{Int64, Int64}, String}
-    contains_proteins::Bool
 
     function ChainGraph()
         graph = DiGraph()
@@ -29,8 +28,7 @@ mutable struct ChainGraph
             Dict{Int64, Union{Gene, ProteinProps}}(),
             Set{ProteinProps}(),
             OrderedDict{Union{Gene, ProteinProps}, Int64}(),
-            Dict{Tuple{Int64, Int64}, String}(),
-            false
+            Dict{Tuple{Int64, Int64}, String}()
         )
     end
 end
@@ -44,7 +42,6 @@ function add_props(graph::ChainGraph, props::ProteinProps, is_initial::Bool)
     if is_initial
         push!(graph.initial_props, props)
     end
-    graph.contains_proteins = true
 end
 
 #don't call this one - call one of the above two
@@ -132,10 +129,8 @@ end
 
 function plot(graph::ChainGraph)
     png_data = nothing
-    if graph.contains_proteins
-        dot_code = gen_dot_code(graph)
-        png_data = GraphVizMod.plot(dot_code)
-    end
+    dot_code = gen_dot_code(graph)
+    png_data = GraphVizMod.plot(dot_code)
 
     png_data
 end

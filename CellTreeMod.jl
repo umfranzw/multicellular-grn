@@ -229,11 +229,12 @@ end
 
 function find_by_id(cur::Cell, key::UInt64)
     result = nothing
+    println("checking: $(cur.id)")
     if cur.id == key
         result = cur
     else
         i = 1
-        while result == nothing && i < length(cur.children)
+        while result == nothing && i <= length(cur.children)
             result = find_by_id(cur.children[i], key)
             i += 1
         end

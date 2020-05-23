@@ -90,13 +90,13 @@ class TreeTools():
             chart.addSeries(line_series)
 
         #create x axis and add to chart
-        categories = list(map(str, range(num_concs)))
+        categories = list(map(str, range(1, num_concs + 1)))
         x_axis = QtCharts.QBarCategoryAxis()
         x_axis.append(categories)
 
         #turn these off, since the chart will be too small to see them anyway
         x_axis.setTitleVisible(False)
-        x_axis.setLabelsVisible(False)
+        #x_axis.setLabelsVisible(False)
 
         chart.addAxis(x_axis, Qt.AlignBottom)
 

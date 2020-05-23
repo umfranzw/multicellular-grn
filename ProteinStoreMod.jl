@@ -101,7 +101,7 @@ end
 function get_all(ps::ProteinStore)
     proteins = Array{Protein, 1}()
     for type in instances(ProteinPropsMod.ProteinType)
-        push!(proteins, values(ps.proteins[type])...)
+        append!(proteins, values(ps.proteins[type]))
     end
 
     proteins

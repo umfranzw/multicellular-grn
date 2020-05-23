@@ -238,9 +238,11 @@ end
 function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, cell::Cell)
     graph = ChainGraph()
     indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+    println("key: $(cell.id)")
     tree = indiv.cell_tree
     cur_cell = CellTreeMod.find_by_id(tree, cell.id)
     if cur_cell != nothing
+        println(reg_step)
         #add all genes to the graph
         for gs in cur_cell.gene_states
             ChainGraphMod.add_gene(graph, gs.gene)

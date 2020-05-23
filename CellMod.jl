@@ -83,13 +83,7 @@ function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
 end
 
 function add_parent(cur::Cell, parent::Cell)
-    if cur.parent == nothing
-        cur.parent = parent
-    else
-        #insert given parent into chain
-        parent.parent = cur.parent
-        cur.parent = parent
-    end
+    cur.parent = parent
     push!(parent.children, cur)
 end
 
