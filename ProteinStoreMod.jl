@@ -74,10 +74,10 @@ function get(ps::ProteinStore, props::ProteinProps)
     result
 end
 
-function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc, src_cell_ptr::Ptr{Nothing})
+function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::ProteinPropsMod.ProteinLoc, src_cell_id::UInt64)
     neighbours = Array{Protein, 1}()
     for protein in values(ps.proteins[ProteinPropsMod.Neighbour])
-        if protein.props.loc == loc && protein.src_cell_ptr == src_cell_ptr
+        if protein.props.loc == loc && protein.src_cell_id == src_cell_id
             push!(neighbours, protein)
         end
     end

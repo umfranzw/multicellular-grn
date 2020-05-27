@@ -9,6 +9,7 @@ from TableArea import TableArea
 from ToolbarArea import ToolbarArea
 from GraphicsArea import GraphicsArea
 from FitnessArea import FitnessArea
+from NeighbourArea import NeighbourArea
 from SettingsArea import SettingsArea, Settings
 
 class MainWindow(QMainWindow):
@@ -35,11 +36,18 @@ class MainWindow(QMainWindow):
         self.graphics_area = GraphicsArea(self.data_tools, self.tree_tools, self.toolbar.getIndex())
         self.graphics_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
 
+        #fitness area
         self.fitness_area = FitnessArea(self.data_tools)
+
+        #neighbour interaction area
+        self.neighbour_area = NeighbourArea(self.data_tools, self.toolbar.getIndex())
+        
+        #settings area
         self.settings_area = SettingsArea()
         
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
+        self.toolbar.indexChanged.connect(lambda index: self.neighbour_area.update(index))
         self.toolbar.showBestChanged.connect(self.show_best)
         self.toolbar.showBestChanged.connect(lambda checked: self.table_area.refresh(self.toolbar.getIndex()))
         self.toolbar.showBestChanged.connect(lambda checked: self.refresh_graphics_area(self.toolbar.getIndex()))
@@ -53,6 +61,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.table_area, "Protein Info")
         tabs.addTab(self.cell_area, "Cell Info")
         tabs.addTab(self.fitness_area, "Fitness Info")
+        tabs.addTab(self.neighbour_area, "Neighbour Info")
         tabs.addTab(self.settings_area, "Settings")
         
         splitter = QSplitter()

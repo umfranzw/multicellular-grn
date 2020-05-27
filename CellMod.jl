@@ -25,7 +25,7 @@ mutable struct Cell
     sensors::Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}
     sym::Union{Sym, Nothing}
     age::Int64
-    id::Union{UInt64, Nothing} #for use in the UI
+    id::Union{UInt64, Nothing} #for use in preventing self-binding, and in the UI
 
     function Cell(config::Config, genes::Array{Gene, 1}, age::Int64=0)
         gene_states = map(g -> GeneState(config.run, g), genes)
@@ -75,7 +75,7 @@ function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
         #note: we push a copy so the indiv's initial_cell_proteins array stays intact as the simulation modifies protein's concs
         #in the root cell
         copy = deepcopy(proteins[i])
-        copy.src_cell_ptr = pointer_from_objref(cell)
+        copy.src_cell_id = cell.id
         ProteinStoreMod.insert(cell.proteins, copy)
 
         i += 1

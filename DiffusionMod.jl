@@ -88,7 +88,7 @@ function diffuse_inter_cell_protein(cell::Cell, diffusing_protein::Protein, resu
     protein = ProteinStoreMod.get(cell.proteins, diffusing_protein.props)
     if protein == nothing
         if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-            protein = Protein(cell.config, deepcopy(diffusing_protein.props), false, false, length(cell.gene_states), pointer_from_objref(cell))
+            protein = Protein(cell.config, deepcopy(diffusing_protein.props), false, false, length(cell.gene_states), cell.id)
             ProteinStoreMod.insert(cell.proteins, protein)
         end
     end

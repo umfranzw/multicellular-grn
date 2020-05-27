@@ -10,7 +10,8 @@ using ProteinPropsMod
 using ProteinStoreMod
 using GeneMod
 using SymMod
-using ChainGraphMod
+using InternalGraphMod
+using NeighbourGraphMod
 using GeneStateMod
 using Statistics
 using Printf
@@ -235,24 +236,46 @@ function get_sensor_concs(cell::Cell)
     concs
 end
 
+function add_neighbour_edges(graph::NeighbourGraph, cell::Cell, id_to_cell::Dict{UInt64, Cell})
+    for gs in cell.gene_states
+        for bound_protein in gs.bindings
+            if bound_protein != nothing && bound_protein.props.type == ProteinPropsMod.Neighbour
+                #note: this assumes there are no initial neighbour proteins (there's always a src cell)
+                src = id_to_cell[bound_protein.src_cell_id]
+                label = ProteinPropsMod.to_str(bound_protein.props, bound_protein.is_initial)
+                NeighbourGraphMod.add_edge(graph, src, cell)
+            end
+        end
+    end
+end
+
+function build_neighbour_comm_graph(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
+    indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
+    graph = NeighbourGraph(indiv.cell_tree)
+    id_to_cell = Dict{UInt64, Cell}()
+    CellTreeMod.traverse(cell -> id_to_cell[cell.id] = cell, indiv.cell_tree)
+    CellTreeMod.traverse(cell -> add_neighbour_edges(graph, cell, id_to_cell), indiv.cell_tree)
+    
+    NeighbourGraphMod.plot(graph)
+end
+
 function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, cell::Cell)
-    graph = ChainGraph()
+    graph = InternalGraph()
     indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)
     tree = indiv.cell_tree
     cur_cell = CellTreeMod.find_by_id(tree, cell.id)
     if cur_cell != nothing
-        println(reg_step)
         #add all genes to the graph
         for gs in cur_cell.gene_states
-            ChainGraphMod.add_gene(graph, gs.gene)
+            InternalGraphMod.add_gene(graph, gs.gene)
         end
         
         for gs in cur_cell.gene_states
             #find all bindings and insert them into the graph
             for bound_protein in gs.bindings
                 if bound_protein != nothing
-                    ChainGraphMod.add_props(graph, bound_protein.props, bound_protein.is_initial)
-                    ChainGraphMod.add_edge(graph, bound_protein.props, gs.gene)
+                    InternalGraphMod.add_props(graph, bound_protein.props, bound_protein.is_initial)
+                    InternalGraphMod.add_edge(graph, bound_protein.props, gs.gene)
                 end
             end
 
@@ -262,14 +285,14 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_
                 if rate > 0
                     prod_props = gs.gene.prod_sites[prod_index]
                     #Just need to add the protein and an edge
-                    ChainGraphMod.add_props(graph, prod_props, false) #note: produced proteins are never initial
-                    ChainGraphMod.add_edge(graph, gs.gene, prod_props)
+                    InternalGraphMod.add_props(graph, prod_props, false) #note: produced proteins are never initial
+                    InternalGraphMod.add_edge(graph, gs.gene, prod_props)
                 end
             end
         end
     end
 
-    ChainGraphMod.plot(graph)
+    InternalGraphMod.plot(graph)
 end
 
 function save_all_graphs_for_cell(data::Data, ea_step::Int64, pop_index::Int64, cell::Cell, path::String)

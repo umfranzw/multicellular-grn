@@ -108,6 +108,15 @@ class DataTools():
 
         return pixmap_data
 
+    def get_neighbour_graph(self, index):
+        Main.ea_step = index[0]
+        Main.pop_index = index[1]
+        Main.reg_step = index[2]
+        Main.eval('pixmap_data = DataMod.build_neighbour_comm_graph(data, ea_step, pop_index, reg_step)')
+        pixmap_data = Main.pixmap_data
+
+        return pixmap_data
+        
     def save_all_interaction_graphs(self, index, cell, path):
         Main.ea_step = index[0]
         Main.pop_index = index[1]

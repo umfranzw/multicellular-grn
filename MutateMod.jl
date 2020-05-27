@@ -29,32 +29,32 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     copy_locations = Array{Int64, 1}()
     gene_index = 1
     while gene_index <= length(indiv.genes)
-        if ea_step < indiv.config.run.gene_dup_gen_limit && indiv.gene_scores[gene_index] > indiv.config.run.gene_score_threshold && length(indiv.genes) < indiv.config.run.max_genes
-            mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
-            if mut_copy != nothing
-                insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
-                insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config.run, mut_copy)) #insert a new GeneState into the root cell
-                insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
-                IndividualMod.extend_sensors(indiv, gene_index + 1)
+        # if ea_step < indiv.config.run.gene_dup_gen_limit && indiv.gene_scores[gene_index] > indiv.config.run.gene_score_threshold && length(indiv.genes) < indiv.config.run.max_genes
+        #     mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
+        #     if mut_copy != nothing
+        #         insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
+        #         insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config.run, mut_copy)) #insert a new GeneState into the root cell
+        #         insert!(indiv.gene_scores, gene_index + 1, 0) #insert a new score for the new gene
+        #         IndividualMod.extend_sensors(indiv, gene_index + 1)
 
-                new_num_concs = length(indiv.genes)
-                #insert a new conc into the initial proteins, and into the corresponding copy that is in the root cell
-                for init_protein in indiv.initial_cell_proteins
-                    active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
-                    conc = RandUtilsMod.rand_float(indiv.config)
-                    insert!(init_protein.concs, gene_index + 1, conc)
+        #         new_num_concs = length(indiv.genes)
+        #         #insert a new conc into the initial proteins, and into the corresponding copy that is in the root cell
+        #         for init_protein in indiv.initial_cell_proteins
+        #             active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
+        #             conc = RandUtilsMod.rand_float(indiv.config)
+        #             insert!(init_protein.concs, gene_index + 1, conc)
                     
-                    #this is needed since there can be duplicate proteins with identical props in cell.initial_cell_proteins
-                    if length(active_protein.concs) < new_num_concs
-                        insert!(active_protein.concs, gene_index + 1, conc)
-                    end
-                end
+        #             #this is needed since there can be duplicate proteins with identical props in cell.initial_cell_proteins
+        #             if length(active_protein.concs) < new_num_concs
+        #                 insert!(active_protein.concs, gene_index + 1, conc)
+        #             end
+        #         end
                 
-                gene_index += 1 #skip over the copy
-            end
-        else
+        #         gene_index += 1 #skip over the copy
+        #     end
+        # else
             point_mutate_gene(indiv.genes[gene_index], ea_step)
-        end
+        # end
         
         gene_index += 1
     end
@@ -101,7 +101,7 @@ function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
     end
 
     #mutate site.threshold and site.consum_rate
-    mutate_floats(config, site, ea_step)
+    #mutate_floats(config, site, ea_step)
 end
 
 function mutate_floats(config::Config, site::BindSite, ea_step::Int64)

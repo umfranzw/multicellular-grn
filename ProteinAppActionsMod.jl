@@ -33,7 +33,7 @@ function divide(args::AppArgs)
         CellMod.add_parent(new_cell, src_cell)
 
         for protein in ProteinStoreMod.get_by_type(src_cell.proteins, ProteinPropsMod.Internal)
-            new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, pointer_from_objref(src_cell))
+            new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, src_cell.id)
             #child gains half of the (magnitude of the) parent's concs
             new_protein.concs = protein.concs ./ 2
 
