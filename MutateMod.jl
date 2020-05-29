@@ -81,16 +81,35 @@ function point_mutate_gene(gene::Gene, ea_step::Int64)
 
     #prod sites:
     for site in gene.prod_sites
-        mutate_props(gene.config, site, ea_step)
+        mutate_prod_site(gene.config, site, ea_step)
+    end
+end
+
+function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        valid_types = filter(t -> t != site.type, [instances(ProteinPropsMod.ProteinType)...])
+        site.type = Random.rand(config.rng, valid_types)
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        valid_fcns = filter(t -> t != site.fcn, [instances(ProteinPropsMod.ProteinFcn)...])
+        site.fcn = Random.rand(config.rng, valid_fcns)
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
+        site.action = Random.rand(config.rng, valid_actions)
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        valid_locs = filter(t -> t != site.loc, [instances(ProteinPropsMod.ProteinLoc)...])
+        site.loc = Random.rand(config.rng, valid_locs)
     end
 end
 
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        #type can be anything but Application or what it is currently
-        valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), [instances(ProteinPropsMod.ProteinType)...])
-        site.type = Random.rand(config.rng, valid_types)
-    end
+    #note: all bind sites must have type internal
+    #if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        #valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), [instances(ProteinPropsMod.ProteinType)...])
+        #site.type = Random.rand(config.rng, valid_types)
+    #end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         valid_actions = filter(a -> a != site.action, [instances(ProteinPropsMod.ProteinAction)...])
         site.action = Random.rand(config.rng, valid_actions)

@@ -281,9 +281,10 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_
 
             #recalc all productions and insert them into the graph
             rates = GeneStateMod.get_prod_rates(gs)
-            for (prod_index, rate) in rates
+            for (prod_index, rate, arg) in rates
                 if rate > 0
-                    prod_props = gs.gene.prod_sites[prod_index]
+                    prod_site = gs.gene.prod_sites[prod_index]
+                    prod_props = ProteinProps(prod_site.type, prod_site.fcn, prod_site.action, prod_site.loc, arg)
                     #Just need to add the protein and an edge
                     InternalGraphMod.add_props(graph, prod_props, false) #note: produced proteins are never initial
                     InternalGraphMod.add_edge(graph, gs.gene, prod_props)
@@ -340,8 +341,9 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
         prod_rates = GeneStateMod.get_prod_rates(cell.gene_states[gene_index])
         prod_sites = repeat([""], length(gs.gene.bind_sites))
         prod_rates_strs = repeat([""], length(gs.gene.bind_sites))
-        for (prod_index, rate) in prod_rates
-            prod_sites[prod_index] = GeneMod.get_prod_site_str(gs.gene, prod_index)
+        for (prod_index, rate, arg) in prod_rates
+            site_str = GeneMod.get_prod_site_str(gs.gene, prod_index)
+            prod_sites[prod_index] = "$(site_str)-$(arg)"
             prod_rates_strs[prod_index] = @sprintf("%0.2f", rate)
         end
 

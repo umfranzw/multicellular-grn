@@ -3,7 +3,6 @@ module ProteinPropsMod
 import Base.hash
 import Base.==
 import Base.show
-import Formatting
 import Random
 using RandUtilsMod
 using MiscUtilsMod
@@ -36,38 +35,45 @@ mutable struct ProteinProps
     arg::UInt8
 end
 
+function rand_prop(
+    config::Config,
+    enum::Type{T},
+    vals::Union{Array{T, 1}, Nothing}=nothing
+) where {T <: Union{ProteinPropsMod.ProteinType,
+                    ProteinPropsMod.ProteinFcn,
+                    ProteinPropsMod.ProteinAction,
+                    ProteinPropsMod.ProteinLoc,
+                    UInt8}}
+    if vals == nothing
+        if enum == UInt8
+            instance = Random.rand(config.rng, UInt8)
+        else
+            instance = RandUtilsMod.rand_enum_val(config, enum)
+        end
+    else
+        instance = Random.rand(config.rng, vals)
+    end
+
+    instance
+end
+
 function rand_init(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
-    arg::Union{UInt8, Nothing}=nothing
+    arg::Union{Array{UInt8, 1}, Nothing}=nothing
 )
     pairs = (
-        (type, ProteinType),
-        (fcn, ProteinFcn),
-        (action, ProteinAction),
-        (loc, ProteinLoc)
+        (ProteinType, type),
+        (ProteinFcn, fcn),
+        (ProteinAction, action),
+        (ProteinLoc, loc),
+        (UInt8, arg)
     )
-
-    vals = Array{Any, 1}()
-    for (val, enum) in pairs
-        if val == nothing
-            instance = RandUtilsMod.rand_enum_val(config, enum)
-        else
-            instance = Random.rand(config.rng, val)
-        end
-        push!(vals, instance)
-    end
-
-    if arg == nothing
-        arg_val = Random.rand(config.rng, UInt8)
-    else
-        arg_val = arg
-    end
-    push!(vals, arg_val)
-
+    vals = map(p -> rand_prop(config, p...), pairs)
+    
     ProteinProps(vals...)
 end
 
@@ -77,20 +83,32 @@ function get_opposite_loc(loc::ProteinLoc)
     opposite_locs[loc]
 end
 
-function show(io::IO, props::ProteinProps, ilevel::Int64=0)
-    pairs = (
-        (ProteinType, props.type),
-        (ProteinFcn, props.fcn),
-        (ProteinAction, props.action),
-        (ProteinLoc, props.loc)
-    )
-    for (enum, val) in pairs
-        # width = MiscUtilsMod.digits_needed(length(instances(enum)))
-        # fs = Formatting.FormatSpec("0$(width)d")
-        # str = Formatting.fmt(fs, Int64(val))
-        # iprint(io, str, ilevel)
-        iprint(io, string(val)[1:3], ilevel) #print first 3 chars of value name
+function get_abbrev_props_str(;
+                              type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
+                              fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
+                              action::Union{ProteinPropsMod.ProteinAction, Nothing}=nothing,
+                              loc::Union{ProteinPropsMod.ProteinLoc, Nothing}=nothing
+                              )
+    buf = IOBuffer()
+    for val in (type, fcn, action, loc)
+        if val != nothing
+            chunk = string(val)[1:3] #print first 3 chars of value name
+            print(buf, chunk)
+        end
     end
+
+    String(take!(buf))
+end
+
+function show(io::IO, props::ProteinProps, ilevel::Int64=0)
+    desc = get_abbrev_props_str(
+        type=props.type,
+        fcn=props.fcn,
+        action=props.action,
+        loc=props.loc
+    )
+
+    iprint(io, desc, ilevel)
     iprint(io, "-", ilevel)
     iprint(io, string(props.arg), ilevel)
     

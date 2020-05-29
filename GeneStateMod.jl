@@ -88,12 +88,13 @@ end
 
 #Note: assumes proteins have already been bound
 function get_prod_rates(gs::GeneState)
-    rates = Array{NamedTuple{(:prod_index, :rate), Tuple{Int64, Float64}}, 1}()
+    rates = Array{NamedTuple{(:prod_index, :rate, :arg), Tuple{Int64, Float64, UInt8}}, 1}()
     logic = gs.gene.bind_logic
     col = gs.gene.genome_index
 
     #each site independently activates the prod site at the same index
     #rate is determined by the amount the binding protein's conc exceeds the gene's binding threshold
+    #arg is obtained from the activating protein
     if logic == GeneMod.Id
         for i in 1:length(gs.bindings)
             protein = gs.bindings[i]
@@ -105,12 +106,13 @@ function get_prod_rates(gs::GeneState)
                 excess = clamp(excess * 2, 0, 1 - threshold)
                 #scale excess from [0.0, 1.0 - threshold] to [0.0, run.max_prod_rate]
                 rate = excess * (gs.run.max_prod_rate / (1 - threshold))
-                push!(rates, (prod_index=i, rate=rate))
+                push!(rates, (prod_index=i, rate=rate, arg=protein.props.arg))
             end
         end
 
         #if all sites are active, first prod site is activated
-        #rate is determined by the average excess across all binding sites    
+        #rate is determined by the average excess across all binding sites
+        #arg is determined by the first binding protein
     elseif logic == GeneMod.And
         sum = 0 #sum of excess
         max_sum = 0 #max possible excess
@@ -129,11 +131,13 @@ function get_prod_rates(gs::GeneState)
             max_avg = max_sum / length(gs.bindings) #max possible avg
             #scale avg from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
             rate = excess * (gs.run.max_prod_rate / (1 - max_avg))
-            push!(rates, (prod_index=1, rate=rate))
+            arg = gs.bindings[1].arg
+            push!(rates, (prod_index=1, rate=rate, arg=arg))
         end
 
         #if at least one site is active, first prod site is activated
-        #rate is determined by the average excess across all binding sites that are active    
+        #rate is determined by the average excess across all binding sites that are active
+        #arg is determined by the first binding protein
     elseif logic == GeneMod.Or
         count = 0
         sum = 0
@@ -146,6 +150,11 @@ function get_prod_rates(gs::GeneState)
                 excess = protein_conc - threshold
                 sum += excess
                 max_sum += 1.0 - threshold
+
+                #if this is the first bound protein, grab its arg
+                if count == 1
+                    arg = gs.bindings[i].arg
+                end
             end
             i += 1
         end
@@ -155,11 +164,12 @@ function get_prod_rates(gs::GeneState)
             max_avg = max_sum / count
             #scale it from [0.0, 1.0 - max_avg] to [0.0, run.max_prod_rate]
             rate = excess * (gs.run.max_prod_rate / (1 - max_avg))
-            push!(rates, (prod_index=1, rate=rate))
+            push!(rates, (prod_index=1, rate=rate, arg=arg))
         end
 
         #if exactly one site is active, first prod site is activated
         #rate is determined by the excess on the binding site that is active
+        #arg is determined by the binding protein
     elseif logic == GeneMod.Xor
         count = 0
         excess = 0
@@ -173,6 +183,7 @@ function get_prod_rates(gs::GeneState)
                 threshold = gs.gene.bind_sites[i].threshold
                 excess = protein_conc - threshold
                 max_excess = 1.0 - threshold
+                arg = protein.props.arg
             end
             i += 1
         end
@@ -180,7 +191,7 @@ function get_prod_rates(gs::GeneState)
         if count == 1
             #scale excess from [0.0, 1.0 - max_excess] to [0.0, run.max_prod_rate]
             rate = excess * (gs.run.max_prod_rate / (1 - max_excess))
-            push!(rates, (prod_index=1, rate=rate))
+            push!(rates, (prod_index=1, rate=rate, arg=arg))
         end
     end
 

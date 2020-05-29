@@ -57,180 +57,213 @@ end
 function make_initial_genes(config::Config)
     genes = Array{Gene, 1}()
     initial_protein_props = Array{ProteinProps, 1}()
-    
     genome_index = 0
-    #application production cycles
-    for i in 1:length(instances(ProteinPropsMod.ProteinAction))
-        #gene 1's first bind and prod sites
-        genome_index += 1
-        g1_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[ProteinPropsMod.Internal],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
 
-        g1_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[ProteinPropsMod.Internal],
-            fcn=[ProteinPropsMod.Activate]
-        )
-        g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
-        push!(genes, g1)
+    genome_index += 1
+    g1_bind_site = GeneMod.rand_bind_site(
+        config,
+        type=[ProteinPropsMod.Internal],
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
+    )
 
-        #gene 2's first sites
-        genome_index += 1
-        g2_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[g1_prod_site.type],
-            action=[g1_prod_site.action],
-            loc=[g1_prod_site.loc],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
+    g1_prod_site = GeneMod.rand_prod_site(
+        config,
+        type=[ProteinPropsMod.Internal],
+        fcn=[ProteinPropsMod.Activate]
+    )
+    g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
+    push!(genes, g1)
 
-        g2_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[g1_bind_site.type],
-            fcn=[ProteinPropsMod.Activate],
-            action=[g1_bind_site.action],
-            loc=[g1_bind_site.loc]
-        )
-        g2 = pop_remaining_sites(config, genome_index, g2_bind_site, g2_prod_site)
-        push!(genes, g2)
-
-        #gene 3's first sites
-        genome_index += 1
-        g3_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[g2_prod_site.type],
-            action=[g2_prod_site.action],
-            loc=[g2_prod_site.loc],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
-
-        g3_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[ProteinPropsMod.Application],
-            action=[ProteinPropsMod.ProteinAction(i)]
-        )
-        g3 = pop_remaining_sites(config, genome_index, g3_bind_site, g3_prod_site)
-        push!(genes, g3)
-
-        #initial protein that will bind to gene 2
-        push!(initial_protein_props, ProteinPropsMod.rand_init(
-            config,
-            type=[g2_bind_site.type],
-            fcn=[ProteinPropsMod.Activate],
-            action=[g2_bind_site.action],
-            loc=[g2_bind_site.loc]
-        ))
-    end
-
-    #neighbour protein production cycles
-    prod_seqs = Array{ProteinProps, 1}()
-    for i in 1:length(instances(ProteinPropsMod.ProteinLoc))
-        #gene 1's first bind and prod sites
-        genome_index += 1
-        g1_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[ProteinPropsMod.Internal],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
-
-        g1_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[ProteinPropsMod.Internal],
-            fcn=[ProteinPropsMod.Activate]
-        )
-        g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
-        push!(genes, g1)
-
-        #gene 2's first sites
-        genome_index += 1
-        g2_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[g1_prod_site.type],
-            action=[g1_prod_site.action],
-            loc=[g1_prod_site.loc],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
-
-        g2_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[g1_bind_site.type],
-            fcn=[ProteinPropsMod.Activate],
-            action=[g1_bind_site.action],
-            loc=[g1_bind_site.loc]
-        )
-        g2 = pop_remaining_sites(config, genome_index, g2_bind_site, g2_prod_site)
-        push!(genes, g2)
-
-        #gene 3's first sites
-        genome_index += 1
-        g3_bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[g2_prod_site.type],
-            action=[g2_prod_site.action],
-            loc=[g2_prod_site.loc],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
-
-        g3_prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[ProteinPropsMod.Neighbour],
-            loc=[ProteinPropsMod.ProteinLoc(i)]
-        )
-        g3 = pop_remaining_sites(config, genome_index, g3_bind_site, g3_prod_site)
-        push!(genes, g3)
-        append!(prod_seqs, g3.prod_sites) #we'll choose from these when making the receptor sites (see below)
-
-        #initial protein that will bind to gene 2
-        push!(initial_protein_props, ProteinPropsMod.rand_init(
-            config,
-            type=[g2_bind_site.type],
-            fcn=[ProteinPropsMod.Activate],
-            action=[g2_bind_site.action],
-            loc=[g2_bind_site.loc]
-        ))
-    end
-
-    #neighbour protein receptor genes
-    for prod_seq in prod_seqs
-        genome_index += 1
-        bind_site = GeneMod.rand_bind_site(
-            config,
-            type=[prod_seq.type],
-            action=[prod_seq.action],
-            loc=[prod_seq.loc],
-            threshold=[IndividualMod.initial_threshold],
-            consum_rate=[IndividualMod.initial_consum_rate]
-        )
-        prod_site = ProteinPropsMod.rand_init(
-            config,
-            type=[ProteinPropsMod.Internal]
-        )
-        gene = pop_remaining_sites(config, genome_index, bind_site, prod_site)
-        push!(genes, gene)
-    end
+    props = ProteinPropsMod.rand_init(
+        config,
+        type=[g1_bind_site.type],
+        fcn=[ProteinPropsMod.Activate],
+        action=[g1_bind_site.action],
+        loc=[g1_bind_site.loc]
+    )
+    push!(initial_protein_props, props)
 
     (genes, initial_protein_props)
 end
 
-function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_site::BindSite, first_prod_site::ProteinProps)
+# function make_initial_genes(config::Config)
+#     genes = Array{Gene, 1}()
+#     initial_protein_props = Array{ProteinProps, 1}()
+    
+#     genome_index = 0
+#     #application production cycles
+#     for i in 1:length(instances(ProteinPropsMod.ProteinAction))
+#         #gene 1's first bind and prod sites
+#         genome_index += 1
+#         g1_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[ProteinPropsMod.Internal],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g1_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[ProteinPropsMod.Internal],
+#             fcn=[ProteinPropsMod.Activate]
+#         )
+#         g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
+#         push!(genes, g1)
+
+#         #gene 2's first sites
+#         genome_index += 1
+#         g2_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[g1_prod_site.type],
+#             action=[g1_prod_site.action],
+#             loc=[g1_prod_site.loc],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g2_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[g1_bind_site.type],
+#             fcn=[ProteinPropsMod.Activate],
+#             action=[g1_bind_site.action],
+#             loc=[g1_bind_site.loc]
+#         )
+#         g2 = pop_remaining_sites(config, genome_index, g2_bind_site, g2_prod_site)
+#         push!(genes, g2)
+
+#         #gene 3's first sites
+#         genome_index += 1
+#         g3_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[g2_prod_site.type],
+#             action=[g2_prod_site.action],
+#             loc=[g2_prod_site.loc],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g3_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[ProteinPropsMod.Application],
+#             action=[ProteinPropsMod.ProteinAction(i)]
+#         )
+#         g3 = pop_remaining_sites(config, genome_index, g3_bind_site, g3_prod_site)
+#         push!(genes, g3)
+
+#         #initial protein that will bind to gene 2
+#         push!(initial_protein_props, ProteinPropsMod.rand_init(
+#             config,
+#             type=[g2_bind_site.type],
+#             fcn=[ProteinPropsMod.Activate],
+#             action=[g2_bind_site.action],
+#             loc=[g2_bind_site.loc]
+#         ))
+#     end
+
+#     #neighbour protein production cycles
+#     prod_seqs = Array{ProteinProps, 1}()
+#     for i in 1:length(instances(ProteinPropsMod.ProteinLoc))
+#         #gene 1's first bind and prod sites
+#         genome_index += 1
+#         g1_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[ProteinPropsMod.Internal],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g1_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[ProteinPropsMod.Internal],
+#             fcn=[ProteinPropsMod.Activate]
+#         )
+#         g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
+#         push!(genes, g1)
+
+#         #gene 2's first sites
+#         genome_index += 1
+#         g2_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[g1_prod_site.type],
+#             action=[g1_prod_site.action],
+#             loc=[g1_prod_site.loc],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g2_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[g1_bind_site.type],
+#             fcn=[ProteinPropsMod.Activate],
+#             action=[g1_bind_site.action],
+#             loc=[g1_bind_site.loc]
+#         )
+#         g2 = pop_remaining_sites(config, genome_index, g2_bind_site, g2_prod_site)
+#         push!(genes, g2)
+
+#         #gene 3's first sites
+#         genome_index += 1
+#         g3_bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[g2_prod_site.type],
+#             action=[g2_prod_site.action],
+#             loc=[g2_prod_site.loc],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+
+#         g3_prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[ProteinPropsMod.Neighbour],
+#             loc=[ProteinPropsMod.ProteinLoc(i)]
+#         )
+#         g3 = pop_remaining_sites(config, genome_index, g3_bind_site, g3_prod_site)
+#         push!(genes, g3)
+#         append!(prod_seqs, g3.prod_sites) #we'll choose from these when making the receptor sites (see below)
+
+#         #initial protein that will bind to gene 2
+#         push!(initial_protein_props, ProteinPropsMod.rand_init(
+#             config,
+#             type=[g2_bind_site.type],
+#             fcn=[ProteinPropsMod.Activate],
+#             action=[g2_bind_site.action],
+#             loc=[g2_bind_site.loc]
+#         ))
+#     end
+
+#     #neighbour protein receptor genes
+#     for prod_seq in prod_seqs
+#         genome_index += 1
+#         bind_site = GeneMod.rand_bind_site(
+#             config,
+#             type=[prod_seq.type],
+#             action=[prod_seq.action],
+#             loc=[prod_seq.loc],
+#             threshold=[IndividualMod.initial_threshold],
+#             consum_rate=[IndividualMod.initial_consum_rate]
+#         )
+#         prod_site = ProteinPropsMod.rand_init(
+#             config,
+#             type=[ProteinPropsMod.Internal]
+#         )
+#         gene = pop_remaining_sites(config, genome_index, bind_site, prod_site)
+#         push!(genes, gene)
+#     end
+
+#     (genes, initial_protein_props)
+# end
+
+function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_site::BindSite, first_prod_site::ProdSite)
     bind_sites = Array{BindSite, 1}()
-    prod_sites = Array{ProteinProps, 1}()
+    prod_sites = Array{ProdSite, 1}()
     push!(bind_sites, first_bind_site)
     push!(prod_sites, first_prod_site)
     
     #randomly init the remaining bind and prod sites
     for j in 2:config.run.bind_sites_per_gene
         push!(bind_sites, GeneMod.rand_bind_site(config))
-        push!(prod_sites, ProteinPropsMod.rand_init(config))
+        push!(prod_sites, GeneMod.rand_prod_site(config))
     end
 
     Gene(config, genome_index, GeneMod.Id, bind_sites, prod_sites)
@@ -469,20 +502,28 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
     for gene_index in 1:length(cell.gene_states)
         gene_state = cell.gene_states[gene_index]
         gene = indiv.genes[gene_index]
-        #note: rates is an array of the form [(prod_site_index, rate), ...]
+        #note: rates is an array of the form [(prod_site_index, rate, protein_arg), ...]
         rates = GeneStateMod.get_prod_rates(gene_state)
 
-        for (prod_index, rate) in rates
-            run_produce_for_site(cell, gene_index, prod_index, rate)
+        for (prod_index, rate, arg) in rates
+            run_produce_for_site(cell, gene_index, prod_index, rate, arg)
             indiv.gene_scores[gene_index] += 1
         end
     end
 end
 
-function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, rate::Float64)
+function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, rate::Float64, arg::UInt8)
     #get the props for the protein that will be produced
     gene = cell.gene_states[gene_index].gene
-    props = gene.prod_sites[prod_index]
+    prod_site = gene.prod_sites[prod_index]
+    props = ProteinProps(
+        prod_site.type,
+        prod_site.fcn,
+        prod_site.action,
+        prod_site.loc,
+        arg
+    )
+    
     #check if protein already exists in this cell's store
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if not, create and insert it
@@ -530,7 +571,8 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     # -protein's conc must be >= site's threshold
 
     #For proteins of type Neighbour:
-    # -same restrictions as type Internal, plus:
+    # -same restrictions as type Internal, except:
+    # -bind site type must be internal
     # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
 
     #For proteins of type Diffusion:
@@ -543,6 +585,7 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     for protein in values(ProteinStoreMod.get_by_type(cell.proteins, site.type))
         eligible = protein.concs[gene.genome_index] >= site.threshold
         if site.type == ProteinPropsMod.Neighbour || site.type == ProteinPropsMod.Diffusion
+            eligible = eligible && site.type == ProteinPropsMod.Internal
             eligible = eligible && protein.src_cell_id != cell.id
         end
         

@@ -28,17 +28,17 @@ function divide(args::AppArgs)
         CellTreeMod.size(args.tree) < args.cell.config.run.max_tree_size) #note: save the most expensive check for last
         
         #println("Adding new cell")
-        num_concs = length(args.genes)
         new_cell = Cell(src_cell.config, args.genes, -1) #age is -1 since it'll be incremented at end of this reg step, and we want this cell to be younger than its parent even if the division occurs on reg step 1
         CellMod.add_parent(new_cell, src_cell)
 
-        for protein in ProteinStoreMod.get_by_type(src_cell.proteins, ProteinPropsMod.Internal)
-            new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, src_cell.id)
-            #child gains half of the (magnitude of the) parent's concs
-            new_protein.concs = protein.concs ./ 2
+        # num_concs = length(args.genes)
+        # for protein in ProteinStoreMod.get_by_type(src_cell.proteins, ProteinPropsMod.Internal)
+        #     new_protein = Protein(src_cell.config, deepcopy(protein.props), false, false, num_concs, src_cell.id)
+        #     #child gains half of the (magnitude of the) parent's concs
+        #     new_protein.concs = protein.concs ./ 2
 
-            ProteinStoreMod.insert(new_cell.proteins, new_protein)
-        end
+        #     ProteinStoreMod.insert(new_cell.proteins, new_protein)
+        # end
     end
 
     #remove the app_protein, since it's done its job
