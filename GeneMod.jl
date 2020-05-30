@@ -29,7 +29,7 @@ mutable struct ProdSite
     fcn::ProteinPropsMod.ProteinFcn
     action::ProteinPropsMod.ProteinAction
     loc::ProteinPropsMod.ProteinLoc
-    #no arg here - it's a binding "parameter"
+    arg::UInt8
 end
 
 mutable struct Gene
@@ -84,7 +84,8 @@ function get_prod_site_str(gene::Gene, index::Int64)
         type=site.type,
         fcn=site.fcn,
         action=site.action,
-        loc=site.loc
+        loc=site.loc,
+        arg=site.arg
     )
 
     desc
@@ -104,14 +105,16 @@ function rand_prod_site(
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
-    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing
+    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    arg::Union{Array{UInt8, 1}, Nothing}=nothing
 )
     args = Array{Any, 1}()
     pairs = (
         (ProteinPropsMod.ProteinType, type),
         (ProteinPropsMod.ProteinFcn, fcn),
         (ProteinPropsMod.ProteinAction, action),
-        (ProteinPropsMod.ProteinLoc, loc)
+        (ProteinPropsMod.ProteinLoc, loc),
+        (UInt8, arg)
     )
     foreach(p -> push!(args, ProteinPropsMod.rand_prop(config, p...)), pairs)
 

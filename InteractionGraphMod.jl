@@ -8,7 +8,7 @@ export InteractionGraph
 mutable struct InteractionGraph{T}
     graph::DiGraph
     id_to_obj::Dict{Int64, T}
-    obj_to_id::Dict{T, Int64}
+    obj_to_id::OrderedDict{T, Int64}
     #note: it's possible for unlabelled edges to exist.
     #In that case, the edge will be in graph, but not in this dict.
     edge_labels::Dict{Tuple{Int64, Int64}, String}

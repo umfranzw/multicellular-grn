@@ -2,8 +2,8 @@ module SettingsMod
 
 using SymMod
 
-fcns = Set{Sym}()
-terms = Set{Sym}()
+fcns = Array{Sym, 1}()
+terms = Array{Sym, 1}()
 
 #functions
 push!(fcns,

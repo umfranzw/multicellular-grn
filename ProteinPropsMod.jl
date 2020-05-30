@@ -87,7 +87,8 @@ function get_abbrev_props_str(;
                               type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
                               fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
                               action::Union{ProteinPropsMod.ProteinAction, Nothing}=nothing,
-                              loc::Union{ProteinPropsMod.ProteinLoc, Nothing}=nothing
+                              loc::Union{ProteinPropsMod.ProteinLoc, Nothing}=nothing,
+                              arg::Union{UInt8, Nothing}=nothing
                               )
     buf = IOBuffer()
     for val in (type, fcn, action, loc)
@@ -95,6 +96,10 @@ function get_abbrev_props_str(;
             chunk = string(val)[1:3] #print first 3 chars of value name
             print(buf, chunk)
         end
+    end
+
+    if arg != nothing
+        print(buf, "-$(arg)")
     end
 
     String(take!(buf))

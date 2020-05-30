@@ -11,7 +11,7 @@ import Base.show
 
 export SymProbs
 
-index_to_sym = vcat([x for x in values(SettingsMod.fcns)], [x for x in values(SettingsMod.terms)])
+index_to_sym = vcat(SettingsMod.fcns, SettingsMod.terms)
 sym_to_index = Dict{Sym, Int64}(zip(index_to_sym, 1:length(index_to_sym)))
 
 mutable struct SymProbs
