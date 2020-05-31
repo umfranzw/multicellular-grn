@@ -47,29 +47,6 @@ function test_2d()
     end
 end
 
-function test_1d()
-    alpha = 0.1
-    h = 0.75
-    dt = 1
-    cols = 9
-    timesteps = 10
-
-    Tk = zeros((1, cols))
-    Tk[1, 5] = 1.0
-    Tk1 = copy(Tk)
-
-    print_matrix(Tk)
-
-    for k in 1:timesteps
-        for j in 1:cols
-            Tk1[1, j] = (1 - 2 * dt * alpha / h^2) * Tk[1, j] + dt * alpha * ((get(Tk, 1, j-1) + get(Tk, 1, j + 1)) / h^2)
-        end
-
-        Tk = copy(Tk1)
-        print_matrix(Tk)
-    end
-end
-
 mutable struct Node
     concs::Array{Float64, 1}
     children::Array{Node, 1}
@@ -253,6 +230,31 @@ function print_tree(root::Node)
     print("\n")
 end
 
+function test_1d()
+    alpha = 0.25
+    h = 1.0
+    dt = 1
+    cols = 9
+    timesteps = 10
+
+    println("alpha: $(alpha), h: $(h)")
+
+    Tk = zeros((1, cols))
+    Tk[1, 5] = 1.0
+    Tk1 = copy(Tk)
+
+    print_matrix(Tk)
+
+    for k in 1:timesteps
+        for j in 1:cols
+            Tk1[1, j] = (1 - 2 * dt * alpha / h^2) * Tk[1, j] + dt * alpha * ((get(Tk, 1, j-1) + get(Tk, 1, j + 1)) / h^2)
+        end
+
+        Tk = copy(Tk1)
+        print_matrix(Tk)
+    end
+end
+
 function test_tree()
     steps = 3
     num_concs = 5
@@ -266,4 +268,4 @@ function test_tree()
     end
 end
 
-test_tree()
+test_1d()

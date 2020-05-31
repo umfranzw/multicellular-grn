@@ -25,7 +25,7 @@ export Individual,
     rand_init, run_bind
 
 initial_threshold = 0.1
-initial_consum_rate = 0.05
+initial_consum_rate = 0.01
 
 mutable struct Individual
     config::Config
@@ -161,10 +161,11 @@ function make_initial_genes(config::Config)
         consum_rate=[IndividualMod.initial_consum_rate]
     )
 
-    plus_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :+, 1:length(SymProbsMod.index_to_sym))
+    plus_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :+, 1:length(SymProbsMod.index_to_sym)) - 1
     de_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
+        fcn=[ProteinPropsMod.Activate],
         action=[ProteinPropsMod.SymProb],
         arg=[UInt8(plus_index)]
     )
@@ -200,18 +201,19 @@ function make_initial_genes(config::Config)
     #fh
     fh_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[bf_prod_site.type],
+        type=[ProteinPropsMod.Internal],
         action=[bf_prod_site.action],
         loc=[bf_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
 
-    x_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :x, 1:length(SymProbsMod.index_to_sym))
+    x_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :x, 1:length(SymProbsMod.index_to_sym)) - 1
     fh_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
         fcn=[ProteinPropsMod.Activate],
+        action=[ProteinPropsMod.SymProb],
         arg=[UInt8(x_index)]
     )
     fh = pop_remaining_sites(config, genome_index, fh_bind_site, fh_prod_site)
@@ -219,7 +221,7 @@ function make_initial_genes(config::Config)
     #fnb
     fnb_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[bf_prod_site.type],
+        type=[ProteinPropsMod.Internal],
         action=[bf_prod_site.action],
         loc=[bf_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
@@ -237,18 +239,19 @@ function make_initial_genes(config::Config)
     #fi
     fi_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[bf_prod_site.type],
+        type=[ProteinPropsMod.Internal],
         action=[bf_prod_site.action],
         loc=[bf_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
 
-    one_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :1, 1:length(SymProbsMod.index_to_sym))
+    one_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :1, 1:length(SymProbsMod.index_to_sym)) - 1
     fi_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
         fcn=[ProteinPropsMod.Activate],
+        action=[ProteinPropsMod.SymProb],
         arg=[UInt8(one_index)]
     )
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
@@ -569,12 +572,12 @@ end
 function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index::Int64)
     #Binding logic:
     # For proteins of type Internal:
+    # -protein's conc must be >= site's threshold
     # -protein type must match site type
     # -protein fcn is unrestricted
     # -protein action must match site action
     # -protein loc must match site loc
     # -protein arg is unrestricted
-    # -protein's conc must be >= site's threshold
 
     #For proteins of type Neighbour:
     # -same restrictions as type Internal, except:
@@ -588,17 +591,18 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     
     site = gene.bind_sites[site_index]
     eligible_proteins = Array{Protein, 1}()
-    for protein in values(ProteinStoreMod.get_by_type(cell.proteins, site.type))
-        eligible = protein.concs[gene.genome_index] >= site.threshold
-        if site.type == ProteinPropsMod.Neighbour || site.type == ProteinPropsMod.Diffusion
-            eligible = eligible && site.type == ProteinPropsMod.Internal
-            eligible = eligible && protein.src_cell_id != cell.id
+    
+    #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
+    #note: all bind sites are now of type Internal
+    search_proteins = ProteinStoreMod.get_by_types(cell.proteins, Set{ProteinPropsMod.ProteinType}( (ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion) ))
+    
+    for protein in search_proteins
+        eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.action == site.action && protein.props.loc == site.loc
+        if eligible && (protein.props.type == ProteinPropsMod.Neighbour || protein.props.type == ProteinPropsMod.Diffusion)
+            eligible = protein.src_cell_id != cell.id
         end
         
-        eligible = eligible && protein.props.action == site.action
-        eligible = eligible && protein.props.loc == site.loc
-        
-        if eligible
+        if eligible 
             push!(eligible_proteins, protein)
         end
     end
