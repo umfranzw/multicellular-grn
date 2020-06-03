@@ -194,29 +194,47 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Neighbour],
         fcn=[ProteinPropsMod.Activate],
-        loc=[ProteinPropsMod.Bottom]
+        loc=[ProteinPropsMod.BottomRight]
     )
     bf = pop_remaining_sites(config, genome_index, bf_bind_site, bf_prod_site)
 
-    #fh
-    fh_bind_site = GeneMod.rand_bind_site(
+    #bg
+    bg_bind_site = GeneMod.rand_bind_site(
+        config,
+        type=[ab_prod_site.type],
+        action=[ab_prod_site.action],
+        loc=[ab_prod_site.loc],
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
+    )
+
+    bg_prod_site = GeneMod.rand_prod_site(
+        config,
+        type=[ProteinPropsMod.Neighbour],
+        fcn=[ProteinPropsMod.Activate],
+        loc=[ProteinPropsMod.BottomLeft]
+    )
+    bg = pop_remaining_sites(config, genome_index, bg_bind_site, bg_prod_site)
+
+    #gh
+    gh_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ProteinPropsMod.Internal],
-        action=[bf_prod_site.action],
-        loc=[bf_prod_site.loc],
+        action=[bg_prod_site.action],
+        loc=[bg_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
 
     x_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :x, 1:length(SymProbsMod.index_to_sym)) - 1
-    fh_prod_site = GeneMod.rand_prod_site(
+    gh_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
         fcn=[ProteinPropsMod.Activate],
         action=[ProteinPropsMod.SymProb],
         arg=[UInt8(x_index)]
     )
-    fh = pop_remaining_sites(config, genome_index, fh_bind_site, fh_prod_site)
+    gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
     #fnb
     fnb_bind_site = GeneMod.rand_bind_site(
@@ -255,7 +273,7 @@ function make_initial_genes(config::Config)
         arg=[UInt8(one_index)]
     )
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
-push!(genes, ba, ab, bc, fnb, bf, fh, fi, de)
+push!(genes, gh, bg, ba, ab, bc, fnb, bf, fi, de)
 for i in 1:length(genes)
     genes[i].genome_index = i
 end
@@ -419,9 +437,20 @@ function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.Prot
             push!(neighbours, cell.parent)
         end
         
-    elseif loc == ProteinPropsMod.Bottom
-        append!(neighbours, cell.children)
-        
+    elseif loc == ProteinPropsMod.BottomLeft
+        num_children = length(cell.children)
+        if num_children > 0
+            range = 1:max(num_children ÷ 2, 1)
+            append!(neighbours, cell.children[range])
+        end
+
+    elseif loc == ProteinPropsMod.BottomRight
+        num_children = length(cell.children)
+        if num_children > 1
+            range = (num_children ÷ 2 + 1):num_children
+            append!(neighbours, cell.children[range])
+        end
+
     elseif loc == ProteinPropsMod.Left || loc == ProteinPropsMod.Right
         level = info.cell_to_level[cell]
         row = info.level_to_cell[level]
@@ -443,13 +472,18 @@ end
 
 function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
     for src_loc in instances(ProteinPropsMod.ProteinLoc)
-        neighbours = get_neighbours_at(cell, info, src_loc) #in the case that src_loc == Botttom, we may have mulitple neighbours (the children)
+        neighbours = get_neighbours_at(cell, info, src_loc) #in the case that src_loc == BotttomLeft or src_loc == BottomRight, we may have mulitple neighbours (the children)
         for neighbour in neighbours
             sensor_amount = cell.sensors[src_loc] / length(neighbours) #allocate an equal amount to each neighbour
 
-            #get neighbour's neighbour proteins for opposite loc (the ones that are being sent to this cell)
-            opposite_loc = ProteinPropsMod.get_opposite_loc(src_loc)
-            neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opposite_loc, neighbour.id)
+            #get neighbour's neighbour proteins for opposite locs (the ones that are being sent to this cell)
+            #note that there may be more than one opposite loc (eg. if src_loc == top, we have bottomleft and bottomright)
+            opposite_locs = ProteinPropsMod.get_opposite_locs(src_loc)
+            neighbour_proteins = Array{Protein, 1}()
+            for opp_loc in opposite_locs
+                append!(neighbour_proteins, ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opp_loc, neighbour.id))
+            end
+            
             #further filter down to the ones that originated in the neighbour cell (it's possible they may have been transferred in from another neighbour)
             neighbour_proteins = filter(p -> p.src_cell_id == neighbour.id, neighbour_proteins)
 

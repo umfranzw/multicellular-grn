@@ -17,14 +17,7 @@ export ProteinProps,
 
 @enum ProteinAction::Int8 SymProb=1 Divide Sensor
 
-@enum ProteinLoc::Int8 Top=1 Bottom Left Right
-
-const opposite_locs = Dict{ProteinLoc, ProteinLoc}(
-    Top => Bottom,
-    Bottom => Top,
-    Left => Right,
-    Right => Left
-)
+@enum ProteinLoc::Int8 Top=1 BottomLeft BottomRight Left Right
 
 #note: must be only one field of each type
 mutable struct ProteinProps
@@ -77,10 +70,19 @@ function rand_init(
     ProteinProps(vals...)
 end
 
-function get_opposite_loc(loc::ProteinLoc)
-    global opposite_locs
-    
-    opposite_locs[loc]
+function get_opposite_locs(loc::ProteinPropsMod.ProteinLoc)
+    result = Array{ProteinLoc, 1}()
+    if loc == ProteinPropsMod.Top
+        push!(result, ProteinPropsMod.BottomLeft, ProteinPropsMod.BottomRight)
+    elseif loc == ProteinPropsMod.BottomLeft || loc == ProteinPropsMod.BottomRight
+        push!(result, ProteinPropsMod.Top)
+    elseif loc == ProteinPropsMod.Left
+        push!(result, ProteinPropsMod.Right)
+    elseif loc == ProteinPropsMod.Right
+        push!(result, ProteinPropsMod.Left)
+    end
+
+    result
 end
 
 function get_abbrev_props_str(;
