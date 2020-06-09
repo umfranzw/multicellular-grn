@@ -172,11 +172,17 @@ class CellArea(QWidget):
         self.right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.right_chart.resize(*chart_size)
 
-        self.bottom_chart = QtCharts.QChart()
-        self.bottom_chart.legend().setVisible(False)
-        self.bottom_view = QtCharts.QChartView(self.bottom_chart)
-        self.bottom_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.bottom_chart.resize(*chart_size)
+        self.bottom_left_chart = QtCharts.QChart()
+        self.bottom_left_chart.legend().setVisible(False)
+        self.bottom_left_view = QtCharts.QChartView(self.bottom_left_chart)
+        self.bottom_left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.bottom_left_chart.resize(*chart_size)
+
+        self.bottom_right_chart = QtCharts.QChart()
+        self.bottom_right_chart.legend().setVisible(False)
+        self.bottom_right_view = QtCharts.QChartView(self.bottom_right_chart)
+        self.bottom_right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.bottom_right_chart.resize(*chart_size)
 
         self.left_chart = QtCharts.QChart()
         self.left_chart.legend().setVisible(False)
@@ -186,7 +192,8 @@ class CellArea(QWidget):
 
         grid_layout.addWidget(self.top_view, 0, 1)
         grid_layout.addWidget(self.right_view, 1, 2)
-        grid_layout.addWidget(self.bottom_view, 2, 1)
+        grid_layout.addWidget(self.bottom_left_view, 2, 0)
+        grid_layout.addWidget(self.bottom_right_view, 2, 2)
         grid_layout.addWidget(self.left_view, 1, 0)
 
         save_button = QPushButton('Save')
@@ -212,8 +219,11 @@ class CellArea(QWidget):
         top_pixmap = QPixmap(width, height)
         self.top_view.render(top_pixmap)
 
-        bottom_pixmap = QPixmap(width, height)
-        self.bottom_view.render(bottom_pixmap)
+        bottom_left_pixmap = QPixmap(width, height)
+        self.bottom_left_view.render(bottom_left_pixmap)
+
+        bottom_right_pixmap = QPixmap(width, height)
+        self.bottom_right_view.render(bottom_right_pixmap)
 
         left_pixmap = QPixmap(width, height)
         self.left_view.render(left_pixmap)
@@ -223,7 +233,8 @@ class CellArea(QWidget):
 
         painter = QPainter(pixmap)
         painter.drawPixmap(QRect(width, 0, width, height), top_pixmap, top_pixmap.rect())
-        painter.drawPixmap(QRect(width, height * 2, width, height), bottom_pixmap, bottom_pixmap.rect())
+        painter.drawPixmap(QRect(0, height * 2, width, height), bottom_left_pixmap, bottom_left_pixmap.rect())
+        painter.drawPixmap(QRect(width * 2 , height * 2, width, height), bottom_right_pixmap, bottom_right_pixmap.rect())
         painter.drawPixmap(QRect(0, height, width, height), left_pixmap, left_pixmap.rect())
         painter.drawPixmap(QRect(width * 2, height, width, height), right_pixmap, right_pixmap.rect())
         painter.end()
@@ -298,7 +309,8 @@ class CellArea(QWidget):
         pairs = (
             ('Top', self.top_chart),
             ('Right', self.right_chart),
-            ('Bottom', self.bottom_chart),
+            ('BLeft', self.bottom_left_chart),
+            ('BRight', self.bottom_right_chart),
             ('Left', self.left_chart),
         )
 

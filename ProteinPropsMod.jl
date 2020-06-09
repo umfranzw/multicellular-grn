@@ -17,7 +17,7 @@ export ProteinProps,
 
 @enum ProteinAction::Int8 SymProb=1 Divide Sensor
 
-@enum ProteinLoc::Int8 Top=1 BottomLeft BottomRight Left Right
+@enum ProteinLoc::Int8 Top=1 BLeft BRight Left Right
 
 #note: must be only one field of each type
 mutable struct ProteinProps
@@ -73,8 +73,8 @@ end
 function get_opposite_locs(loc::ProteinPropsMod.ProteinLoc)
     result = Array{ProteinLoc, 1}()
     if loc == ProteinPropsMod.Top
-        push!(result, ProteinPropsMod.BottomLeft, ProteinPropsMod.BottomRight)
-    elseif loc == ProteinPropsMod.BottomLeft || loc == ProteinPropsMod.BottomRight
+        push!(result, ProteinPropsMod.BLeft, ProteinPropsMod.BRight)
+    elseif loc == ProteinPropsMod.BLeft || loc == ProteinPropsMod.BRight
         push!(result, ProteinPropsMod.Top)
     elseif loc == ProteinPropsMod.Left
         push!(result, ProteinPropsMod.Right)

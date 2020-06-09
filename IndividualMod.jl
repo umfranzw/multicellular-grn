@@ -194,7 +194,7 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Neighbour],
         fcn=[ProteinPropsMod.Activate],
-        loc=[ProteinPropsMod.BottomRight]
+        loc=[ProteinPropsMod.BRight]
     )
     bf = pop_remaining_sites(config, genome_index, bf_bind_site, bf_prod_site)
 
@@ -212,7 +212,7 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Neighbour],
         fcn=[ProteinPropsMod.Activate],
-        loc=[ProteinPropsMod.BottomLeft]
+        loc=[ProteinPropsMod.BLeft]
     )
     bg = pop_remaining_sites(config, genome_index, bg_bind_site, bg_prod_site)
 
@@ -239,7 +239,7 @@ function make_initial_genes(config::Config)
     #fnb
     fnb_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[ProteinPropsMod.Internal],
+        type=[bf_prod_site.type], #neighbour-only receptor
         action=[bf_prod_site.action],
         loc=[bf_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
@@ -257,7 +257,7 @@ function make_initial_genes(config::Config)
     #fi
     fi_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[ProteinPropsMod.Internal],
+        type=[bf_prod_site.type], #neighbour-only receptor
         action=[bf_prod_site.action],
         loc=[bf_prod_site.loc],
         threshold=[IndividualMod.initial_threshold],
@@ -437,14 +437,14 @@ function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.Prot
             push!(neighbours, cell.parent)
         end
         
-    elseif loc == ProteinPropsMod.BottomLeft
+    elseif loc == ProteinPropsMod.BLeft
         num_children = length(cell.children)
         if num_children > 0
             range = 1:max(num_children ÷ 2, 1)
             append!(neighbours, cell.children[range])
         end
 
-    elseif loc == ProteinPropsMod.BottomRight
+    elseif loc == ProteinPropsMod.BRight
         num_children = length(cell.children)
         if num_children > 1
             range = (num_children ÷ 2 + 1):num_children
@@ -470,14 +470,27 @@ function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.Prot
     neighbours
 end
 
+#transfers proteins from cell to neighbours
+# function run_neighbour_comm_for_cell(src_cell::Cell, info::TreeInfo)
+#     for dest_loc in instances(ProteinPropsMod.ProteinLoc)
+#         dest_cells = get_neighbours_at(cell, info, dest_loc)
+#         for dest_cell in dest_cells
+#             sensor_amount = dest_cell.sensors[dest_loc] / length(neighbours) #allocate an equal amount to each neighbour
+#         end
+#     end
+# end
+
+#transfers proteins to cell from neighbours
 function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
-    for src_loc in instances(ProteinPropsMod.ProteinLoc)
-        neighbours = get_neighbours_at(cell, info, src_loc) #in the case that src_loc == BotttomLeft or src_loc == BottomRight, we may have mulitple neighbours (the children)
-        for neighbour in neighbours
+    for src_loc in instances(ProteinPropsMod.ProteinLoc) #the loc we're taking the proteins from
+        neighbours = get_neighbours_at(cell, info, src_loc) #the neighbour cells at that location (note: in the case that src_loc == BLeft or src_loc == BRight, we may have mulitple neighbours (the children))
+        for neighbour in neighbours #the cell we're taking the proteins from
             sensor_amount = cell.sensors[src_loc] / length(neighbours) #allocate an equal amount to each neighbour
 
             #get neighbour's neighbour proteins for opposite locs (the ones that are being sent to this cell)
             #note that there may be more than one opposite loc (eg. if src_loc == top, we have bottomleft and bottomright)
+            protein_loc = get_loc_relationship(neighbour, cell, info)
+                
             opposite_locs = ProteinPropsMod.get_opposite_locs(src_loc)
             neighbour_proteins = Array{Protein, 1}()
             for opp_loc in opposite_locs
@@ -615,7 +628,6 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
 
     #For proteins of type Neighbour:
     # -same restrictions as type Internal, except:
-    # -bind site type must be internal
     # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
 
     #For proteins of type Diffusion:
@@ -627,13 +639,18 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     eligible_proteins = Array{Protein, 1}()
     
     #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
-    #note: all bind sites are now of type Internal
     search_proteins = ProteinStoreMod.get_by_types(cell.proteins, Set{ProteinPropsMod.ProteinType}( (ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion) ))
     
     for protein in search_proteins
         eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.action == site.action && protein.props.loc == site.loc
-        if eligible && (protein.props.type == ProteinPropsMod.Neighbour || protein.props.type == ProteinPropsMod.Diffusion)
-            eligible = protein.src_cell_id != cell.id
+        if eligible
+            if protein.props.type == ProteinPropsMod.Internal
+                eligible = site.type == ProteinPropsMod.Internal
+            elseif protein.props.type == ProteinPropsMod.Neighbour
+                eligible = site.type == ProteinPropsMod.Neighbour && protein.src_cell_id != cell.id
+            elseif protein.props.type == ProteinPropsMod.Diffusion
+                eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
+            end
         end
         
         if eligible 
