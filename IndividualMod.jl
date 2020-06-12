@@ -43,50 +43,17 @@ function rand_init(run::Run, seed::UInt64)
 
     genes, initial_protein_props = make_initial_genes(config)
     #genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)
-    
+
     root_cell = Cell(config, genes)
     cell_tree = CellTree(root_cell)
-    
+
     initial_proteins = make_initial_proteins(config, initial_protein_props, length(genes), root_cell)
-    
+
     indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, zeros(Int64, length(genes)))
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv
 end
-
-# function make_initial_genes(config::Config)
-#     genes = Array{Gene, 1}()
-#     initial_protein_props = Array{ProteinProps, 1}()
-#     genome_index = 0
-
-#     genome_index += 1
-#     g1_bind_site = GeneMod.rand_bind_site(
-#         config,
-#         type=[ProteinPropsMod.Internal],
-#         threshold=[IndividualMod.initial_threshold],
-#         consum_rate=[IndividualMod.initial_consum_rate]
-#     )
-
-#     g1_prod_site = GeneMod.rand_prod_site(
-#         config,
-#         type=[ProteinPropsMod.Internal],
-#         fcn=[ProteinPropsMod.Activate]
-#     )
-#     g1 = pop_remaining_sites(config, genome_index, g1_bind_site, g1_prod_site)
-#     push!(genes, g1)
-
-#     props = ProteinPropsMod.rand_init(
-#         config,
-#         type=[g1_bind_site.type],
-#         fcn=[ProteinPropsMod.Activate],
-#         action=[g1_bind_site.action],
-#         loc=[g1_bind_site.loc]
-#     )
-#     push!(initial_protein_props, props)
-
-#     (genes, initial_protein_props)
-# end
 
 function make_initial_genes(config::Config)
     genes = Array{Gene, 1}()
@@ -97,6 +64,7 @@ function make_initial_genes(config::Config)
     ab_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ProteinPropsMod.Internal],
+        tag=[UInt8(0)],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -104,16 +72,16 @@ function make_initial_genes(config::Config)
     ab_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Internal],
-        fcn=[ProteinPropsMod.Activate]
+        tag=[UInt8(1)],
+        fcn=ProteinPropsMod.Activate
     )
     ab = pop_remaining_sites(config, genome_index, ab_bind_site, ab_prod_site)
 
     props = ProteinPropsMod.rand_init(
         config,
         type=[ab_bind_site.type],
-        fcn=[ProteinPropsMod.Activate],
-        action=[ab_bind_site.action],
-        loc=[ab_bind_site.loc]
+        tag=[UInt8(0)],
+        fcn=ProteinPropsMod.Activate,
     )
     push!(initial_protein_props, props)
 
@@ -121,8 +89,7 @@ function make_initial_genes(config::Config)
     bc_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ab_prod_site.type],
-        action=[ab_prod_site.action],
-        loc=[ab_prod_site.loc],
+        tag=[ab_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -130,6 +97,7 @@ function make_initial_genes(config::Config)
     bc_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
+        tag=[UInt8(2)],
         action=[ProteinPropsMod.Divide]
     )
     bc = pop_remaining_sites(config, genome_index, bc_bind_site, bc_prod_site)
@@ -138,8 +106,7 @@ function make_initial_genes(config::Config)
     ba_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ab_prod_site.type],
-        action=[ab_prod_site.action],
-        loc=[ab_prod_site.loc],
+        tag=[ab_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -147,9 +114,8 @@ function make_initial_genes(config::Config)
     ba_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ab_bind_site.type],
-        fcn=[ProteinPropsMod.Activate],
-        action=[ab_bind_site.action],
-        loc=[ab_bind_site.loc]
+        tag=[ab_bind_site.tag],
+        fcn=ProteinPropsMod.Activate
     )
     ba = pop_remaining_sites(config, genome_index, ba_bind_site, ba_prod_site)
 
@@ -157,6 +123,7 @@ function make_initial_genes(config::Config)
     de_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ProteinPropsMod.Internal],
+        tag=[UInt8(3)],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -165,27 +132,26 @@ function make_initial_genes(config::Config)
     de_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
-        fcn=[ProteinPropsMod.Activate],
+        tag=[UInt8(4)],
         action=[ProteinPropsMod.SymProb],
-        arg=[UInt8(plus_index)]
+        fcn=ProteinPropsMod.Activate,
+        arg=[Int8(plus_index)]
     )
     de = pop_remaining_sites(config, genome_index, de_bind_site, de_prod_site)
-    
+
     props = ProteinPropsMod.rand_init(
         config,
         type=[de_bind_site.type],
-        fcn=[ProteinPropsMod.Activate],
-        action=[de_bind_site.action],
-        loc=[de_bind_site.loc]
+        tag=[UInt8(3)],
+        fcn=ProteinPropsMod.Activate
     )
     push!(initial_protein_props, props)
-    
+
     #bf
     bf_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ab_prod_site.type],
-        action=[ab_prod_site.action],
-        loc=[ab_prod_site.loc],
+        tag=[ab_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -193,8 +159,9 @@ function make_initial_genes(config::Config)
     bf_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Neighbour],
-        fcn=[ProteinPropsMod.Activate],
-        loc=[ProteinPropsMod.BRight]
+        tag=[UInt8(4)],
+        fcn=ProteinPropsMod.Activate,
+        arg=[Int8(4)] #right child
     )
     bf = pop_remaining_sites(config, genome_index, bf_bind_site, bf_prod_site)
 
@@ -202,8 +169,7 @@ function make_initial_genes(config::Config)
     bg_bind_site = GeneMod.rand_bind_site(
         config,
         type=[ab_prod_site.type],
-        action=[ab_prod_site.action],
-        loc=[ab_prod_site.loc],
+        tag=[ab_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -211,17 +177,17 @@ function make_initial_genes(config::Config)
     bg_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Neighbour],
-        fcn=[ProteinPropsMod.Activate],
-        loc=[ProteinPropsMod.BLeft]
+        tag=[UInt8(5)],
+        fcn=ProteinPropsMod.Activate,
+        arg=[Int8(3)] #left child
     )
     bg = pop_remaining_sites(config, genome_index, bg_bind_site, bg_prod_site)
 
     #gh
     gh_bind_site = GeneMod.rand_bind_site(
         config,
-        type=[ProteinPropsMod.Internal],
-        action=[bg_prod_site.action],
-        loc=[bg_prod_site.loc],
+        type=[bg_prod_site.type],
+        tag=[bg_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -230,9 +196,10 @@ function make_initial_genes(config::Config)
     gh_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Application],
-        fcn=[ProteinPropsMod.Activate],
+        tag=[UInt8(6)],
         action=[ProteinPropsMod.SymProb],
-        arg=[UInt8(x_index)]
+        fcn=ProteinPropsMod.Activate,
+        arg=[Int8(x_index)]
     )
     gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
@@ -240,8 +207,7 @@ function make_initial_genes(config::Config)
     fnb_bind_site = GeneMod.rand_bind_site(
         config,
         type=[bf_prod_site.type], #neighbour-only receptor
-        action=[bf_prod_site.action],
-        loc=[bf_prod_site.loc],
+        tag=[bf_prod_site.tag],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
@@ -249,36 +215,36 @@ function make_initial_genes(config::Config)
     fnb_prod_site = GeneMod.rand_prod_site(
         config,
         type=[ProteinPropsMod.Neighbour],
-        fcn=[ProteinPropsMod.Inhibit],
-        loc=[ProteinPropsMod.Top]
+        tag=[bc_bind_site.tag],
+        fcn=ProteinPropsMod.Inhibit
     )
     fnb = pop_remaining_sites(config, genome_index, fnb_bind_site, fnb_prod_site)
 
-    #fi
-    fi_bind_site = GeneMod.rand_bind_site(
-        config,
-        type=[bf_prod_site.type], #neighbour-only receptor
-        action=[bf_prod_site.action],
-        loc=[bf_prod_site.loc],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
-    )
+#fi
+fi_bind_site = GeneMod.rand_bind_site(
+    config,
+    type=[bf_prod_site.type], #neighbour-only receptor
+    tag=[bf_prod_site.tag],
+    threshold=[IndividualMod.initial_threshold],
+    consum_rate=[IndividualMod.initial_consum_rate]
+)
 
-    one_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :1, 1:length(SymProbsMod.index_to_sym)) - 1
-    fi_prod_site = GeneMod.rand_prod_site(
-        config,
-        type=[ProteinPropsMod.Application],
-        fcn=[ProteinPropsMod.Activate],
-        action=[ProteinPropsMod.SymProb],
-        arg=[UInt8(one_index)]
-    )
+one_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :1, 1:length(SymProbsMod.index_to_sym)) - 1
+fi_prod_site = GeneMod.rand_prod_site(
+    config,
+    type=[ProteinPropsMod.Application],
+    tag=[UInt8(7)],
+    action=[ProteinPropsMod.SymProb],
+    fcn=ProteinPropsMod.Activate,
+    arg=[Int8(one_index)]
+)
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
 push!(genes, gh, bg, ba, ab, bc, fnb, bf, fi, de)
 for i in 1:length(genes)
     genes[i].genome_index = i
 end
 
-    (genes, initial_protein_props)
+(genes, initial_protein_props)
 end
 
 function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_site::BindSite, first_prod_site::ProdSite)
@@ -286,7 +252,7 @@ function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_sit
     prod_sites = Array{ProdSite, 1}()
     push!(bind_sites, first_bind_site)
     push!(prod_sites, first_prod_site)
-    
+
     #randomly init the remaining bind and prod sites
     for j in 2:config.run.bind_sites_per_gene
         push!(bind_sites, GeneMod.rand_bind_site(config))
@@ -344,7 +310,7 @@ function show(io::IO, indiv::Individual, ilevel::Int64=0)
 
     iprintln(io, "gene_scores:", ilevel + 1)
     iprintln(io, join(indiv.gene_scores, ", "), ilevel + 2)
-             
+
     iprintln(io, "cell_tree:", ilevel + 1)
     iprintln(io, indiv.cell_tree, ilevel + 2)
 
@@ -387,10 +353,10 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
         protein = pair[1]
         action_fcn = pair[3]
         args = AppArgs(tree, cell, genes, protein)
-        
+
         # protein_str = ProteinPropsMod.to_str(protein.props)
         # println("Applying protein: $(protein_str)")
-        
+
         action_fcn(args)
     end
 end
@@ -424,102 +390,109 @@ function run_fix_syms(indiv::Individual)
     CellTreeMod.traverse(CellMod.fix_sym, indiv.cell_tree)
 end
 
-function run_neighbour_comm(indiv::Individual)
+function run_neighbour_comm(indiv::Individual, reg_step::Int64)
     info = TreeInfo(indiv.cell_tree)
-    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info), indiv.cell_tree)
+    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info, reg_step), indiv.cell_tree)
 end
 
-function get_neighbours_at(cell::Cell, info::TreeInfo, loc::ProteinPropsMod.ProteinLoc)
-    neighbours = Array{Cell, 1}()
-    
-    if loc == ProteinPropsMod.Top
+function get_neighbour_at(cell::Cell, info::TreeInfo, loc::Int64)
+    neighbour = nothing
+
+    if loc == Int64(ProteinPropsMod.Top)
         if cell.parent != nothing
-            push!(neighbours, cell.parent)
-        end
-        
-    elseif loc == ProteinPropsMod.BLeft
-        num_children = length(cell.children)
-        if num_children > 0
-            range = 1:max(num_children ÷ 2, 1)
-            append!(neighbours, cell.children[range])
+            neighbour = cell.parent
         end
 
-    elseif loc == ProteinPropsMod.BRight
-        num_children = length(cell.children)
-        if num_children > 1
-            range = (num_children ÷ 2 + 1):num_children
-            append!(neighbours, cell.children[range])
-        end
-
-    elseif loc == ProteinPropsMod.Left || loc == ProteinPropsMod.Right
+    elseif loc == Int64(ProteinPropsMod.Left) || loc == Int64(ProteinPropsMod.Right)
         level = info.cell_to_level[cell]
         row = info.level_to_cell[level]
         cell_index = findall(c -> c == cell, row)[1]
 
-        if loc == ProteinPropsMod.Left
+        if loc == Int64(ProteinPropsMod.Left)
             if cell_index > 1
-                push!(neighbours, row[cell_index - 1])
+                neighbour = row[cell_index - 1]
             end
         else
             if cell_index < length(row)
-                push!(neighbours, row[cell_index + 1])
+                neighbour = row[cell_index + 1]
             end
+        end
+
+        #bottom (child)
+    else
+        num_children = length(cell.children)
+        offset = loc - 3 + 1 #- 3 for left, top, right
+        if num_children > 0 && offset <= num_children
+            neighbours = cell.children[offset]
         end
     end
 
-    neighbours
+    neighbour
 end
 
-#transfers proteins from cell to neighbours
-# function run_neighbour_comm_for_cell(src_cell::Cell, info::TreeInfo)
-#     for dest_loc in instances(ProteinPropsMod.ProteinLoc)
-#         dest_cells = get_neighbours_at(cell, info, dest_loc)
-#         for dest_cell in dest_cells
-#             sensor_amount = dest_cell.sensors[dest_loc] / length(neighbours) #allocate an equal amount to each neighbour
-#         end
-#     end
-# end
+#returns cell's loc with respect to neighbour
+function get_loc_relationship(cell::Cell, neighbour::Cell, neighbour_loc::Int64)
+    rel = nothing
+
+    if neighbour_loc == Int64(ProteinPropsMod.Top)
+        offset = 1
+        while offset <= length(neighbour.children) && cell != neighbour.children[offset]
+            offset += 1
+        end
+        if offset <= length(neighbour.children)
+            rel = Int8(2 + offset) #left=0, top=1, right=2, first_child=3, ...
+        end
+
+    elseif neighbour_loc == Int64(ProteinPropsMod.Left)
+        rel = Int8(ProteinPropsMod.Right)
+
+    elseif neighbour_loc == Int64(ProteinPropsMod.Right)
+        rel = Int8(ProteinPropsMod.Left)
+
+    else #bottom
+        rel = Int8(ProteinPropsMod.Top)
+    end
+
+    rel
+end
 
 #transfers proteins to cell from neighbours
-function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
-    for src_loc in instances(ProteinPropsMod.ProteinLoc) #the loc we're taking the proteins from
-        neighbours = get_neighbours_at(cell, info, src_loc) #the neighbour cells at that location (note: in the case that src_loc == BLeft or src_loc == BRight, we may have mulitple neighbours (the children))
-        for neighbour in neighbours #the cell we're taking the proteins from
-            sensor_amount = cell.sensors[src_loc] / length(neighbours) #allocate an equal amount to each neighbour
+function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo, reg_step::Int64)
+    if reg_step == 25 && info.cell_to_level[cell] == 2 && info.level_to_cell[2][2] == cell
+        println("found")
+    end
 
-            #get neighbour's neighbour proteins for opposite locs (the ones that are being sent to this cell)
-            #note that there may be more than one opposite loc (eg. if src_loc == top, we have bottomleft and bottomright)
-            protein_loc = get_loc_relationship(neighbour, cell, info)
-                
-            opposite_locs = ProteinPropsMod.get_opposite_locs(src_loc)
-            neighbour_proteins = Array{Protein, 1}()
-            for opp_loc in opposite_locs
-                append!(neighbour_proteins, ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, opp_loc, neighbour.id))
-            end
-            
-            #further filter down to the ones that originated in the neighbour cell (it's possible they may have been transferred in from another neighbour)
-            neighbour_proteins = filter(p -> p.src_cell_id == neighbour.id, neighbour_proteins)
+    for src_loc in 0 : 2 + cell.config.run.max_children #the loc we're taking the proteins from
+        neighbour = get_neighbour_at(cell, info, src_loc) #the cell we're taking the proteins from
 
-            #compute the max amount of each protein that we can accept
-            accept_amount = sensor_amount / length(neighbour_proteins)
-            for neighbour_protein in neighbour_proteins
-                transfer_amount = min.(neighbour_protein.concs, accept_amount)
-                cell.sensors[src_loc] -= transfer_amount
-                neighbour_protein.concs -= transfer_amount
-                
-                #add the neighbour protein into the source cell
-                dest_protein = ProteinStoreMod.get(cell.proteins, neighbour_protein.props)
-                if dest_protein == nothing
-                    if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
-                        dest_protein = Protein(cell.config, deepcopy(neighbour_protein.props), false, false, length(cell.gene_states), neighbour.id)
-                        ProteinStoreMod.insert(cell.proteins, dest_protein)
+        if neighbour != nothing
+            #get neighbour's neighbour proteins with opposite locs (the ones that are being sent to this cell)
+            #note: we use the id to ensure that we only get the ones that originated in the neighbour cell (it's possible they may have been transferred in from another neighbour)
+            protein_loc = get_loc_relationship(cell, neighbour, src_loc)
+            neighbour_proteins = ProteinStoreMod.get_neighbour_proteins_by_loc(neighbour.proteins, protein_loc, neighbour.id)
+
+            if length(neighbour_proteins) > 0
+                #compute the max amount of each protein that we can accept
+                accept_amount = cell.sensors[src_loc] / length(neighbour_proteins)
+                for neighbour_protein in neighbour_proteins
+                    transfer_amount = min.(neighbour_protein.concs, accept_amount)
+
+                    #add the neighbour protein into the source cell
+                    dest_protein = ProteinStoreMod.get(cell.proteins, neighbour_protein.props)
+                    if dest_protein == nothing
+                        if ProteinStoreMod.num_proteins(cell.proteins) < cell.config.run.max_proteins_per_cell
+                            dest_protein = Protein(cell.config, deepcopy(neighbour_protein.props), false, false, length(cell.gene_states), neighbour.id)
+                            ProteinStoreMod.insert(cell.proteins, dest_protein)
+                        end
                     end
-                end
-                if dest_protein != nothing
-                    dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
-                end
+                    if dest_protein != nothing
+                        cell.sensors[src_loc] -= transfer_amount
+                        dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
+                        neighbour_protein.concs -= transfer_amount
+                    end
 
-                #note: if the neighbour_protein was completely tranfered, the decay step will delete it later
+                    #note: if the neighbour_protein was completely tranferred, the decay step will delete it later
+                end
             end
         end
     end
@@ -574,12 +547,11 @@ function run_produce_for_site(cell::Cell, gene_index::Int64, prod_index::Int64, 
     prod_site = gene.prod_sites[prod_index]
     props = ProteinProps(
         prod_site.type,
-        prod_site.fcn,
+        prod_site.tag,
         prod_site.action,
-        prod_site.loc,
         prod_site.arg
     )
-    
+
     #check if protein already exists in this cell's store
     protein = ProteinStoreMod.get(cell.proteins, props)
     #if not, create and insert it
@@ -634,15 +606,15 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
     # -same restrictions as type Neighbour
 
     #Proteins of type Application do not bind
-    
+
     site = gene.bind_sites[site_index]
     eligible_proteins = Array{Protein, 1}()
-    
+
     #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
     search_proteins = ProteinStoreMod.get_by_types(cell.proteins, Set{ProteinPropsMod.ProteinType}( (ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion) ))
-    
+
     for protein in search_proteins
-        eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.action == site.action && protein.props.loc == site.loc
+        eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag
         if eligible
             if protein.props.type == ProteinPropsMod.Internal
                 eligible = site.type == ProteinPropsMod.Internal
@@ -652,8 +624,8 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
                 eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
             end
         end
-        
-        if eligible 
+
+        if eligible
             push!(eligible_proteins, protein)
         end
     end

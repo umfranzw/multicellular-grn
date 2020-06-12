@@ -42,22 +42,22 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     print(io, "\n")
 end
 
-function get_compatible_bind_site_indices(gs::GeneState, protein::Protein)
-    col = gs.gene.genome_index
-    thresh = gs.gene.threshold
+# function get_compatible_bind_site_indices(gs::GeneState, protein::Protein)
+#     col = gs.gene.genome_index
+#     thresh = gs.gene.threshold
 
-    indices = Array{Int64, 1}()
-    for i in 1:length(gs.gene.bind_sites)
-        site = gs.gene.bind_sites[i]
-        if (protein.type == site.type &&
-            protein.loc == site.loc &&
-            protein.concs[col] >= thresh)
-            push!(indices, i)
-        end
-    end
+#     indices = Array{Int64, 1}()
+#     for i in 1:length(gs.gene.bind_sites)
+#         site = gs.gene.bind_sites[i]
+#         if (protein.type == site.type &&
+#             protein.loc == site.loc &&
+#             protein.concs[col] >= thresh)
+#             push!(indices, i)
+#         end
+#     end
 
-    indices
-end
+#     indices
+# end
 
 #binding consumes some of the bound protein
 #note: this must be called *after* produce()
@@ -97,7 +97,7 @@ function get_prod_rates(gs::GeneState)
     if logic == GeneMod.Id
         for i in 1:length(gs.bindings)
             protein = gs.bindings[i]
-            if protein != nothing && protein.props.fcn == ProteinPropsMod.Activate
+            if protein != nothing && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Activate
                 protein_conc = protein.concs[col]
                 threshold = gs.gene.bind_sites[i].threshold
                 excess = protein_conc - threshold #will be >= 0, since it's already bound
@@ -115,7 +115,7 @@ function get_prod_rates(gs::GeneState)
         sum = 0 #sum of excess
         max_sum = 0 #max possible excess
         i = 1
-        while i <= length(gs.bindings) && gs.bindings[i] != nothing && gs.bindings[i].props.fcn == ProteinPropsMod.Activate
+        while i <= length(gs.bindings) && gs.bindings[i] != nothing && ProteinPropsMod.get_fcn(gs.bindings[i].props) == ProteinPropsMod.Activate
             threshold = gs.gene.bind_sites[i].threshold
             protein_conc = gs.bindings[i].concs[col]
             excess = protein_conc - threshold
@@ -139,7 +139,7 @@ function get_prod_rates(gs::GeneState)
         sum = 0
         max_sum = 0
         for i in 1:length(gs.bindings)
-            if gs.bindings[i] != nothing && gs.bindings[i].props.fcn == ProteinPropsMod.Activate
+            if gs.bindings[i] != nothing && ProteinPropsMod.get_fcn(gs.bindings[i].props) == ProteinPropsMod.Activate
                 count += 1
                 protein_conc = gs.bindings[i].concs[col]
                 threshold = gs.gene.bind_sites[i].threshold
@@ -167,7 +167,7 @@ function get_prod_rates(gs::GeneState)
         i = 1
         while i <= length(gs.bindings) && count < 2
             protein = gs.bindings[i]
-            if protein != nothing && protein.props.fcn == ProteinPropsMod.Activate
+            if protein != nothing && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Activate
                 count += 1
                 protein_conc = protein.concs[col]
                 threshold = gs.gene.bind_sites[i].threshold

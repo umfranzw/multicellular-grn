@@ -25,8 +25,8 @@ function mutate(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
 end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
-    score_total = sum(indiv.gene_scores)
-    copy_locations = Array{Int64, 1}()
+    # score_total = sum(indiv.gene_scores)
+    # copy_locations = Array{Int64, 1}()
     gene_index = 1
     while gene_index <= length(indiv.genes)
         # if ea_step < indiv.config.run.gene_dup_gen_limit && indiv.gene_scores[gene_index] > indiv.config.run.gene_score_threshold && length(indiv.genes) < indiv.config.run.max_genes
@@ -60,7 +60,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     end
 
     #update genome_indices
-    foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
+    # foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
 end
 
 function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
@@ -87,36 +87,34 @@ end
 
 function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_types = filter(t -> t != site.type, [instances(ProteinPropsMod.ProteinType)...])
-        site.type = Random.rand(config.rng, valid_types)
+        #valid_types = filter(t -> t != site.type, [instances(ProteinPropsMod.ProteinType)...])
+        site.type = Random.rand(config.rng, instances(ProteinPropsMod.ProteinType))
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_fcns = filter(t -> t != site.fcn, [instances(ProteinPropsMod.ProteinFcn)...])
-        site.fcn = Random.rand(config.rng, valid_fcns)
+        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
-        site.action = Random.rand(config.rng, valid_actions)
+        delta = Random.rand(config.rng, (-1, 1))
+        site.arg = Int8(delta * site.arg)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_locs = filter(t -> t != site.loc, [instances(ProteinPropsMod.ProteinLoc)...])
-        site.loc = Random.rand(config.rng, valid_locs)
+        #valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
+        site.action = Random.rand(config.rng, instances(ProteinPropsMod.ProteinAction))
+    end
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        sign = site.arg < 0 ? -1 : 1 #must preserve sign
+        site.arg = RandUtilsMod.rand_int(config, 0, 127) * sign
     end
 end
 
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
-    #note: all bind sites must have type internal
-    #if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        #valid_types = filter(t -> t ∉ (ProteinPropsMod.Application, site.type), [instances(ProteinPropsMod.ProteinType)...])
-        #site.type = Random.rand(config.rng, valid_types)
-    #end
+    #note: all bind sites must have type internal, Neighbour, or Diffusion
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_actions = filter(a -> a != site.action, [instances(ProteinPropsMod.ProteinAction)...])
-        site.action = Random.rand(config.rng, valid_actions)
+        valid_types = filter(t -> t != ProteinPropsMod.Application, [instances(ProteinPropsMod.ProteinType)...])
+        site.type = Random.rand(config.rng, valid_types)
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        valid_locs = filter(l -> l != site.loc, [instances(ProteinPropsMod.ProteinLoc)...])
-        site.loc = Random.rand(config.rng, valid_locs)
+        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
     end
 
     #mutate site.threshold and site.consum_rate

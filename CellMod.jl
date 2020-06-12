@@ -22,14 +22,14 @@ mutable struct Cell
     parent::Union{Cell, Nothing}
     children::Array{Cell, 1}
     probs::SymProbs
-    sensors::Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}
+    sensors::Dict{Int8, Array{Float64, 1}}
     sym::Union{Sym, Nothing}
     age::Int64
     id::Union{UInt64, Nothing} #for use in preventing self-binding, and in the UI
 
     function Cell(config::Config, genes::Array{Gene, 1}, age::Int64=0)
         gene_states = map(g -> GeneState(config.run, g), genes)
-        proteins = ProteinStore()
+        proteins = ProteinStore(config.run)
         children = Array{Cell, 1}()
 
         cell = new(config, gene_states, proteins, nothing, children, SymProbs(), build_sensors(config.run, length(genes)), nothing, age, nothing)
@@ -39,22 +39,22 @@ mutable struct Cell
     end
 
     function Cell(config::Config, gene_states::Array{GeneState, 1}, age::Int64=0)
-        cell = new(config, gene_states, ProteinStore(), nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing, age, nothing)
+        cell = new(config, gene_states, ProteinStore(config.run), nothing, Array{Cell, 1}(), SymProbs(), build_sensors(length(genes)), nothing, age, nothing)
         
         cell
     end
 end
 
 function build_sensors(run::Run, num_concs::Int64)
-    sensors = Dict{ProteinPropsMod.ProteinLoc, Array{Float64, 1}}()
-    for loc in instances(ProteinPropsMod.ProteinLoc)
-        sensors[loc] = repeat([run.initial_cell_sensor_conc], num_concs)
+    sensors = Dict{Int8, Array{Float64, 1}}()
+    for loc in 0 : 2 + run.max_children #right, top, left, children
+        sensors[Int8(loc)] = repeat([run.initial_cell_sensor_conc], num_concs)
     end
 
     sensors
 end
 
-function adjust_sensor(cell::Cell, loc::ProteinPropsMod.ProteinLoc, delta::Array{Float64, 1})
+function adjust_sensor(cell::Cell, loc::Int8, delta::Array{Float64, 1})
     #println(length(cell.sensors[loc]))
     #println(length(delta))
     cell.sensors[loc] = clamp.(cell.sensors[loc] .+ delta, 0.0, cell.config.run.max_sensor_amount)
@@ -111,7 +111,7 @@ function show(io::IO, cell::Cell, ilevel::Int64=0)
     foreach(gs -> GeneStateMod.show(io, gs, ilevel + 1), cell.gene_states)
 
     iprintln(io, "sensors:", ilevel + 1)
-    for loc in instances(ProteinPropsMod.ProteinLoc)
+    for loc in sort(collect(keys(cell.sensors)))
         name = string(loc)
         val = join(map(c -> @sprintf("%0.2f", c), cell.sensors[loc]), ", ")
         iprintln(io, "$(name): [$(val)]", ilevel + 2)

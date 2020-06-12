@@ -160,41 +160,28 @@ class CellArea(QWidget):
         grid_layout = QGridLayout()
         chart_size = (200, 200)
 
-        self.top_chart = QtCharts.QChart()
-        self.top_chart.legend().setVisible(False)
-        self.top_view = QtCharts.QChartView(self.top_chart)
-        self.top_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.top_chart.resize(*chart_size)
+        num_locs = 3 + self.data_tools.get_run().max_children
+        self.sensor_charts = []
+        self.sensor_views = []
 
-        self.right_chart = QtCharts.QChart()
-        self.right_chart.legend().setVisible(False)
-        self.right_view = QtCharts.QChartView(self.right_chart)
-        self.right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.right_chart.resize(*chart_size)
+        for i in range(num_locs):
+            chart = QtCharts.QChart()
+            chart.legend().setVisible(False)
+            view = QtCharts.QChartView(chart)
+            view.setRenderHint(QPainter.RenderHint.Antialiasing)
+            chart.resize(*chart_size)
 
-        self.bottom_left_chart = QtCharts.QChart()
-        self.bottom_left_chart.legend().setVisible(False)
-        self.bottom_left_view = QtCharts.QChartView(self.bottom_left_chart)
-        self.bottom_left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.bottom_left_chart.resize(*chart_size)
+            self.sensor_charts.append(chart)
+            self.sensor_views.append(view)
 
-        self.bottom_right_chart = QtCharts.QChart()
-        self.bottom_right_chart.legend().setVisible(False)
-        self.bottom_right_view = QtCharts.QChartView(self.bottom_right_chart)
-        self.bottom_right_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.bottom_right_chart.resize(*chart_size)
+        #these must follow the order given in ProteinPropsMod
+        grid_layout.addWidget(self.sensor_views[0], 1, 2) #right
+        grid_layout.addWidget(self.sensor_views[1], 0, 1) #top
+        grid_layout.addWidget(self.sensor_views[2], 1, 0) #left
 
-        self.left_chart = QtCharts.QChart()
-        self.left_chart.legend().setVisible(False)
-        self.left_view = QtCharts.QChartView(self.left_chart)
-        self.left_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        self.left_chart.resize(*chart_size)
-
-        grid_layout.addWidget(self.top_view, 0, 1)
-        grid_layout.addWidget(self.right_view, 1, 2)
-        grid_layout.addWidget(self.bottom_left_view, 2, 0)
-        grid_layout.addWidget(self.bottom_right_view, 2, 2)
-        grid_layout.addWidget(self.left_view, 1, 0)
+        #bottom (children)
+        for i in range(3, num_locs):
+            grid_layout.addWidget(self.sensor_views[i], 2, i - 3)
 
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
@@ -213,32 +200,34 @@ class CellArea(QWidget):
     @Slot()
     def save_sensor_charts(self, chart_size):
         width, height = chart_size
-        pixmap = QPixmap(3 * width, 3 * height)
+        num_bottom_locs = self.data_tools.get_run().max_children
+        pixmap = QPixmap(num_bottom_locs * width, 3 * height)
         pixmap.fill(Qt.white)
 
+        right_pixmap = QPixmap(width, height)
+        self.sensor_views[0].render(right_pixmap)
+        
         top_pixmap = QPixmap(width, height)
-        self.top_view.render(top_pixmap)
-
-        bottom_left_pixmap = QPixmap(width, height)
-        self.bottom_left_view.render(bottom_left_pixmap)
-
-        bottom_right_pixmap = QPixmap(width, height)
-        self.bottom_right_view.render(bottom_right_pixmap)
+        self.sensor_views[1].render(top_pixmap)
 
         left_pixmap = QPixmap(width, height)
-        self.left_view.render(left_pixmap)
+        self.sensor_views[2].render(left_pixmap)
 
-        right_pixmap = QPixmap(width, height)
-        self.right_view.render(right_pixmap)
+        bottom_pixmaps = []
+        for i in range(num_bottom_locs):
+            pixmap = QPixmap(width, height)
+            self.sensor_views[3 + i].render(pixmap)
+            bottom_pixmaps.append(pixmap)
 
         painter = QPainter(pixmap)
-        painter.drawPixmap(QRect(width, 0, width, height), top_pixmap, top_pixmap.rect())
-        painter.drawPixmap(QRect(0, height * 2, width, height), bottom_left_pixmap, bottom_left_pixmap.rect())
-        painter.drawPixmap(QRect(width * 2 , height * 2, width, height), bottom_right_pixmap, bottom_right_pixmap.rect())
-        painter.drawPixmap(QRect(0, height, width, height), left_pixmap, left_pixmap.rect())
         painter.drawPixmap(QRect(width * 2, height, width, height), right_pixmap, right_pixmap.rect())
-        painter.end()
+        painter.drawPixmap(QRect(width, 0, width, height), top_pixmap, top_pixmap.rect())
+        painter.drawPixmap(QRect(0, height, width, height), left_pixmap, left_pixmap.rect())
 
+        for i in range(len(bottom_pixmaps)):
+            painter.drawPixmap(QRect(i * width, height * 2, width, height), bottom_pixmaps[i], bottom_pixmaps[i].rect())
+            
+        painter.end()
         Utils.save_pixmap(pixmap)
 
     @Slot()
@@ -305,16 +294,9 @@ class CellArea(QWidget):
 
     def refresh_sensors_tab(self):
         sensor_concs = self.data_tools.get_sensor_concs(self.cell)
-        
-        pairs = (
-            ('Top', self.top_chart),
-            ('Right', self.right_chart),
-            ('BLeft', self.bottom_left_chart),
-            ('BRight', self.bottom_right_chart),
-            ('Left', self.left_chart),
-        )
 
-        for (loc, chart) in pairs:
+        for loc in range(len(sensor_concs)):
+            chart = self.sensor_charts[loc]
             self.clear_chart(chart)
 
             if self.cell is not None: #note: self.cell will be None when an item in the graphics area is de-selected
@@ -329,7 +311,7 @@ class CellArea(QWidget):
                 chart.addAxis(y_axis, Qt.AlignLeft)
 
                 series = QtCharts.QBarSeries()
-                bar_set = QtCharts.QBarSet(loc)
+                bar_set = QtCharts.QBarSet(str(loc))
                 for sensor_conc in sensor_concs[loc]:
                     bar_set.append(sensor_conc)
                     

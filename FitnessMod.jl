@@ -88,8 +88,8 @@ function get_accuracy_fitness(indiv::Individual)
     expr_str = "f(x) = "
     expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
 
-    #f(x) = x * 2
-    test_data = [(1, 2), (2, 4)]
+    #f(x) = x + 1
+    test_data = [(1, 2), (2, 3)]
 
     #f(x) = x * 2 + 1
     #test_data = [(1, 3), (2, 5), (3, 7)]

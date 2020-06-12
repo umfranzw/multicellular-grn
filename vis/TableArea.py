@@ -16,9 +16,8 @@ class TableArea(QWidget):
 
         headers = [
             'Type',
-            'Fcn',
+            'Tag',
             'Action',
-            'Loc',
             'Arg',
             'isInitial',
             'Colour',

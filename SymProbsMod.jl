@@ -42,7 +42,7 @@ function alter_prob(probs::SymProbs, index::Int64, amount::Float64)
     end
 end
 
-function choose_sym(probs::SymProbs, config::Config)
+function choose_sym_roulette(probs::SymProbs, config::Config)
     #normalize the probabilities and build the "roulette wheel"
     total = foldl((s, p) -> s + p, values(probs.probs); init=0.0)
     next_bound = 0.0
@@ -62,6 +62,19 @@ function choose_sym(probs::SymProbs, config::Config)
 
     wheel[sel_index][1] #return the selected symbol
 end
+
+function choose_sym_max(probs::SymProbs)
+    max_pair = nothing #(sym, val)
+    for (sym, val) in probs.probs
+        if max_pair == nothing || val > max_pair[2]
+            max_pair = (sym, val)
+        end
+    end
+
+    max_pair[1]
+end
+
+choose_sym(probs::SymProbs, config::Config) = choose_sym_max(probs)
 
 function show(io::IO, probs::SymProbs, ilevel::Int64=0)
     #sort from highest to lowest

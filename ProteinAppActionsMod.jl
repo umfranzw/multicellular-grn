@@ -51,8 +51,8 @@ function alter_sym_prob(args::AppArgs)
         #println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
-        sym_index = Int64(args.app_protein.props.arg % length(cell.probs)) + 1
-        sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
+        sym_index = Int64(abs(args.app_protein.props.arg) % length(cell.probs)) + 1
+        sign = Int64(ProteinPropsMod.get_fcn(args.app_protein.props))
         
         max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess
         scale_factor = 1.0 / max_excess
@@ -70,9 +70,9 @@ function alter_sensor(args::AppArgs)
     
     cell = args.cell
     num_concs = length(args.app_protein.concs)
-    loc = args.app_protein.props.loc
+    max_locs = 3 + cell.config.run.max_children
+    loc = Int8(abs(args.app_protein.props.arg) % max_locs)
 
-    #sign = args.app_protein.props.fcn == ProteinPropsMod.Inhibit ? -1 : 1
     max_excess = 1.0 - cell.config.run.sensor_reinforcement_threshold #max possible excess
     scale_factor = 1.0 / max_excess
     excess = max.(args.app_protein.concs .- cell.config.run.sensor_reinforcement_threshold, 0.0)

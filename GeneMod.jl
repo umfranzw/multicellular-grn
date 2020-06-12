@@ -11,14 +11,12 @@ import Base.show
 
 export Gene, BindSite, ProdSite
 
-@enum BindLogic::UInt8 Id=1 And Or Xor
+@enum BindLogic::UInt8 Id And Or Xor
 
 mutable struct BindSite
     #from the protein
     type::ProteinPropsMod.ProteinType
-    #no fcn here
-    action::ProteinPropsMod.ProteinAction
-    loc::ProteinPropsMod.ProteinLoc
+    tag::UInt8
     #additional binding params
     threshold::Float64
     consum_rate::Float64
@@ -26,10 +24,9 @@ end
 
 mutable struct ProdSite
     type::ProteinPropsMod.ProteinType
-    fcn::ProteinPropsMod.ProteinFcn
+    tag::UInt8
     action::ProteinPropsMod.ProteinAction
-    loc::ProteinPropsMod.ProteinLoc
-    arg::UInt8
+    arg::Int8
 end
 
 mutable struct Gene
@@ -69,8 +66,7 @@ function get_bind_site_str(gene::Gene, index::Int64)
     site = gene.bind_sites[index]
     desc = ProteinPropsMod.get_abbrev_props_str(
         type=site.type,
-        action=site.action,
-        loc=site.loc
+        tag=site.tag
     )
     #@printf(buf, " %0.1f", gene.bind_sites[index].threshold)
     #@printf(buf, " %0.1f", gene.bind_sites[index].consum_rate)
@@ -82,9 +78,8 @@ function get_prod_site_str(gene::Gene, index::Int64)
     site = gene.prod_sites[index]
     desc = ProteinPropsMod.get_abbrev_props_str(
         type=site.type,
-        fcn=site.fcn,
+        tag=site.tag,
         action=site.action,
-        loc=site.loc,
         arg=site.arg
     )
 
@@ -103,58 +98,48 @@ end
 function rand_prod_site(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
+    tag::Union{Array{UInt8, 1}, Nothing},
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
-    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
-    arg::Union{Array{UInt8, 1}, Nothing}=nothing
+    fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
+    arg::Union{Array{Int8, 1}, Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing
 )
-    args = Array{Any, 1}()
-    pairs = (
-        (ProteinPropsMod.ProteinType, type),
-        (ProteinPropsMod.ProteinFcn, fcn),
-        (ProteinPropsMod.ProteinAction, action),
-        (ProteinPropsMod.ProteinLoc, loc),
-        (UInt8, arg)
-    )
-    foreach(p -> push!(args, ProteinPropsMod.rand_prop(config, p...)), pairs)
+    type_val = ProteinPropsMod.rand_prop(config, ProteinPropsMod.ProteinType, type)
+    tag_val = ProteinPropsMod.rand_prop(config, UInt8, tag)
+    action_val = ProteinPropsMod.rand_prop(config, ProteinPropsMod.ProteinAction, action)
+    arg_val = ProteinPropsMod.rand_prop(config, Int8, arg)
+    if fcn != nothing
+        #force sign to be fcn
+        arg_val = Int8(fcn) * abs(arg_val)
+    end
 
-    ProdSite(args...)
+    ProdSite(type_val, tag_val, action_val, arg_val)
 end
 
 function rand_bind_site(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
-    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    tag::Union{Array{UInt8, 1}, Nothing}=nothing,
     threshold::Union{Array{Float64, 1}, Nothing}=nothing,
     consum_rate::Union{Array{Float64, 1}, Nothing}=nothing
 )
-    args = Array{Any, 1}()
-    pairs = (
-        (ProteinPropsMod.ProteinType, type),
-        (ProteinPropsMod.ProteinAction, action),
-        (ProteinPropsMod.ProteinLoc, loc)
-    )
-    foreach(p -> push!(args, ProteinPropsMod.rand_prop(config, p...)), pairs)
+    type_val = ProteinPropsMod.rand_prop(config, ProteinPropsMod.ProteinType, type)
+    tag_val = ProteinPropsMod.rand_prop(config, UInt8, tag)
     
     if threshold == nothing
         threshold_val = RandUtilsMod.rand_float(config)
     else
         threshold_val = Random.rand(config.rng, threshold)
     end
-    push!(args, threshold_val)
     
     if consum_rate == nothing
         consum_rate_val = RandUtilsMod.rand_float(config)
     else
         consum_rate_val = Random.rand(config.rng, consum_rate)
     end
-    push!(args, consum_rate_val)
 
-    BindSite(args...)
+    BindSite(type_val, tag_val, threshold_val, consum_rate_val)
 end
 
-#note: binding sites should always be of type Internal
 function rand_init(
     config::Config,
     genome_index::Int64,

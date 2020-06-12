@@ -183,7 +183,7 @@ function get_concs_for_cell(cell::Cell, protein::Protein, fcn::Union{Function, N
 end
 
 function get_protein_info_for_indiv(indiv::Individual)
-    info = Dict{ProteinProps, Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
+    info = Dict{ProteinProps, Tuple{String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     if indiv.cell_tree.root != nothing
         CellTreeMod.traverse(cell -> merge!(info, get_protein_info_for_cell(cell)), indiv.cell_tree.root)
     end
@@ -195,14 +195,13 @@ function get_protein_info_for_indiv(indiv::Individual)
 end
 
 function get_protein_info_for_cell(cell::Cell)
-    info = Dict{ProteinProps, Tuple{String, String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
+    info = Dict{ProteinProps, Tuple{String, String, String, UInt8, Bool, ProteinProps, UInt64}}()
     proteins = ProteinStoreMod.get_all(cell.proteins)
     for protein in proteins
         item  = (
             string(protein.props.type),
-            string(protein.props.fcn),
+            string(protein.props.tag),
             string(protein.props.action),
-            string(protein.props.loc),
             protein.props.arg,
             protein.is_initial,
             protein.props,
@@ -228,9 +227,10 @@ function get_probs_info_for_cell(cell::Cell)
 end
 
 function get_sensor_concs(cell::Cell)
-    concs = Dict{String, Array{Float64, 1}}()
-    for loc in instances(ProteinPropsMod.ProteinLoc)
-        concs[string(loc)] = cell.sensors[loc]
+    concs = Array{Array{Float64, 1}, 1}()
+    num_locs = 3 + cell.config.run.max_children
+    for loc in 0 : num_locs - 1
+        push!(concs, cell.sensors[loc])
     end
 
     concs
@@ -284,7 +284,7 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_
             for (prod_index, rate) in rates
                 if rate > 0
                     prod_site = gs.gene.prod_sites[prod_index]
-                    prod_props = ProteinProps(prod_site.type, prod_site.fcn, prod_site.action, prod_site.loc, prod_site.arg)
+                    prod_props = ProteinProps(prod_site.type, prod_site.tag, prod_site.action, prod_site.arg)
                     #Just need to add the protein and an edge
                     InternalGraphMod.add_props(graph, prod_props, false) #note: produced proteins are never initial
                     InternalGraphMod.add_edge(graph, gs.gene, prod_props)

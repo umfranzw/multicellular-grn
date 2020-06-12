@@ -11,39 +11,40 @@ using RunMod
 export ProteinProps,
     hash, ==
 
-@enum ProteinType::Int8 Internal=1 Neighbour Diffusion Application
+@enum ProteinType::Int8 Internal Neighbour Diffusion Application
 
-@enum ProteinFcn::Int8 Inhibit=1 Activate
+@enum ProteinFcn::Int8 Inhibit=-1 Activate=1
 
-@enum ProteinAction::Int8 SymProb=1 Divide Sensor
+@enum ProteinAction::Int8 SymProb Divide Sensor
 
-@enum ProteinLoc::Int8 Top=1 BLeft BRight Left Right
+@enum ProteinLoc::Int8 Right Top Left #Bottom...
 
 #note: must be only one field of each type
 mutable struct ProteinProps
     type::ProteinType
-    fcn::ProteinFcn
+    tag::UInt8
     action::ProteinAction
-    loc::ProteinLoc
-    arg::UInt8
+    arg::Int8
+end
+
+function get_fcn(props::ProteinProps)
+    props.arg < 0 ? Inhibit : Activate
 end
 
 function rand_prop(
     config::Config,
     enum::Type{T},
     vals::Union{Array{T, 1}, Nothing}=nothing
-) where {T <: Union{ProteinPropsMod.ProteinType,
-                    ProteinPropsMod.ProteinFcn,
-                    ProteinPropsMod.ProteinAction,
-                    ProteinPropsMod.ProteinLoc,
-                    UInt8}}
+) where {T <: Union{ProteinPropsMod.ProteinType, ProteinPropsMod.ProteinAction, Int8, UInt8}}
     if vals == nothing
-        if enum == UInt8
-            instance = Random.rand(config.rng, UInt8)
+        #choose a completely random option
+        if enum in (Int8, UInt8)
+            instance = Random.rand(config.rng, enum)
         else
             instance = RandUtilsMod.rand_enum_val(config, enum)
         end
     else
+        #choose from one of the provided vals
         instance = Random.rand(config.rng, vals)
     end
 
@@ -53,53 +54,39 @@ end
 function rand_init(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    fcn::Union{Array{ProteinPropsMod.ProteinFcn, 1}, Nothing}=nothing,
+    tag::Union{Array{UInt8, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
-    loc::Union{Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
-    arg::Union{Array{UInt8, 1}, Nothing}=nothing
+    fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
+    arg::Union{Array{ProteinPropsMod.ProteinAction, 1}, Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing
 )
-    pairs = (
-        (ProteinType, type),
-        (ProteinFcn, fcn),
-        (ProteinAction, action),
-        (ProteinLoc, loc),
-        (UInt8, arg)
-    )
-    vals = map(p -> rand_prop(config, p...), pairs)
-    
-    ProteinProps(vals...)
-end
-
-function get_opposite_locs(loc::ProteinPropsMod.ProteinLoc)
-    result = Array{ProteinLoc, 1}()
-    if loc == ProteinPropsMod.Top
-        push!(result, ProteinPropsMod.BLeft, ProteinPropsMod.BRight)
-    elseif loc == ProteinPropsMod.BLeft || loc == ProteinPropsMod.BRight
-        push!(result, ProteinPropsMod.Top)
-    elseif loc == ProteinPropsMod.Left
-        push!(result, ProteinPropsMod.Right)
-    elseif loc == ProteinPropsMod.Right
-        push!(result, ProteinPropsMod.Left)
+    type_val = rand_prop(config, ProteinType, type)
+    tag_val = rand_prop(config, UInt8, tag)
+    action_val = rand_prop(config, ProteinAction, action)
+    arg_val = rand_prop(config, Int8, arg)
+    if fcn != nothing
+        #force sign to be fcn
+        arg_val = Int8(fcn) * abs(arg_val)
     end
-
-    result
+    
+    ProteinProps(type_val, tag_val, action_val, arg_val)
 end
 
 function get_abbrev_props_str(;
                               type::Union{ProteinPropsMod.ProteinType, Nothing}=nothing,
-                              fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
+                              tag::Union{UInt8, Nothing}=nothing,
                               action::Union{ProteinPropsMod.ProteinAction, Nothing}=nothing,
-                              loc::Union{ProteinPropsMod.ProteinLoc, Nothing}=nothing,
-                              arg::Union{UInt8, Nothing}=nothing
+                              arg::Union{Int8, Nothing}=nothing
                               )
     buf = IOBuffer()
-    for val in (type, fcn, action, loc)
-        if val != nothing
-            chunk = string(val)[1:3] #print first 3 chars of value name
-            print(buf, chunk)
-        end
+    if type != nothing
+        print(buf, string(type)[1:3])
     end
-
+    if tag != nothing
+        print(buf, string(tag))
+    end
+    if action != nothing
+        print(buf, string(action)[1:3])
+    end
     if arg != nothing
         print(buf, "-$(arg)")
     end
@@ -110,25 +97,21 @@ end
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)
     desc = get_abbrev_props_str(
         type=props.type,
-        fcn=props.fcn,
+        tag=props.tag,
         action=props.action,
-        loc=props.loc
+        arg=props.arg
     )
 
     iprint(io, desc, ilevel)
-    iprint(io, "-", ilevel)
-    iprint(io, string(props.arg), ilevel)
-    
     println(io, "")
 end
 
 function hash(props::ProteinProps)
-    hash((props.type, props.fcn, props.action, props.loc, props.arg))
+    hash((props.type, props.tag, props.action, props.arg))
 end
 
 ==(p1::ProteinProps, p2::ProteinProps) = (p1.type == p2.type &&
-                                          p1.fcn == p2.fcn &&
-                                          p1.loc == p2.loc &&
+                                          p1.tag == p2.tag &&
                                           p1.action == p2.action &&
                                           p1.arg == p2.arg)
 
