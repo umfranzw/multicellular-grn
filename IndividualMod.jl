@@ -216,7 +216,8 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Neighbour],
         tag=[bc_bind_site.tag],
-        fcn=ProteinPropsMod.Inhibit
+        fcn=ProteinPropsMod.Inhibit,
+        arg=[Int8(1)] #parent
     )
     fnb = pop_remaining_sites(config, genome_index, fnb_bind_site, fnb_prod_site)
 
@@ -423,7 +424,7 @@ function get_neighbour_at(cell::Cell, info::TreeInfo, loc::Int64)
         num_children = length(cell.children)
         offset = loc - 3 + 1 #- 3 for left, top, right
         if num_children > 0 && offset <= num_children
-            neighbours = cell.children[offset]
+            neighbour = cell.children[offset]
         end
     end
 
@@ -458,7 +459,7 @@ end
 
 #transfers proteins to cell from neighbours
 function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo, reg_step::Int64)
-    if reg_step == 25 && info.cell_to_level[cell] == 2 && info.level_to_cell[2][2] == cell
+    if reg_step == 35 && info.cell_to_level[cell] == 1 && info.level_to_cell[1][1] == cell
         println("found")
     end
 
@@ -619,7 +620,8 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
             if protein.props.type == ProteinPropsMod.Internal
                 eligible = site.type == ProteinPropsMod.Internal
             elseif protein.props.type == ProteinPropsMod.Neighbour
-                eligible = site.type == ProteinPropsMod.Neighbour && protein.src_cell_id != cell.id
+                #inhibitory neighbour proteins may bind to internal sites
+                eligible = (site.type == ProteinPropsMod.Neighbour || (site.type == ProteinPropsMod.Internal && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit)) && protein.src_cell_id != cell.id
             elseif protein.props.type == ProteinPropsMod.Diffusion
                 eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
             end
@@ -634,6 +636,33 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index:
 end
 
 function run_bind_for_site(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
+    run_bind_for_site_max(config, gs, gene_index, site_index, eligible_proteins)
+end
+
+function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
+    if length(eligible_proteins) > 0
+        max_protein = nothing
+        for protein in eligible_proteins
+            protein_conc = protein.concs[gene_index]
+            if ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit
+                protein_conc = min(protein_conc * 2, 1.0)
+            end
+            if max_protein == nothing || protein_conc > max_protein.concs[gene_index]
+                max_protein = protein
+            end
+        end
+
+        GeneStateMod.bind(gs, max_protein, site_index)
+        
+    else
+        state = GeneStateMod.get_binding(gs, site_index)
+        if state != nothing
+            GeneStateMod.unbind(gs, site_index)
+        end
+    end
+end
+
+function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)

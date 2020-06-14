@@ -80,7 +80,7 @@ function get_neighbour_proteins_by_loc(ps::ProteinStore, loc::Union{ProteinProps
     num_locs = 3 + ps.run.max_children
     neighbours = Array{Protein, 1}()
     for protein in values(ps.proteins[ProteinPropsMod.Neighbour])
-        if protein.props.arg % num_locs == Int64(loc) && protein.src_cell_id == src_cell_id
+        if abs(protein.props.arg) % num_locs == Int64(loc) && protein.src_cell_id == src_cell_id
             push!(neighbours, protein)
         end
     end
