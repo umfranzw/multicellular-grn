@@ -204,7 +204,7 @@ class CellArea(QWidget):
     def save_sensor_charts(self, chart_size):
         width, height = chart_size
         num_bottom_locs = self.data_tools.get_run().max_children
-        pixmap = QPixmap(num_bottom_locs * width, 3 * height)
+        pixmap = QPixmap(max(3, num_bottom_locs) * width, 3 * height)
         pixmap.fill(Qt.white)
 
         right_pixmap = QPixmap(width, height)
@@ -218,9 +218,9 @@ class CellArea(QWidget):
 
         bottom_pixmaps = []
         for i in range(num_bottom_locs):
-            pixmap = QPixmap(width, height)
-            self.sensor_views[3 + i].render(pixmap)
-            bottom_pixmaps.append(pixmap)
+            bpixmap = QPixmap(width, height)
+            self.sensor_views[3 + i].render(bpixmap)
+            bottom_pixmaps.append(bpixmap)
 
         painter = QPainter(pixmap)
         painter.drawPixmap(QRect(width * 2, height, width, height), right_pixmap, right_pixmap.rect())
