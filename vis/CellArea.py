@@ -45,6 +45,7 @@ class CellArea(QWidget):
 
         for i in range(num_bind_sites):
             headers.append('Prod Site {}'.format(i + 1))
+            headers.append('Inhib Protein {}'.format(i + 1))
             headers.append('Prod Rate {}'.format(i + 1))
 
         self.gs_table = QTableWidget(0, len(headers))
@@ -77,8 +78,9 @@ class CellArea(QWidget):
     @Slot()
     def export_gs_data(self):
         filename = Utils.run_save_csv_dialog()
-        self.data_tools.save_all_gs_table_data(self.cell, self.index, filename)
-        QMessageBox.information(self, 'Data Exported', 'Done.')
+        if filename:
+            self.data_tools.save_all_gs_table_data(self.cell, self.index, filename)
+            QMessageBox.information(self, 'Data Exported', 'Done.')
 
     def build_interaction_tab(self):
         tab = QWidget()
@@ -121,8 +123,9 @@ class CellArea(QWidget):
     def save_all_interaction_steps(self):
         if self.cell:
             path = Utils.run_save_folder_dialog()
-            self.data_tools.save_all_interaction_graphs(self.index, self.cell, path)
-            QMessageBox.information(self, 'Images Saved', 'Done.')
+            if path:
+                self.data_tools.save_all_interaction_graphs(self.index, self.cell, path)
+                QMessageBox.information(self, 'Images Saved', 'Done.')
 
     def build_probs_tab(self):
         tab = QWidget()

@@ -238,12 +238,14 @@ end
 
 function add_neighbour_edges(graph::NeighbourGraph, cell::Cell, id_to_cell::Dict{UInt64, Cell})
     for gs in cell.gene_states
-        for bound_protein in gs.bindings
-            if bound_protein != nothing && bound_protein.props.type == ProteinPropsMod.Neighbour
-                #note: this assumes there are no initial neighbour proteins (there's always a src cell)
-                src = id_to_cell[bound_protein.src_cell_id]
-                label = ProteinPropsMod.to_str(bound_protein.props, bound_protein.is_initial)
-                NeighbourGraphMod.add_edge(graph, src, cell)
+        for type in keys(gs.bindings)
+            for bound_protein in gs.bindings[type]
+                if bound_protein != nothing && bound_protein.props.type == ProteinPropsMod.Neighbour
+                    #note: this assumes there are no initial neighbour proteins (there's always a src cell)
+                    src = id_to_cell[bound_protein.src_cell_id]
+                    label = ProteinPropsMod.to_str(bound_protein.props, bound_protein.is_initial)
+                    NeighbourGraphMod.add_edge(graph, src, cell)
+                end
             end
         end
     end
@@ -272,10 +274,12 @@ function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_
         
         for gs in cur_cell.gene_states
             #find all bindings and insert them into the graph
-            for bound_protein in gs.bindings
-                if bound_protein != nothing
-                    InternalGraphMod.add_props(graph, bound_protein.props, bound_protein.is_initial)
-                    InternalGraphMod.add_edge(graph, bound_protein.props, gs.gene)
+            for type in keys(gs.bindings)
+                for bound_protein in gs.bindings[type]
+                    if bound_protein != nothing
+                        InternalGraphMod.add_props(graph, bound_protein.props, bound_protein.is_initial)
+                        InternalGraphMod.add_edge(graph, bound_protein.props, gs.gene)
+                    end
                 end
             end
 
@@ -331,18 +335,24 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
         for i in 1:length(gs.gene.bind_sites)
             push!(bind_sites, GeneMod.get_bind_site_str(gs.gene, i))
             push!(thresholds, @sprintf("%0.2f", gs.gene.bind_sites[i].threshold))
-            if gs.bindings[i] == nothing
+            if gs.bindings[BindSite][i] == nothing
                 push!(bound_proteins, "")
             else
-                push!(bound_proteins, ProteinPropsMod.to_str(gs.bindings[i].props, gs.bindings[i].is_initial))
+                push!(bound_proteins, ProteinPropsMod.to_str(gs.bindings[BindSite][i].props, gs.bindings[BindSite][i].is_initial))
             end
         end
 
         prod_rates = GeneStateMod.get_prod_rates(cell.gene_states[gene_index])
         prod_sites = repeat([""], length(gs.gene.bind_sites))
         prod_rates_strs = repeat([""], length(gs.gene.bind_sites))
+        bound_inhib_proteins = Array{String, 1}()
         for i in 1:length(gs.gene.bind_sites)
             prod_sites[i] = GeneMod.get_prod_site_str(gs.gene, i)
+            if gs.bindings[ProdSite][i] == nothing
+                push!(bound_inhib_proteins, "")
+            else
+                push!(bound_inhib_proteins, ProteinPropsMod.to_str(gs.bindings[ProdSite][i].props, gs.bindings[ProdSite][i].is_initial))
+            end
         end
         
         for (prod_index, rate) in prod_rates
@@ -361,6 +371,7 @@ function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::
 
         for i in 1:length(gs.gene.bind_sites)
             push!(row, prod_sites[i])
+            push!(row, bound_inhib_proteins[i])
             push!(row, prod_rates_strs[i])
         end
 
