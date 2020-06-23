@@ -92,6 +92,9 @@ function get_by_type(ps::ProteinStore, type::ProteinPropsMod.ProteinType)
     values(ps.proteins[type])
 end
 
+function get_by_tag(ps::ProteinStore, tag::Int8)
+end
+
 function get_by_types(ps::ProteinStore, types::Set{ProteinPropsMod.ProteinType})
     result = Array{Protein, 1}()
     for type in types

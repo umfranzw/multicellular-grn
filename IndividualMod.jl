@@ -73,7 +73,9 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Internal],
         tag=[UInt8(1)],
-        fcn=ProteinPropsMod.Activate
+        fcn=ProteinPropsMod.Activate,
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     ab = pop_remaining_sites(config, genome_index, ab_bind_site, ab_prod_site)
 
@@ -98,7 +100,9 @@ function make_initial_genes(config::Config)
         config,
         type=[ProteinPropsMod.Application],
         tag=[UInt8(2)],
-        action=[ProteinPropsMod.Divide]
+        action=[ProteinPropsMod.Divide],
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     bc = pop_remaining_sites(config, genome_index, bc_bind_site, bc_prod_site)
 
@@ -115,7 +119,9 @@ function make_initial_genes(config::Config)
         config,
         type=[ab_bind_site.type],
         tag=[ab_bind_site.tag],
-        fcn=ProteinPropsMod.Activate
+        fcn=ProteinPropsMod.Activate,
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     ba = pop_remaining_sites(config, genome_index, ba_bind_site, ba_prod_site)
 
@@ -135,7 +141,9 @@ function make_initial_genes(config::Config)
         tag=[UInt8(4)],
         action=[ProteinPropsMod.SymProb],
         fcn=ProteinPropsMod.Activate,
-        arg=[Int8(plus_index)]
+        arg=[Int8(plus_index)],
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     de = pop_remaining_sites(config, genome_index, de_bind_site, de_prod_site)
 
@@ -161,7 +169,9 @@ function make_initial_genes(config::Config)
         type=[ProteinPropsMod.Neighbour],
         tag=[UInt8(4)],
         fcn=ProteinPropsMod.Activate,
-        arg=[Int8(4)] #right child
+        arg=[Int8(4)], #right child
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     bf = pop_remaining_sites(config, genome_index, bf_bind_site, bf_prod_site)
 
@@ -179,7 +189,9 @@ function make_initial_genes(config::Config)
         type=[ProteinPropsMod.Neighbour],
         tag=[UInt8(5)],
         fcn=ProteinPropsMod.Activate,
-        arg=[Int8(3)] #left child
+        arg=[Int8(3)], #left child
+        threshold=[IndividualMod.initial_threshold],
+        consum_rate=[IndividualMod.initial_consum_rate]
     )
     bg = pop_remaining_sites(config, genome_index, bg_bind_site, bg_prod_site)
 
@@ -199,27 +211,31 @@ function make_initial_genes(config::Config)
         tag=[UInt8(6)],
         action=[ProteinPropsMod.SymProb],
         fcn=ProteinPropsMod.Activate,
-        arg=[Int8(x_index)]
-    )
-    gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
-
-    #fnb
-    fnb_bind_site = GeneMod.rand_bind_site(
-        config,
-        type=[bf_prod_site.type], #neighbour-only receptor
-        tag=[bf_prod_site.tag],
+        arg=[Int8(x_index)],
         threshold=[IndividualMod.initial_threshold],
         consum_rate=[IndividualMod.initial_consum_rate]
     )
+gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
-    fnb_prod_site = GeneMod.rand_prod_site(
-        config,
-        type=[ProteinPropsMod.Neighbour],
-        tag=[bc_bind_site.tag],
-        fcn=ProteinPropsMod.Inhibit,
-        arg=[Int8(1)] #parent
-    )
-    fnb = pop_remaining_sites(config, genome_index, fnb_bind_site, fnb_prod_site)
+#fnb
+fnb_bind_site = GeneMod.rand_bind_site(
+    config,
+    type=[bf_prod_site.type], #neighbour-only receptor
+    tag=[bf_prod_site.tag],
+    threshold=[IndividualMod.initial_threshold],
+    consum_rate=[IndividualMod.initial_consum_rate]
+)
+
+fnb_prod_site = GeneMod.rand_prod_site(
+    config,
+    type=[ProteinPropsMod.Neighbour],
+    tag=[bc_bind_site.tag],
+    fcn=ProteinPropsMod.Inhibit,
+    arg=[Int8(1)], #parent
+    threshold=[IndividualMod.initial_threshold],
+    consum_rate=[IndividualMod.initial_consum_rate]
+)
+fnb = pop_remaining_sites(config, genome_index, fnb_bind_site, fnb_prod_site)
 
 #fi
 fi_bind_site = GeneMod.rand_bind_site(
@@ -237,7 +253,9 @@ fi_prod_site = GeneMod.rand_prod_site(
     tag=[UInt8(7)],
     action=[ProteinPropsMod.SymProb],
     fcn=ProteinPropsMod.Activate,
-    arg=[Int8(one_index)]
+    arg=[Int8(one_index)],
+    threshold=[IndividualMod.initial_threshold],
+    consum_rate=[IndividualMod.initial_consum_rate]
 )
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
 push!(genes, gh, bg, ba, ab, bc, fnb, bf, fi, de)
@@ -459,10 +477,6 @@ end
 
 #transfers proteins to cell from neighbours
 function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo, reg_step::Int64)
-    if reg_step == 35 && info.cell_to_level[cell] == 1 && info.level_to_cell[1][1] == cell
-        println("found")
-    end
-
     for src_loc in 0 : 2 + cell.config.run.max_children #the loc we're taking the proteins from
         neighbour = get_neighbour_at(cell, info, src_loc) #the cell we're taking the proteins from
 
@@ -508,10 +522,11 @@ function run_decay_for_cell(cell::Cell)
         #remove any proteins that have decayed below the allowable threshold
         if all(c -> c < cell.config.run.protein_deletion_threshold, protein.concs)
             #clear any bindings that this protein has
+            type = ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit ? ProdSite : BindSite
             for gs in cell.gene_states
-                for i in 1:length(gs.bindings)
-                    if gs.bindings[i] == protein
-                        gs.bindings[i] = nothing
+                for i in 1:length(gs.bindings[type])
+                    if gs.bindings[type][i] == protein
+                        gs.bindings[type][i] = nothing
                     end
                 end
             end
@@ -583,86 +598,102 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
         gene = indiv.genes[gene_index]
 
         for site_index in 1:length(gene.bind_sites)
-            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site_index)
-            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, site_index, eligible_proteins)
+            site = gene.bind_sites[site_index]
+            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site)
+            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, BindSite, site_index, eligible_proteins)
+        end
+
+        for site_index in 1:length(gene.prod_sites)
+            site = gene.prod_sites[site_index]
+            eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site)
+            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, ProdSite, site_index, eligible_proteins)
         end
     end
 end
 
-function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site_index::Int64)
-    #Binding logic:
-    # For proteins of type Internal:
-    # -protein's conc must be >= site's threshold
-    # -protein type must match site type
-    # -protein fcn is unrestricted
-    # -protein action must match site action
-    # -protein loc must match site loc
-    # -protein arg is unrestricted
-
-    #For proteins of type Neighbour:
-    # -same restrictions as type Internal, except:
-    # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
-
-    #For proteins of type Diffusion:
-    # -same restrictions as type Neighbour
-
-    #Proteins of type Application do not bind
-
-    site = gene.bind_sites[site_index]
+function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union{BindSite, ProdSite})
     eligible_proteins = Array{Protein, 1}()
-
-    #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
     search_proteins = ProteinStoreMod.get_by_types(cell.proteins, Set{ProteinPropsMod.ProteinType}( (ProteinPropsMod.Internal, ProteinPropsMod.Neighbour, ProteinPropsMod.Diffusion) ))
+    
+    if site isa BindSite
+        #Binding logic for bind sites:
+        # For proteins of type Internal:
+        # -protein's conc must be >= site's threshold
+        # -protein fcn must not be inhibit
+        # -protein action must match site action
+        # -protein loc must match site loc
+        # -protein arg is unrestricted
 
-    for protein in search_proteins
-        eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag
-        if eligible
-            if protein.props.type == ProteinPropsMod.Internal
-                eligible = site.type == ProteinPropsMod.Internal
-            elseif protein.props.type == ProteinPropsMod.Neighbour
-                #inhibitory neighbour proteins may bind to internal sites
-                eligible = (site.type == ProteinPropsMod.Neighbour || (site.type == ProteinPropsMod.Internal && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit)) && protein.src_cell_id != cell.id
-            elseif protein.props.type == ProteinPropsMod.Diffusion
-                eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
+        #For proteins of type Neighbour:
+        # -same restrictions as type Internal, except:
+        # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
+
+        #For proteins of type Diffusion:
+        # -same restrictions as type Neighbour
+
+        #Proteins of type Application do not bind
+        
+        #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
+
+        for protein in search_proteins
+            eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag && ProteinPropsMod.get_fcn(protein.props) != ProteinPropsMod.Inhibit
+            if eligible
+                if protein.props.type == ProteinPropsMod.Internal
+                    eligible = site.type == ProteinPropsMod.Internal
+                elseif protein.props.type == ProteinPropsMod.Neighbour
+                    #inhibitory neighbour proteins may bind to internal sites
+                    eligible = (site.type == ProteinPropsMod.Neighbour || (site.type == ProteinPropsMod.Internal && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit)) && protein.src_cell_id != cell.id
+                elseif protein.props.type == ProteinPropsMod.Diffusion
+                    eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
+                end
+            end
+
+            if eligible
+                push!(eligible_proteins, protein)
             end
         end
 
-        if eligible
-            push!(eligible_proteins, protein)
+    else
+        #Binding logic for prod sites (inhibitory):
+        # -protein's type must be one of: internal, neighbour, diffusion
+        # -protein's tag must match prod site tag
+        # -protein's conc must be >= site's threshold
+        
+        for protein in search_proteins
+            if protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit
+                push!(eligible_proteins, protein)
+            end
         end
     end
-
+    
     eligible_proteins
 end
 
-function run_bind_for_site(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
-    run_bind_for_site_max(config, gs, gene_index, site_index, eligible_proteins)
+function run_bind_for_site(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
+    run_bind_for_site_max(config, gs, gene_index, site_type, site_index, eligible_proteins)
 end
 
-function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         max_protein = nothing
         for protein in eligible_proteins
             protein_conc = protein.concs[gene_index]
-            if ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit
-                protein_conc = min(protein_conc * 2, 1.0)
-            end
             if max_protein == nothing || protein_conc > max_protein.concs[gene_index]
                 max_protein = protein
             end
         end
 
-        GeneStateMod.bind(gs, max_protein, site_index)
+        GeneStateMod.bind(gs, max_protein, site_type, site_index)
         
     else
-        state = GeneStateMod.get_binding(gs, site_index)
+        state = GeneStateMod.get_binding(gs, site_type, site_index)
         if state != nothing
-            GeneStateMod.unbind(gs, site_index)
+            GeneStateMod.unbind(gs, site_type, site_index)
         end
     end
 end
 
-function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::Int64, site_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
@@ -684,13 +715,13 @@ function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::I
         sel_protein = eligible_proteins[sel_index]
 
         #@info @sprintf("%s binding to site %s", sel_protein, site_index)
-        GeneStateMod.bind(gs, sel_protein, site_index)
+        GeneStateMod.bind(gs, sel_protein, site_type, site_index)
 
     else
-        state = GeneStateMod.get_binding(gs, site_index)
+        state = GeneStateMod.get_binding(gs, site_type, site_index)
         if state != nothing
             #@info @sprintf("Protein unbinding")
-            GeneStateMod.unbind(gs, site_index)
+            GeneStateMod.unbind(gs, site_type, site_index)
         end
     end
 end

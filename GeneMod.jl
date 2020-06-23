@@ -27,6 +27,9 @@ mutable struct ProdSite
     tag::UInt8
     action::ProteinPropsMod.ProteinAction
     arg::Int8
+    
+    threshold::Float64
+    consum_rate::Float64
 end
 
 mutable struct Gene
@@ -101,7 +104,9 @@ function rand_prod_site(
     tag::Union{Array{UInt8, 1}, Nothing},
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
-    arg::Union{Array{Int8, 1}, Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing
+    arg::Union{Array{Int8, 1}, Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
+    threshold::Union{Array{Float64, 1}, Nothing}=nothing,
+    consum_rate::Union{Array{Float64, 1}, Nothing}=nothing
 )
     type_val = ProteinPropsMod.rand_prop(config, ProteinPropsMod.ProteinType, type)
     tag_val = ProteinPropsMod.rand_prop(config, UInt8, tag)
@@ -111,8 +116,19 @@ function rand_prod_site(
         #force sign to be fcn
         arg_val = Int8(fcn) * abs(arg_val)
     end
+    if threshold == nothing
+        threshold_val = RandUtilsMod.rand_float(config)
+    else
+        threshold_val = Random.rand(config.rng, threshold)
+    end
+    
+    if consum_rate == nothing
+        consum_rate_val = RandUtilsMod.rand_float(config)
+    else
+        consum_rate_val = Random.rand(config.rng, consum_rate)
+    end
 
-    ProdSite(type_val, tag_val, action_val, arg_val)
+    ProdSite(type_val, tag_val, action_val, arg_val, threshold_val, consum_rate_val)
 end
 
 function rand_bind_site(
