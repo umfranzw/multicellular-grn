@@ -59,8 +59,20 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
         gene_index += 1
     end
 
+    #swap locations
+    mutate_location(indiv.config, indiv.genes)
+
     #update genome_indices
     # foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
+end
+
+function mutate_location(config::Config, genes::Array{Gene, 1})
+    if RandUtilsMod.rand_float(gene.config) < gene.config.run.mut_prob
+        src = RandUtilsMod.rand_int(indiv.config, 1, length(genes))
+        delta = Random.rand(indiv.config, (1, -1))
+        dest = (src + delta) < 1 ? (src + delta) + length(genes) : (src + delta) % length(genes)
+        genes[src], genes[dest] = genes[dest], genes[src]
+    end
 end
 
 function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
@@ -94,21 +106,19 @@ function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
         site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        delta = Random.rand(config.rng, (-1, 1))
-        site.arg = Int8(delta * site.arg)
-    end
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
         #valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
         site.action = Random.rand(config.rng, instances(ProteinPropsMod.ProteinAction))
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
-        sign = site.arg < 0 ? -1 : 1 #must preserve sign
-        site.arg = RandUtilsMod.rand_int(config, 0, 127) * sign
+        site.arg = RandUtilsMod.rand_int(config, 0, 127)
     end
+
+    #mutate site.threshold and site.consum_rate
+    #mutate_floats(config, site, ea_step)
 end
 
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
-    #note: all bind sites must have type internal, Neighbour, or Diffusion
+    #note: all bind sites must not have type Application
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         valid_types = filter(t -> t != ProteinPropsMod.Application, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, valid_types)
