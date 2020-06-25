@@ -67,9 +67,9 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
 end
 
 function mutate_location(config::Config, genes::Array{Gene, 1})
-    if RandUtilsMod.rand_float(gene.config) < gene.config.run.mut_prob
-        src = RandUtilsMod.rand_int(indiv.config, 1, length(genes))
-        delta = Random.rand(indiv.config, (1, -1))
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        src = RandUtilsMod.rand_int(config, 1, length(genes))
+        delta = Random.rand(config.rng, [1, -1])
         dest = (src + delta) < 1 ? (src + delta) + length(genes) : (src + delta) % length(genes)
         genes[src], genes[dest] = genes[dest], genes[src]
     end
