@@ -217,8 +217,8 @@ function make_initial_genes(config::Config)
     )
 gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
-#fnb
-fnb_bind_site = GeneMod.rand_bind_site(
+#fnc
+fnc_bind_site = GeneMod.rand_bind_site(
     config,
     type=[bf_prod_site.type], #neighbour-only receptor
     tag=[bf_prod_site.tag],
@@ -226,16 +226,16 @@ fnb_bind_site = GeneMod.rand_bind_site(
     consum_rate=[IndividualMod.initial_consum_rate]
 )
 
-fnb_prod_site = GeneMod.rand_prod_site(
+fnc_prod_site = GeneMod.rand_prod_site(
     config,
     type=[ProteinPropsMod.Neighbour],
-    tag=[bc_bind_site.tag],
+    tag=[bc_prod_site.tag],
     fcn=ProteinPropsMod.Inhibit,
     arg=[Int8(1)], #parent
     threshold=[IndividualMod.initial_threshold],
     consum_rate=[IndividualMod.initial_consum_rate]
 )
-fnb = pop_remaining_sites(config, genome_index, fnb_bind_site, fnb_prod_site)
+fnc = pop_remaining_sites(config, genome_index, fnc_bind_site, fnc_prod_site)
 
 #fi
 fi_bind_site = GeneMod.rand_bind_site(
@@ -258,7 +258,7 @@ fi_prod_site = GeneMod.rand_prod_site(
     consum_rate=[IndividualMod.initial_consum_rate]
 )
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
-push!(genes, gh, bg, ba, ab, bc, fnb, bf, fi, de)
+push!(genes, gh, bg, ba, ab, bc, fnc, bf, fi, de)
 for i in 1:length(genes)
     genes[i].genome_index = i
 end
@@ -409,9 +409,9 @@ function run_fix_syms(indiv::Individual)
     CellTreeMod.traverse(CellMod.fix_sym, indiv.cell_tree)
 end
 
-function run_neighbour_comm(indiv::Individual, reg_step::Int64)
+function run_neighbour_comm(indiv::Individual)
     info = TreeInfo(indiv.cell_tree)
-    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info, reg_step), indiv.cell_tree)
+    CellTreeMod.traverse(cell -> run_neighbour_comm_for_cell(cell, info), indiv.cell_tree)
 end
 
 function get_neighbour_at(cell::Cell, info::TreeInfo, loc::Int64)
@@ -476,7 +476,7 @@ function get_loc_relationship(cell::Cell, neighbour::Cell, neighbour_loc::Int64)
 end
 
 #transfers proteins to cell from neighbours
-function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo, reg_step::Int64)
+function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
     for src_loc in 0 : 2 + cell.config.run.max_children #the loc we're taking the proteins from
         neighbour = get_neighbour_at(cell, info, src_loc) #the cell we're taking the proteins from
 
@@ -618,33 +618,43 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union
     if site isa BindSite
         #Binding logic for bind sites:
         # For proteins of type Internal:
+        # -protein's type must match site's type
+        # -protein's tag must match site's tag
+        # -protein fcn must not be inhibit (inhibitory proteins bind to prod sites)
         # -protein's conc must be >= site's threshold
-        # -protein fcn must not be inhibit
-        # -protein action must match site action
-        # -protein loc must match site loc
-        # -protein arg is unrestricted
 
         #For proteins of type Neighbour:
-        # -same restrictions as type Internal, except:
+        # -protein's type must match site's type
+        # -protein's tag must match site's tag
+        # -protein fcn must not be inhibit (inhibitory proteins bind to prod sites)
+        # -protein's conc must be >= site's threshold
         # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
 
         #For proteins of type Diffusion:
-        # -same restrictions as type Neighbour
+        # -protein's type must match site's type
+        # -protein's tag must match site's tag
+        # -protein fcn must not be inhibit (inhibitory proteins bind to prod sites)
+        # -protein's conc must be >= site's threshold
+        # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
 
         #Proteins of type Application do not bind
         
-        #sites with type Internal can accept proteins of types: Internal, Neighbour, or Diffusion
-
         for protein in search_proteins
-            eligible = protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag && ProteinPropsMod.get_fcn(protein.props) != ProteinPropsMod.Inhibit
+            #check the conditions that all protein types have in common
+            #note: this completes all the checks needed for proteins of type internal
+            eligible = (protein.props.type == site.type &&
+                        protein.props.tag == site.tag &&
+                        ProteinPropsMod.get_fcn(protein.props) != ProteinPropsMod.Inhibit &&
+                        protein.concs[gene.genome_index] >= site.threshold)
+
+            #check conditions specific to neighbour and diffusion types
             if eligible
-                if protein.props.type == ProteinPropsMod.Internal
-                    eligible = site.type == ProteinPropsMod.Internal
-                elseif protein.props.type == ProteinPropsMod.Neighbour
-                    #inhibitory neighbour proteins may bind to internal sites
-                    eligible = (site.type == ProteinPropsMod.Neighbour || (site.type == ProteinPropsMod.Internal && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit)) && protein.src_cell_id != cell.id
+                #note: leave these two cases separate for now in case they diverge later...
+                if protein.props.type == ProteinPropsMod.Neighbour
+                    eligible = protein.src_cell_id != cell.id
+                    
                 elseif protein.props.type == ProteinPropsMod.Diffusion
-                    eligible = site.type == ProteinPropsMod.Diffusion && protein.src_cell_id != cell.id
+                    eligible = protein.src_cell_id != cell.id
                 end
             end
 
@@ -655,12 +665,48 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union
 
     else
         #Binding logic for prod sites (inhibitory):
-        # -protein's type must be one of: internal, neighbour, diffusion
-        # -protein's tag must match prod site tag
+        # For proteins of type Internal:
+        # -protein's tag must match site's tag
+        # -protein fcn must be inhibit (only inhibitory proteins bind to prod sites)
+        # -site's fcn must not be inhibitory (inhibitory proteins can't block the production of inhibitory proteins)
         # -protein's conc must be >= site's threshold
+
+        #For proteins of type Neighbour:
+        # -protein's tag must match site's tag
+        # -protein fcn must be inhibit (only inhibitory proteins bind to prod sites)
+        # -site's fcn must not be inhibitory (inhibitory proteins can't block the production of inhibitory proteins)
+        #   -this also prevents neighbour proteins from binding to same column they were produced in
+        # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
+
+        #For proteins of type Diffusion:
+        # -protein's tag must match site's tag
+        # -protein fcn must be inhibit (only inhibitory proteins bind to prod sites)
+        # -site's fcn must not be inhibitory (inhibitory proteins can't block the production of inhibitory proteins)
+        #   -this also prevents diffusion proteins from binding to same column they were produced in
+        # -protein's src_cell_id must not point to the current cell (to prevent self-binding)
+
+        #Proteins of type Application do not bind
         
         for protein in search_proteins
-            if protein.concs[gene.genome_index] >= site.threshold && protein.props.tag == site.tag && ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit
+            #check the conditions that all protein types have in common
+            #note: this completes all the checks needed for proteins of type internal
+            eligible = (protein.props.tag == site.tag &&
+                        ProteinPropsMod.get_fcn(protein.props) == ProteinPropsMod.Inhibit &&
+                        ProteinPropsMod.get_fcn(site.arg) != ProteinPropsMod.Inhibit &&
+                        protein.concs[gene.genome_index] >= site.threshold)
+            
+            #check conditions specific to neighbour and diffusion types
+            if eligible
+                #note: leave these two cases separate for now in case they diverge later...
+                if protein.props.type == ProteinPropsMod.Neighbour
+                    eligible = protein.src_cell_id != cell.id
+                    
+                elseif protein.props.type == ProteinPropsMod.Diffusion
+                    eligible = protein.src_cell_id != cell.id
+                end
+            end
+
+            if eligible
                 push!(eligible_proteins, protein)
             end
         end

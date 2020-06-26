@@ -28,7 +28,11 @@ mutable struct ProteinProps
 end
 
 function get_fcn(props::ProteinProps)
-    props.arg < 0 ? Inhibit : Activate
+    get_fcn(props.arg)
+end
+
+function get_fcn(arg::Int8)
+    arg < 0 ? Inhibit : Activate
 end
 
 function rand_prop(

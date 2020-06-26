@@ -35,7 +35,7 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
         IndividualMod.run_produce(indiv)
         IndividualMod.run_binding_consum(indiv)
         IndividualMod.run_diffuse(indiv)
-        IndividualMod.run_neighbour_comm(indiv, reg_step)
+        IndividualMod.run_neighbour_comm(indiv)
         IndividualMod.run_protein_app(indiv)
         IndividualMod.run_decay(indiv)
         IndividualMod.run_age(indiv)
