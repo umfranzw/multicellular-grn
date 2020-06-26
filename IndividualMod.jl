@@ -353,9 +353,9 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
         elseif protein.props.action == ProteinPropsMod.Divide
             threshold = cell.config.run.cell_division_threshold
             action_fcn = ProteinAppActionsMod.divide
-        elseif protein.props.action == ProteinPropsMod.Sensor
-            threshold = cell.config.run.sensor_reinforcement_threshold
-            action_fcn = ProteinAppActionsMod.alter_sensor
+        # elseif protein.props.action == ProteinPropsMod.Sensor
+        #     threshold = cell.config.run.sensor_reinforcement_threshold
+        #     action_fcn = ProteinAppActionsMod.alter_sensor
         end
 
         max_conc = maximum(protein.concs)
@@ -488,9 +488,10 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
 
             if length(neighbour_proteins) > 0
                 #compute the max amount of each protein that we can accept
-                accept_amount = cell.sensors[src_loc] / length(neighbour_proteins)
+                #accept_amount = cell.sensors[src_loc] / length(neighbour_proteins)
                 for neighbour_protein in neighbour_proteins
-                    transfer_amount = min.(neighbour_protein.concs, accept_amount)
+                    #transfer_amount = min.(neighbour_protein.concs, accept_amount)
+                    transfer_amount = neighbour_protein.concs
 
                     #add the neighbour protein into the source cell
                     dest_protein = ProteinStoreMod.get(cell.proteins, neighbour_protein.props)
@@ -501,7 +502,7 @@ function run_neighbour_comm_for_cell(cell::Cell, info::TreeInfo)
                         end
                     end
                     if dest_protein != nothing
-                        cell.sensors[src_loc] -= transfer_amount
+                        #cell.sensors[src_loc] -= transfer_amount
                         dest_protein.concs = clamp.(dest_protein.concs + transfer_amount, 0.0, 1.0)
                         neighbour_protein.concs -= transfer_amount
                     end

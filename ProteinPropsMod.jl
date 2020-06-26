@@ -15,7 +15,7 @@ export ProteinProps,
 
 @enum ProteinFcn::Int8 Inhibit=-1 Activate=1
 
-@enum ProteinAction::Int8 SymProb Divide Sensor
+@enum ProteinAction::Int8 SymProb Divide #Sensor
 
 @enum ProteinLoc::Int8 Right Top Left #Bottom...
 
