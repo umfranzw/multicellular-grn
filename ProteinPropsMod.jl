@@ -81,21 +81,21 @@ function get_abbrev_props_str(;
                               action::Union{ProteinPropsMod.ProteinAction, Nothing}=nothing,
                               arg::Union{Int8, Nothing}=nothing
                               )
-    buf = IOBuffer()
+    labels = Array{String, 1}()
     if type != nothing
-        print(buf, string(type)[1:3])
+        push!(labels, string(type)[1:3])
     end
     if tag != nothing
-        print(buf, string(tag))
+        push!(labels, string(tag))
     end
     if action != nothing
-        print(buf, string(action)[1:3])
+        push!(labels, string(action)[1:3])
     end
     if arg != nothing
-        print(buf, "-$(arg)")
+        push!(labels, string(arg))
     end
-
-    String(take!(buf))
+    
+    join(labels, ":")
 end
 
 function show(io::IO, props::ProteinProps, ilevel::Int64=0)

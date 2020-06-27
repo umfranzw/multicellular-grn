@@ -41,13 +41,15 @@ function rand_init(run::Run, seed::UInt64)
     rng = Random.MersenneTwister(seed)
     config = Config(run, rng)
 
-    genes, initial_protein_props = make_initial_genes(config)
+    #genes, initial_protein_props = make_initial_genes(config)
     #genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)
 
+    genes = make_initial_genes(config)
     root_cell = Cell(config, genes)
     cell_tree = CellTree(root_cell)
 
-    initial_proteins = make_initial_proteins(config, initial_protein_props, length(genes), root_cell)
+    #initial_proteins = make_initial_proteins(config, initial_protein_props, length(genes), root_cell)
+    initial_proteins = make_initial_proteins(config, genes, root_cell)
 
     indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, zeros(Int64, length(genes)))
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
@@ -55,7 +57,7 @@ function rand_init(run::Run, seed::UInt64)
     indiv
 end
 
-function make_initial_genes(config::Config)
+function make_initial_genes_preset(config::Config)
     genes = Array{Gene, 1}()
     initial_protein_props = Array{ProteinProps, 1}()
     genome_index = -1
@@ -281,16 +283,46 @@ function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_sit
     Gene(config, genome_index, GeneMod.Id, bind_sites, prod_sites)
 end
 
-function make_initial_proteins(config::Config, initial_props::Array{ProteinProps, 1}, num_concs::Int64, root_cell::Cell)
+function make_initial_genes(config::Config)
+    genes = Array{Gene, 1}()
+
+    for i in 1:config.run.num_initial_genes
+        gene = GeneMod.rand_init(
+            config,
+            i,
+            bind_site_types=[ProteinPropsMod.Internal],
+            bind_logic=[GeneMod.Id]
+        )
+        push!(genes, gene)
+    end
+
+    genes
+end
+
+function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell::Cell)
     proteins = Array{Protein, 1}()
+    num_concs = length(genes)
     half = (1.0 - IndividualMod.initial_threshold) / 2
-    for props in initial_props
-        #note: it is possible that not all initial proteins in the array are unique. That's ok, since they'll be subject to evolution.
-        protein = Protein(config, props, false, true, length(root_cell.gene_states), root_cell.id)
+
+    #choose genes that the initial proteins will be designed to bind to
+    #note: these will only bind to bind sites (no inhibitory proteins here)
+    indices = Random.shuffle(config.rng, 1:num_concs)
+    for i in 1:config.run.num_initial_proteins
+        index = indices[i]
+        gene = genes[index]
+        bind_site_index = RandUtilsMod.rand_int(config, 1, length(gene.bind_sites))
+        bind_site = gene.bind_sites[bind_site_index]
+        props = ProteinPropsMod.rand_init(
+            config,
+            type=[bind_site.type],
+            tag=[bind_site.tag],
+            fcn=ProteinPropsMod.Activate
+        )
+        protein = Protein(config, props, false, true, num_concs, root_cell.id)
         protein.concs = RandUtilsMod.rand_floats(config, IndividualMod.initial_threshold + half, 1.0, num_concs)
         push!(proteins, protein)
     end
-
+    
     proteins
 end
 

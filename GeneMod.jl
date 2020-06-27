@@ -52,7 +52,7 @@ function get_sites_str(gene::Gene)
         end
     end
     
-    print(buf, " : ")
+    print(buf, " / ")
 
     for i in 1:length(gene.prod_sites)
         prod_str = GeneMod.get_prod_site_str(gene, i)
@@ -101,7 +101,7 @@ end
 function rand_prod_site(
     config::Config;
     type::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
-    tag::Union{Array{UInt8, 1}, Nothing},
+    tag::Union{Array{UInt8, 1}, Nothing}=nothing,
     action::Union{Array{ProteinPropsMod.ProteinAction, 1}, Nothing}=nothing,
     fcn::Union{ProteinPropsMod.ProteinFcn, Nothing}=nothing,
     arg::Union{Array{Int8, 1}, Array{ProteinPropsMod.ProteinLoc, 1}, Nothing}=nothing,
@@ -158,9 +158,9 @@ end
 
 function rand_init(
     config::Config,
-    genome_index::Int64,
-    bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=[ProteinPropsMod.Internal],
-    prod_site_types::Array{ProteinPropsMod.ProteinType, 1}=[],
+    genome_index::Int64;
+    bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=Array{ProteinPropsMod.ProteinType, 1}([ProteinPropsMod.Internal]),
+    prod_site_types::Array{ProteinPropsMod.ProteinType, 1}=Array{ProteinPropsMod.ProteinType, 1}(),
     bind_logic::Union{Array{BindLogic, 1}, Nothing}=nothing
 )
     bind_sites = Array{BindSite, 1}()
