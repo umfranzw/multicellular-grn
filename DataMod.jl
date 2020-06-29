@@ -318,11 +318,33 @@ function save_all_graphs_for_cell(data::Data, ea_step::Int64, pop_index::Int64, 
     end
 end
 
-function export_gene_desc(data::Data, indiv_index::Int64, filename::String)
-    handle = open(filename, "w")
+function export_gene_descs(data::Data, indiv_index::Int64, filename::String)
+    rows, max_genes = get_gene_descs(data, indiv_index)
 
+    handle = open(filename, "w")
+    for row in rows
+        row_genes = length(row) - 1
+        if row_genes < max_genes
+            extend(row, repeat([","], max_genes - row_genes))
+        end
+        write(handle, join(row, ","))
+        write(handle, "\n")
+    end
+
+    close(handle)
+end
+
+function get_gene_descs(data::Data, indiv_index::Int64)
     max_genes = -1
     rows = Array{Array{String, 1}, 1}()
+    
+    headers = Array{String, 1}()
+    push!(headers, "ea_step")
+    for i in 1:max_genes
+        push!(headers, "Gene $(i)")
+    end
+    push!(rows, headers)
+    
     for ea_step in 0:data.run.ea_steps
         cur_indiv = DataMod.get_indiv(data, ea_step, indiv_index, 0)
         max_genes = max(max_genes, length(cur_indiv.genes))
@@ -335,24 +357,7 @@ function export_gene_desc(data::Data, indiv_index::Int64, filename::String)
         push!(rows, row)
     end
 
-    headers = Array{String, 1}()
-    push!(headers, "ea_step")
-    for i in 1:max_genes
-        push!(headers, "Gene $(i)")
-    end
-    write(handle, join(headers, ","))
-    write(handle, "\n")
-    
-    for row in rows
-        row_genes = length(row) - 1
-        if row_genes < max_genes
-            extend(row, repeat([","], max_genes - row_genes))
-        end
-        write(handle, join(row, ","))
-        write(handle, "\n")
-    end
-
-    close(handle)
+    (rows, max_genes)
 end
 
 function get_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_index::Int64, reg_step::Int64)

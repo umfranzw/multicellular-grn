@@ -172,7 +172,13 @@ class DataTools():
         
         return Main.best_index
 
-    def export_gene_desc(self, index, filename):
+    def get_gene_descs(self, ea_step):
+        Main.ea_step = ea_step
+        Main.eval('table, max_cols = DataMod.get_gene_descs(data, ea_step)')
+
+        return Main.table, Main.max_cols
+    
+    def export_gene_descs(self, ea_step, filename):
         Main.filename = filename
-        Main.indiv_index = index[1]
-        Main.eval('DataMod.export_gene_desc(data, indiv_index, filename)')
+        Main.ea_step = ea_step
+        Main.eval('DataMod.export_gene_descs(data, ea_step, filename)')

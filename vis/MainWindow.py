@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
         #neighbour interaction area
         self.neighbour_area = NeighbourArea(self.data_tools, self.toolbar.getIndex())
 
-        self.indiv_area = IndivArea(self.data_tools, self.toolbar)
+        self.indiv_area = IndivArea(self.data_tools, self.toolbar.getIndex()[1])
         
         #settings area
         self.settings_area = SettingsArea()
@@ -51,6 +51,7 @@ class MainWindow(QMainWindow):
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
         self.toolbar.indexChanged.connect(lambda index: self.neighbour_area.update(index))
+        self.toolbar.eaStepChanged.connect(self.indiv_area.update_ea_step)
         self.toolbar.showBestChanged.connect(self.show_best)
         self.toolbar.showBestChanged.connect(lambda checked: self.table_area.refresh(self.toolbar.getIndex()))
         self.toolbar.showBestChanged.connect(lambda checked: self.refresh_graphics_area(self.toolbar.getIndex()))
