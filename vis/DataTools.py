@@ -169,4 +169,10 @@ class DataTools():
 
     def get_run_best_index(self):
         Main.eval('best_index = data.run_best.index')
+        
         return Main.best_index
+
+    def export_gene_desc(self, index, filename):
+        Main.filename = filename
+        Main.indiv_index = index[1]
+        Main.eval('DataMod.export_gene_desc(data, indiv_index, filename)')

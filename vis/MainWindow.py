@@ -10,6 +10,7 @@ from ToolbarArea import ToolbarArea
 from GraphicsArea import GraphicsArea
 from FitnessArea import FitnessArea
 from NeighbourArea import NeighbourArea
+from IndivArea import IndivArea
 from SettingsArea import SettingsArea, Settings
 
 class MainWindow(QMainWindow):
@@ -41,6 +42,8 @@ class MainWindow(QMainWindow):
 
         #neighbour interaction area
         self.neighbour_area = NeighbourArea(self.data_tools, self.toolbar.getIndex())
+
+        self.indiv_area = IndivArea(self.data_tools, self.toolbar)
         
         #settings area
         self.settings_area = SettingsArea()
@@ -62,6 +65,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.cell_area, "Cell Info")
         tabs.addTab(self.fitness_area, "Fitness Info")
         tabs.addTab(self.neighbour_area, "Neighbour Info")
+        tabs.addTab(self.indiv_area, "Individual Info")
         tabs.addTab(self.settings_area, "Settings")
         
         splitter = QSplitter()
