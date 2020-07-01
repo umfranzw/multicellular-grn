@@ -51,7 +51,16 @@ function alter_sym_prob(args::AppArgs)
         #println("Altering Sym Prob")
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
-        sym_index = Int64(abs(args.app_protein.props.arg) % length(cell.probs)) + 1
+        sym_index = abs(Int64(args.app_protein.props.arg)) % length(cell.probs) + 1
+            
+        # if sym_index < 0
+        #     println(args.app_protein.props.arg)
+        #     println(abs(args.app_protein.props.arg))
+        #     println(abs(args.app_protein.props.arg) % length(cell.probs))
+        #     println(Int64(abs(args.app_protein.props.arg) % length(cell.probs)))
+        #     println(Int64(abs(args.app_protein.props.arg) % length(cell.probs)) + 1)
+        # end
+            
         sign = Int64(ProteinPropsMod.get_fcn(args.app_protein.props))
         
         max_excess = 1.0 - cell.config.run.sym_prob_threshold #max possible excess

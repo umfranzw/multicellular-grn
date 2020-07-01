@@ -70,7 +70,13 @@ function mutate_location(config::Config, genes::Array{Gene, 1})
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         src = RandUtilsMod.rand_int(config, 1, length(genes))
         delta = Random.rand(config.rng, [1, -1])
-        dest = (src + delta) < 1 ? (src + delta) + length(genes) : (src + delta) % length(genes)
+        dest = src + delta
+        if dest < 1
+            dest += length(genes)
+        elseif dest > length(genes)
+            dest = dest % length(genes)
+        end
+        
         genes[src], genes[dest] = genes[dest], genes[src]
     end
 end
