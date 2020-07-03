@@ -27,7 +27,8 @@ class IndivArea(QWidget):
         self.setLayout(layout)
 
     def populate_table(self, data, max_cols):
-        for i in range(1, len(data)):
+        widths = [0] * max_cols
+        for i in range(1, len(data)): #start at 1 to skip over header row
             for j in range(max_cols):
                 if j < len(data[i]):
                     item = QTableWidgetItem(data[i][j])
@@ -35,6 +36,11 @@ class IndivArea(QWidget):
                 else:
                     item = QTableWidgetItem('')
                     self.table.setItem(i, j, item)
+
+                widths[j] = max(widths[j], len(item.text()))
+
+        for col in range(max_cols):
+            self.table.setColumnWidth(col, widths[col] * 7)
         
     @Slot()
     def update_ea_step(self, ea_step):

@@ -9,6 +9,7 @@ using ProteinPropsMod
 using ProteinStoreMod
 using RandUtilsMod
 using SettingsMod
+using CellTreeMod
 
 import Random
 
@@ -43,17 +44,19 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
         #             active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, init_protein.props)
         #             conc = RandUtilsMod.rand_float(indiv.config)
         #             insert!(init_protein.concs, gene_index + 1, conc)
-                    
+        
         #             #this is needed since there can be duplicate proteins with identical props in cell.initial_cell_proteins
         #             if length(active_protein.concs) < new_num_concs
         #                 insert!(active_protein.concs, gene_index + 1, conc)
         #             end
         #         end
-                
+        
         #         gene_index += 1 #skip over the copy
         #     end
         # else
-            point_mutate_gene(indiv.genes[gene_index], ea_step)
+        #if indiv.gene_scores[gene_index] == 0
+            point_mutate_gene(indiv, gene_index, ea_step)
+        #end
         # end
         
         gene_index += 1
@@ -76,7 +79,8 @@ function mutate_location(config::Config, genes::Array{Gene, 1})
         elseif dest > length(genes)
             dest = dest % length(genes)
         end
-        
+
+        genes[src].genome_index, genes[dest].genome_index = genes[dest].genome_index, genes[src].genome_index
         genes[src], genes[dest] = genes[dest], genes[src]
     end
 end
@@ -91,10 +95,12 @@ function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
     copy
 end
 
-function point_mutate_gene(gene::Gene, ea_step::Int64)
+function point_mutate_gene(indiv::Individual, gene_index::Int64, ea_step::Int64)
+    gene = indiv.genes[gene_index]
+    tree_size = CellTreeMod.size(indiv.cell_tree)
     #bind sites:
     for site in gene.bind_sites
-        mutate_bind_site(gene.config, site, ea_step)
+        mutate_bind_site(gene.config, site, ea_step, tree_size)
     end
 
     #prod sites:
@@ -123,9 +129,11 @@ function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
     #mutate_floats(config, site, ea_step)
 end
 
-function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64)
+function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64, tree_size::Int64)
     #note: all bind sites must not have type Application
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    #note: if tree size is 1, there's no point to having neighbour or diffusion bind sites -
+    #so the only type left is internal, and no type mutation is possible
+    if RandUtilsMod.rand_float(config) < config.run.mut_prob && tree_size > 1
         valid_types = filter(t -> t != ProteinPropsMod.Application, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, valid_types)
     end

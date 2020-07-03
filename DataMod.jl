@@ -325,7 +325,7 @@ function export_gene_descs(data::Data, indiv_index::Int64, filename::String)
     for row in rows
         row_genes = length(row) - 1
         if row_genes < max_genes
-            extend(row, repeat([","], max_genes - row_genes))
+            append!(row, repeat([","], max_genes - row_genes))
         end
         write(handle, join(row, ","))
         write(handle, "\n")
