@@ -3,8 +3,15 @@ module RegSimMod
 using RunMod
 using IndividualMod
 using FitnessMod
-using Printf
-using CellTreeMod
+
+import BindStepMod
+import ProduceStepMod
+import BindingComsumeStepMod
+import DiffuseStepMod
+import NeighbourCommStepMod
+import ProteinAppStepMod
+import DecayStepMod
+import AgeStepMod
 import TrackerMod
 
 function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
@@ -28,17 +35,17 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
     for reg_step in 1:run.reg_steps
         #@info @sprintf("Reg step %d\n", reg_step)
 
-        IndividualMod.run_bind(indiv)
+        BindStepMod.run_bind(indiv)
 
         TrackerMod.save_reg_state(indiv, ea_step, reg_step, pop_index)
 
-        IndividualMod.run_produce(indiv)
-        IndividualMod.run_binding_consum(indiv)
-        IndividualMod.run_diffuse(indiv)
-        IndividualMod.run_neighbour_comm(indiv)
-        IndividualMod.run_protein_app(indiv)
-        IndividualMod.run_decay(indiv)
-        IndividualMod.run_age(indiv)
+        ProduceStepMod.run_produce(indiv)
+        BindingComsumeStepMod.run_binding_consum(indiv)
+        DiffuseStepMod.run_diffuse(indiv)
+        NeighbourCommStepMod.run_neighbour_comm(indiv)
+        ProteinAppStepMod.run_protein_app(indiv)
+        DecayStepMod.run_decay(indiv)
+        AgeStepMod.run_age(indiv)
     end
 
     IndividualMod.run_fix_syms(indiv)

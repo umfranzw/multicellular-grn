@@ -3,12 +3,12 @@
 # GA #
 ######
 pop_size = 10
-ea_steps = 10
+ea_steps = 2
 mut_prob = 0.1
 num_initial_genes = 10
 max_genes = 10
 
-tourn_size = 5
+tourn_size = 3
 
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
@@ -22,7 +22,7 @@ gene_dup_gen_limit = 10
 #########################
 # Regulatory Simulation #
 #########################
-reg_steps = 50
+reg_steps = 25
 
 #proteins are deleted when all conc values are below this threshold
 protein_deletion_threshold = 0.04
@@ -60,7 +60,7 @@ bind_sites_per_gene = 1
 # Genotype -> Phenotype Mapping #
 #################################
 #cells will stop dividing when they meet or exceed this limit
-division_age_limit = 40
+division_age_limit = 20
 
 #cells can only divide when the (application) division protein exceeds this threshold
 cell_division_threshold = 0.2
@@ -91,7 +91,7 @@ rng_seed = 2000
 #1 = fitnesses
 #2 = fitnesses & indivs
 log_level = 2
-step_range = "0:1:10"
+step_range = "0:1:2"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
-multithreaded = true
+multithreaded = false
