@@ -60,7 +60,7 @@ end
 function get_prod_genes_fitness(indiv::Individual)
     #number of producing genes
     prod_fitness = 1.0
-    num_producing_genes = count(s -> s > 0, indiv.gene_scores)
+    num_producing_genes = count(s -> s > 0, indiv.reg_sim_info.produce_count)
     prod_fitness -= num_producing_genes / length(indiv.genes)
 
     prod_fitness
@@ -76,7 +76,7 @@ end
 
 #     #number of producing genes
 #     prod_fitness = 1.0
-#     num_producing_genes = count(s -> s > 0, indiv.gene_scores)
+#     num_producing_genes = count(s -> s > 0, indiv.produce_count)
 #     prod_fitness -= num_producing_genes / length(indiv.genes)
 
 #     (non_term_fitness + prod_fitness) / 2

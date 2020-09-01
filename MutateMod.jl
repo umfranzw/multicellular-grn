@@ -26,7 +26,7 @@ function mutate(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
 end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
-    # score_total = sum(indiv.gene_scores)
+    # score_total = sum(indiv.reg_sim_info.produce_count)
     # copy_locations = Array{Int64, 1}()
     gene_index = 1
     while gene_index <= length(indiv.genes)

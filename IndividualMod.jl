@@ -27,6 +27,15 @@ export Individual,
 initial_threshold = 0.1
 initial_consum_rate = 0.01
 
+mutable struct RegSimInfo
+    produce_count::Array{Int64, 1}
+    bind_count::Array{Int64, 1}
+
+    function RegSimInfo(num_genes::Int64)
+        new(zeros(num_genes), zeros(num_genes))
+    end
+end
+
 mutable struct Individual
     config::Config
     genes::Array{Gene, 1}
@@ -34,7 +43,7 @@ mutable struct Individual
     initial_cell_proteins::Array{Protein, 1}
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
-    gene_scores::Array{Int64, 1}
+    reg_sim_info::RegSimInfo #holds info about the *last* reg sim, if any
 end
 
 function rand_init(run::Run, seed::UInt64)
@@ -50,11 +59,17 @@ function rand_init(run::Run, seed::UInt64)
 
     #initial_proteins = make_initial_proteins(config, initial_protein_props, length(genes), root_cell)
     initial_proteins = make_initial_proteins(config, genes, root_cell)
-
-    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, zeros(Int64, length(genes)))
+    reg_sim_info = RegSimInfo(length(genes))
+    
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info)
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv
+end
+
+function reset_reg_sim_info(indiv::Individual)
+    indiv.reg_sim_info.produce_count .= 0
+    indiv.reg_sim_info.bind_count .= 0
 end
 
 function make_initial_genes_preset(config::Config)
@@ -334,10 +349,6 @@ function reset_cell_tree(indiv::Individual)
     CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
 end
 
-function reset_gene_scores(indiv::Individual)
-    indiv.gene_scores .= 0
-end
-
 function extend_sensors(indiv::Individual, index::Int64)
     CellTreeMod.traverse(cell -> CellMod.extend_sensors(cell, index), indiv.cell_tree)
 end
@@ -346,9 +357,6 @@ function show(io::IO, indiv::Individual, ilevel::Int64=0)
     iprintln(io, "Individual:", ilevel)
     iprintln(io, "genes:", ilevel + 1)
     foreach(g -> GeneMod.show(io, g, ilevel + 2), indiv.genes)
-
-    iprintln(io, "gene_scores:", ilevel + 1)
-    iprintln(io, join(indiv.gene_scores, ", "), ilevel + 2)
 
     iprintln(io, "cell_tree:", ilevel + 1)
     iprintln(io, indiv.cell_tree, ilevel + 2)

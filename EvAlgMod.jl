@@ -28,7 +28,7 @@ function ev_alg(run::Run)
         MutateMod.mutate(run, pop, ea_step)
 
         #TrackerMod.save_ea_state(pop, ea_step)
-        foreach(IndividualMod.reset_gene_scores, pop)
+        foreach(IndividualMod.reset_reg_sim_info, pop)
         
         #the reg sim will update the fitnesses
         RegSimMod.reg_sim(run, pop, ea_step)

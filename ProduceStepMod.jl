@@ -21,7 +21,7 @@ function run_produce_for_cell(indiv::Individual, cell::Cell)
 
         for (prod_index, rate) in rates
             run_produce_for_site(cell, gene_index, prod_index, rate)
-            indiv.gene_scores[gene_index] += 1
+            indiv.reg_sim_info.produce_count[gene_index] += 1
         end
     end
 end
