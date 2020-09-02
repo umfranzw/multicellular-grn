@@ -8,11 +8,13 @@ using SymMod
 using GeneMod
 using ProteinStoreMod
 using SymProbsMod
+using RegSimInfoMod
 using Printf
 
 export AppArgs
 
 struct AppArgs
+    info::RegSimInfo
     tree::CellTree
     cell::Cell
     genes::Array{Gene, 1}
@@ -39,6 +41,7 @@ function divide(args::AppArgs)
 
         #     ProteinStoreMod.insert(new_cell.proteins, new_protein)
         # end
+        args.info.division_count += 1
     end
 
     #remove the app_protein, since it's done its job
@@ -68,6 +71,7 @@ function alter_sym_prob(args::AppArgs)
         excess = maximum(args.app_protein.concs) - cell.config.run.sym_prob_threshold #should be positive, given that this method has been called
         delta = sign * excess * scale_factor * age_factor
         SymProbsMod.alter_prob(cell.probs, sym_index, delta)
+        args.info.alter_sym_prob_count += 1
     end
 
     #remove the app_protein, since it's done its job

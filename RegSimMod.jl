@@ -32,7 +32,8 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
     #save initial state under index 0
     TrackerMod.save_reg_state(indiv, ea_step, 0, pop_index)
 
-    for reg_step in 1:run.reg_steps
+    reg_step = 1
+    while reg_step <= run.reg_steps && IndividualMod.has_proteins(indiv)
         #@info @sprintf("Reg step %d\n", reg_step)
 
         BindStepMod.run_bind(indiv)
@@ -46,6 +47,8 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
         ProteinAppStepMod.run_protein_app(indiv)
         DecayStepMod.run_decay(indiv)
         AgeStepMod.run_age(indiv)
+
+        reg_step += 1
     end
 
     IndividualMod.run_fix_syms(indiv)

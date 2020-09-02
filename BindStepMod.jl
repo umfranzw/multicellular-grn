@@ -22,13 +22,13 @@ function run_bind_for_cell(indiv::Individual, cell::Cell)
         for site_index in 1:length(gene.bind_sites)
             site = gene.bind_sites[site_index]
             eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site)
-            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, BindSite, site_index, eligible_proteins)
+            run_bind_for_site(indiv, cell.gene_states[gene_index], gene_index, BindSite, site_index, eligible_proteins)
         end
 
         for site_index in 1:length(gene.prod_sites)
             site = gene.prod_sites[site_index]
             eligible_proteins = get_bind_eligible_proteins_for_site(cell, gene, site)
-            run_bind_for_site(indiv.config, cell.gene_states[gene_index], gene_index, ProdSite, site_index, eligible_proteins)
+            run_bind_for_site(indiv, cell.gene_states[gene_index], gene_index, ProdSite, site_index, eligible_proteins)
         end
     end
 end
@@ -137,11 +137,11 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union
     eligible_proteins
 end
 
-function run_bind_for_site(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
-    run_bind_for_site_max(config, gs, gene_index, site_type, site_index, eligible_proteins)
+function run_bind_for_site(indiv::Individual, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
+    run_bind_for_site_max(indiv, gs, gene_index, site_type, site_index, eligible_proteins)
 end
 
-function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site_max(indiv::Individual, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         max_protein = nothing
         for protein in eligible_proteins
@@ -152,6 +152,7 @@ function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64,
         end
 
         GeneStateMod.bind(gs, max_protein, site_type, site_index)
+        indiv.reg_sim_info.bind_count[gene_index] += 1
         
     else
         state = GeneStateMod.get_binding(gs, site_type, site_index)
@@ -161,7 +162,7 @@ function run_bind_for_site_max(config::Config, gs::GeneState, gene_index::Int64,
     end
 end
 
-function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
+function run_bind_for_site_roulette(indiv::Individual, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
     if length(eligible_proteins) > 0
         #use roulette wheel style selection to pick the protein
         conc_sum = foldl((s, p) -> s + p.concs[gene_index], eligible_proteins; init=0.0)
@@ -175,7 +176,7 @@ function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::I
         wheel[end] = 1.0 #just in case we've got some floating point error
 
         sel_index = 1
-        r = RandUtilsMod.rand_float(config) #random value in [0, 1)
+        r = RandUtilsMod.rand_float(indiv.config) #random value in [0, 1)
         while r >= wheel[sel_index]
             sel_index += 1
         end
@@ -184,6 +185,7 @@ function run_bind_for_site_roulette(config::Config, gs::GeneState, gene_index::I
 
         #@info @sprintf("%s binding to site %s", sel_protein, site_index)
         GeneStateMod.bind(gs, sel_protein, site_type, site_index)
+        indiv.reg_sim_info.bind_count[gene_index] += 1
 
     else
         state = GeneStateMod.get_binding(gs, site_type, site_index)

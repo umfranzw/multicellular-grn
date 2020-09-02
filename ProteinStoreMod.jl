@@ -33,6 +33,19 @@ function num_proteins(ps::ProteinStore)
     total
 end
 
+function has_proteins(ps::ProteinStore)
+    result = false
+
+    types = instances(ProteinPropsMod.ProteinType)
+    i = 1
+    while !result && i <= length(types)
+        result = length(ps.proteins[types[i]]) > 0
+        i += 1
+    end
+    
+    result
+end
+
 function clear(ps::ProteinStore)
     ps.proteins = build_dict()
 end

@@ -15,6 +15,7 @@ using CellTreeMod
 using MiscUtilsMod
 using SymProbsMod
 using Printf
+using RegSimInfoMod
 
 import Random
 import RandUtilsMod
@@ -26,15 +27,6 @@ export Individual,
 
 initial_threshold = 0.1
 initial_consum_rate = 0.01
-
-mutable struct RegSimInfo
-    produce_count::Array{Int64, 1}
-    bind_count::Array{Int64, 1}
-
-    function RegSimInfo(num_genes::Int64)
-        new(zeros(num_genes), zeros(num_genes))
-    end
-end
 
 mutable struct Individual
     config::Config
@@ -68,8 +60,7 @@ function rand_init(run::Run, seed::UInt64)
 end
 
 function reset_reg_sim_info(indiv::Individual)
-    indiv.reg_sim_info.produce_count .= 0
-    indiv.reg_sim_info.bind_count .= 0
+    RegSimInfoMod.reset(indiv.reg_sim_info)
 end
 
 function make_initial_genes_preset(config::Config)
@@ -369,6 +360,32 @@ end
 
 function run_fix_syms(indiv::Individual)
     CellTreeMod.traverse(CellMod.fix_sym, indiv.cell_tree)
+end
+
+function count_proteins(indiv::Individual)
+    num_proteins = 0
+    CellTreeMod.traverse(c -> num_proteins += ProteinStoreMod.num_proteins(c.proteins), indiv.cell_tree)
+
+    num_proteins
+end
+
+function has_proteins(indiv::Individual)
+    has_proteins(indiv.cell_tree.root)
+end
+
+function has_proteins(cell::Cell)
+    result = ProteinStoreMod.has_proteins(cell.proteins)
+    if !result
+        i = 1
+        while i < length(cell.children) && !has_proteins(cell.children[i])
+            i += 1
+        end
+
+        #if the above loop stopped early, then there are proteins
+        result = i <= length(cell.children)
+    end
+
+    result
 end
 
 end

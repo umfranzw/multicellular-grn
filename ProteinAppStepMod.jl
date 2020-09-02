@@ -1,6 +1,7 @@
 module ProteinAppStepMod
 
 using IndividualMod
+using RegSimInfoMod
 using CellTreeMod
 using CellMod
 using ProteinStoreMod
@@ -17,11 +18,11 @@ function run_protein_app(indiv::Individual)
     CellTreeMod.traverse_bf(c -> push!(bfs_list, c), indiv.cell_tree)
 
     for cell in bfs_list
-        run_protein_app_for_cell(indiv.cell_tree, cell, indiv.genes)
+        run_protein_app_for_cell(indiv.reg_sim_info, indiv.cell_tree, cell, indiv.genes)
     end
 end
 
-function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene, 1})
+function run_protein_app_for_cell(info::RegSimInfo, tree::CellTree, cell::Cell, genes::Array{Gene, 1})
     #get all proteins (from this cell) that are eligible for application
     app_proteins = ProteinStoreMod.get_by_type(cell.proteins, ProteinPropsMod.Application)
 
@@ -53,7 +54,7 @@ function run_protein_app_for_cell(tree::CellTree, cell::Cell, genes::Array{Gene,
     for pair in pairs
         protein = pair[1]
         action_fcn = pair[3]
-        args = AppArgs(tree, cell, genes, protein)
+        args = AppArgs(info, tree, cell, genes, protein)
 
         # protein_str = ProteinPropsMod.to_str(protein.props)
         # println("Applying protein: $(protein_str)")
