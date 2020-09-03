@@ -60,7 +60,7 @@ struct Run
     max_protein_arg::UInt8
     
     fix_rng_seed::Bool
-    rng_seed::UInt64
+    user_rng_seed::UInt64
 
     log_level::LogLevel
     step_range::StepRange{Int64, Int64}
@@ -87,6 +87,17 @@ end
 mutable struct Config
     run::Run
     rng::Random.MersenneTwister
+
+    function Config(run::Run, seed_offset::UInt64)
+        if run.fix_rng_seed
+            seed = run.rng_seed + seed_offset
+        else
+            dev = Random.RandomDevice()
+            seed = UInt64(Random.rand(dev) * 0xffffffffffffffff) + seed_offset
+        end
+            
+        new(run, Random.MersenneTwister(seed))
+    end
 end
 
 function parse_step_range(str::String)
@@ -120,8 +131,8 @@ end
 
 function get_test_config()
     run = get_first_run()
-
-    Config(run, Random.MersenneTwister())
+    
+    Config(run, 0)
 end
 
 end

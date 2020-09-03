@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.run = self.data_tools.get_run()
         
         # Tool Bar
-        self.toolbar = ToolbarArea(self.run)
+        self.toolbar = ToolbarArea(self.run, self.data_tools)
         self.addToolBar(self.toolbar)
 
         # Table Area

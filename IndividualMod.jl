@@ -38,9 +38,8 @@ mutable struct Individual
     reg_sim_info::RegSimInfo #holds info about the *last* reg sim, if any
 end
 
-function rand_init(run::Run, seed::UInt64)
-    rng = Random.MersenneTwister(seed)
-    config = Config(run, rng)
+function rand_init(run::Run, pop_index::UInt64)
+    config = Config(run, pop_index)
 
     #genes, initial_protein_props = make_initial_genes(config)
     #genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)

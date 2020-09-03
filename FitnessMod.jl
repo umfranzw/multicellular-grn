@@ -4,8 +4,10 @@ using IndividualMod
 using CellTreeMod
 using CellMod
 using SymMod
+using RegSimInfoMod
 using Printf
 
+#note: there's nothing restricting fitnesses' upper (worst) limit to 1.0!
 function eval(indiv::Individual, ea_step::Int64)
     # run = indiv.config.run
     # completeness = ea_step / run.ea_steps #low -> high
@@ -31,6 +33,9 @@ function eval(indiv::Individual, ea_step::Int64)
 
     # indiv.fitness = fitness
 
+    bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
+    prod_coverage = RegSimInfoMod.get_prod_coverage(indiv.reg_sim_info)
+    
     indiv.fitness = get_accuracy_fitness(indiv)
 end
 
@@ -98,7 +103,7 @@ function get_accuracy_fitness(indiv::Individual)
     
     fitness = 1.0
     num_data_tests = length(test_data)
-    num_extra_tests = 1
+    num_extra_tests = 0
     total_tests = num_data_tests + num_extra_tests
     chunk = 1 / total_tests
     num_exceptions = 0

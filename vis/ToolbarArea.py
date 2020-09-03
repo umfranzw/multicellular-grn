@@ -9,7 +9,7 @@ class ToolbarArea(QToolBar):
     eaStepChanged = Signal(int)
     showBestChanged = Signal(bool)
     
-    def __init__(self, run, *args, **kwargs):
+    def __init__(self, run, data_tools, *args, **kwargs):
         QToolBar.__init__(self, *args, **kwargs)
         
         self.eaStepSpin = QSpinBox()
@@ -32,6 +32,9 @@ class ToolbarArea(QToolBar):
         self.show_best_checkbox = QCheckBox()
         self.show_best_checkbox.stateChanged.connect(self.handle_show_best_changed)
 
+        self.seed_label = QLabel('Seed: {}'.format(data_tools.get_base_seed()))
+        self.seed_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
         self.addWidget(QLabel("EA Step:"))
         self.addWidget(self.eaStepSpin)
         self.addWidget(QLabel("Indiv:"))
@@ -40,6 +43,7 @@ class ToolbarArea(QToolBar):
         self.addWidget(self.regStepSpin)
         self.addWidget(QLabel("Show Best Captured"))
         self.addWidget(self.show_best_checkbox)
+        self.addWidget(self.seed_label)
 
     def getIndex(self):
         return (self.eaStepSpin.value(), self.indivSpin.value(), self.regStepSpin.value())

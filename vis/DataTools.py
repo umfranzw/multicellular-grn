@@ -182,3 +182,8 @@ class DataTools():
         Main.filename = filename
         Main.ea_step = ea_step
         Main.eval('DataMod.export_gene_descs(data, ea_step, filename)')
+
+    def get_base_seed(self):
+        Main.eval('base_seed = DataMod.get_base_seed(data)')
+
+        return Main.base_seed

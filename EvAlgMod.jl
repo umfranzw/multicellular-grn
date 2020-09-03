@@ -10,10 +10,10 @@ using Printf
 import Random
 
 function ev_alg(run::Run)
-    selector = Selector(run)
     data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
-    TrackerMod.create_tracker(run, data_filename)
     pop = create_pop(run)
+    selector = Selector(run)
+    TrackerMod.create_tracker(run, data_filename)
     #TrackerMod.save_ea_state(pop, 0, true)
     RegSimMod.reg_sim(run, pop, 0)
     TrackerMod.update_fitnesses(pop, 0)
@@ -73,16 +73,8 @@ end
 
 function create_pop(run::Run)
     pop = Array{Individual, 1}()
-    if run.fix_rng_seed
-        seed_base = run.rng_seed
-    else
-        dev = Random.RandomDevice()
-        seed_base = UInt64(Random.rand(dev) * 0xffffffffffffffff)
-    end
-    #println("seed_base: $(seed_base)")
-    
     for i in 1:run.pop_size
-        push!(pop, IndividualMod.rand_init(run, seed_base + i))
+        push!(pop, IndividualMod.rand_init(run, UInt64(i)))
     end
 
     pop

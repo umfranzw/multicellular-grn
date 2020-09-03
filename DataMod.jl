@@ -489,4 +489,10 @@ function get_best_fitnesses(data::Data)
     (bests, gen_bests, gen_avgs)
 end
 
+function get_base_seed(data::Data)
+    first_indiv = DataMod.get_indiv(data, 0, 1, 0)
+    
+    first_indiv.config.rng.seed[1] - 1 #note: offset starts at 1
+end
+
 end
