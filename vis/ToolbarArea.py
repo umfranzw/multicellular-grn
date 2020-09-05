@@ -26,7 +26,7 @@ class ToolbarArea(QToolBar):
         
         self.regStepSpin = QSpinBox()
         self.regStepSpin.setStyle(CustomStyle())
-        self.regStepSpin.setRange(0, run.reg_steps + 1)
+        self.regStepSpin.setRange(1, run.reg_steps + 1)
         self.regStepSpin.valueChanged.connect(self.handle_index_changed)
 
         self.show_best_checkbox = QCheckBox()

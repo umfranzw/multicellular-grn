@@ -43,15 +43,15 @@ function divide(args::AppArgs)
         # end
         args.info.division_count += 1
     end
-
-    #remove the app_protein, since it's done its job
-    ProteinStoreMod.remove(src_cell.proteins, args.app_protein)
 end
 
 function alter_sym_prob(args::AppArgs)
     cell = args.cell
     if cell.sym == nothing #if symbol has not yet been fixed
-        #println("Altering Sym Prob")
+        # println("Altering Sym Prob")
+        # println("cell ID: $(cell.id)")
+        # show(args.app_protein)
+        
         age_factor = 1.0 - cell.age / cell.config.run.reg_steps
         
         sym_index = abs(Int64(args.app_protein.props.arg)) % length(cell.probs) + 1
@@ -73,9 +73,6 @@ function alter_sym_prob(args::AppArgs)
         SymProbsMod.alter_prob(cell.probs, sym_index, delta)
         args.info.alter_sym_prob_count += 1
     end
-
-    #remove the app_protein, since it's done its job
-    ProteinStoreMod.remove(cell.proteins, args.app_protein)
 end
 
 function alter_sensor(args::AppArgs)
@@ -92,8 +89,6 @@ function alter_sensor(args::AppArgs)
     #delta = sign * excess .* scale_factor
     delta = excess .* scale_factor
     CellMod.adjust_sensor(cell, loc, delta)
-
-    ProteinStoreMod.remove(cell.proteins, args.app_protein)
 end
 
 end

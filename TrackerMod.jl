@@ -8,7 +8,7 @@ using CellTreeMod
 using Printf
 
 @enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 IndivState RunState RunBestInfoState FitnessesState
+@enum TagType::UInt8 IndivStateAfterBind IndivStateAfterProd RunState RunBestInfoState FitnessesState
 
 export Tracker, BestInfo
 
@@ -160,7 +160,7 @@ end
 
 # function save_ea_state(pop::Array{Individual, 1}, ea_step::Int64, force::Bool=false)
 #     global tracker
-    
+
 #     if tracker.run.log_data
 #         for i in 1:length(pop)
 #             if ea_step in tracker.run.step_range || force
@@ -170,11 +170,11 @@ end
 #     end
 # end
 
-function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, index::Int64)
+function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, index::Int64, state::TagType)
     global tracker
 
     if tracker.run.log_level >= RunMod.LogIndivs
-        write_obj(IndivState, Array{Int64, 1}([ea_step, reg_step, index]), indiv)
+        write_obj(state, Array{Int64, 1}([ea_step, reg_step, index]), indiv)
     end
 end
 

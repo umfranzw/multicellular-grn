@@ -90,7 +90,7 @@ mutable struct Config
 
     function Config(run::Run, seed_offset::UInt64)
         if run.fix_rng_seed
-            seed = run.rng_seed + seed_offset
+            seed = run.user_rng_seed + seed_offset
         else
             dev = Random.RandomDevice()
             seed = UInt64(Random.rand(dev) * 0xffffffffffffffff) + seed_offset

@@ -16,23 +16,30 @@ class DataTools():
         Main.using('ProteinStoreMod')
         Main.using('ProteinPropsMod')
         Main.using('CellTreeMod')
+        Main.using('TrackerMod')
         Main.eval('data = Data("{}")'.format(filename))
+
+        Main.eval('tag_types = instances(TrackerMod.TagType)')
+        Main.eval('tag_names = map(string, tag_types)')
+        Main.eval('tag_type_dict = Dict{String, TrackerMod.TagType}(zip(tag_names, tag_types))')
+        self.tag_type_dict = Main.tag_type_dict
 
     def close(self):
         Main.eval('DataMod.close(data)')
 
     def get_tree(self, index):
-        self.get_indiv(index)
+        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
         Main.eval('tree = indiv.cell_tree')
         
         return Main.tree
 
-    def get_indiv(self, index):
+    def get_indiv(self, index, tag_type):
         #note: get_indiv does not require the reg_step arg to be passed
         Main.ea_step = index[0]
         Main.pop_index = index[1]
         Main.reg_step = index[2]
-        Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step)')
+        Main.tag_type = tag_type
+        Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, tag_type)')
         
         return Main.indiv
 
@@ -56,8 +63,9 @@ class DataTools():
         
         return Main.props_str
 
-    def get_protein_info_for_indiv(self, index):
-        self.get_indiv(index)
+    #checkpoint is a value from self.tag_type_dict
+    def get_protein_info_for_indiv(self, index, tag_type):
+        self.get_indiv(index, tag_type)
         Main.eval('info = DataMod.get_protein_info_for_indiv(indiv)')
         
         return Main.info
@@ -150,19 +158,19 @@ class DataTools():
         return (Main.bests, Main.gen_bests, Main.gen_avgs)
 
     def get_indiv_fitness(self, index):
-        self.get_indiv(index)
+        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
         Main.eval('fitness = indiv.fitness')
         
         return Main.fitness
 
     def get_indiv_code(self, index):
-        self.get_indiv(index)
+        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
         Main.eval('code = CellTreeMod.to_expr_str(indiv.cell_tree)')
 
         return Main.code
 
     def get_gene_scores(self, index):
-        self.get_indiv(index)
+        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
         Main.eval('scores = indiv.gene_scores')
         
         return Main.scores

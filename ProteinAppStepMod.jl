@@ -56,10 +56,13 @@ function run_protein_app_for_cell(info::RegSimInfo, tree::CellTree, cell::Cell, 
         action_fcn = pair[3]
         args = AppArgs(info, tree, cell, genes, protein)
 
-        # protein_str = ProteinPropsMod.to_str(protein.props)
-        # println("Applying protein: $(protein_str)")
-
+        #apply the protein
+        #protein_str = ProteinPropsMod.to_str(protein.props, protein.is_initial)
+        #println("Applying protein: $(protein_str)")
         action_fcn(args)
+
+        #remove the protein from the cell, since it's done its job
+        ProteinStoreMod.remove(cell.proteins, protein)
     end
 end
 

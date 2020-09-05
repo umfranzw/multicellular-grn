@@ -34,7 +34,7 @@ function show(io::IO, gs::GeneState, ilevel::Int64=0)
     iprintln(io, "genome_index: $(gs.gene.genome_index)", ilevel + 1)
 
     iprintln(io, "bindings", ilevel + 1)
-    for type in keys(bindings)
+    for type in keys(gs.bindings)
         iprintln(io, string(type), ilevel + 2)
         site_strs = Array{String, 1}()
         for protein in gs.bindings[type]
