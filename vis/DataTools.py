@@ -7,8 +7,11 @@ else:
     module_path = '/home/wayne/Documents/school/thesis/multicellular-grn'
     
 from julia import Main
+from Cache import Cache
 
 class DataTools():
+    CACHE_SIZE = 20
+
     def __init__(self, filename):
         Main.using('Distributed')
         Main.eval('@everywhere push!(LOAD_PATH, "{}")'.format(module_path))
@@ -23,25 +26,33 @@ class DataTools():
         Main.eval('tag_names = map(string, tag_types)')
         Main.eval('tag_type_dict = Dict{String, TrackerMod.TagType}(zip(tag_names, tag_types))')
         self.tag_type_dict = Main.tag_type_dict
+        self.cache = Cache(DataTools.CACHE_SIZE)
 
     def close(self):
         Main.eval('DataMod.close(data)')
 
     def get_tree(self, index):
-        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        Main.indiv = indiv
         Main.eval('tree = indiv.cell_tree')
         
         return Main.tree
 
     def get_indiv(self, index, tag_type):
-        #note: get_indiv does not require the reg_step arg to be passed
-        Main.ea_step = index[0]
-        Main.pop_index = index[1]
-        Main.reg_step = index[2]
-        Main.tag_type = tag_type
-        Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, tag_type)')
+        key = (index, tag_type)
+        if key not in self.cache:
+            #note: get_indiv does not require the reg_step arg to be passed
+            Main.ea_step = index[0]
+            Main.pop_index = index[1]
+            Main.reg_step = index[2]
+            Main.tag_type = tag_type
+            Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, tag_type)')
+            self.cache[key] = Main.indiv
+        #else:
+            #still need to set this, since other methods rely on it...
+            #Main.indiv = self.cache[key]
         
-        return Main.indiv
+        return self.cache[key]
 
     def get_run(self):
         Main.eval('run = data.run')
@@ -65,7 +76,8 @@ class DataTools():
 
     #checkpoint is a value from self.tag_type_dict
     def get_protein_info_for_indiv(self, index, tag_type):
-        self.get_indiv(index, tag_type)
+        indiv = self.get_indiv(index, tag_type)
+        Main.indiv = indiv
         Main.eval('info = DataMod.get_protein_info_for_indiv(indiv)')
         
         return Main.info
@@ -158,19 +170,22 @@ class DataTools():
         return (Main.bests, Main.gen_bests, Main.gen_avgs)
 
     def get_indiv_fitness(self, index):
-        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        Main.indiv = indiv
         Main.eval('fitness = indiv.fitness')
         
         return Main.fitness
 
     def get_indiv_code(self, index):
-        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        Main.indiv = indiv
         Main.eval('code = CellTreeMod.to_expr_str(indiv.cell_tree)')
 
         return Main.code
 
     def get_gene_scores(self, index):
-        self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        Main.indiv = indiv
         Main.eval('scores = indiv.gene_scores')
         
         return Main.scores
