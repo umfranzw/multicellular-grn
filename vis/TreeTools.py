@@ -23,8 +23,8 @@ class TreeTools():
             scene.removeItem(item)
 
     #call this one!
-    def draw_scene(self, scene, index, checked_info):
-        cell_tree = self.data_tools.get_tree(index)
+    def draw_scene(self, scene, index, tag_type, checked_info):
+        cell_tree = self.data_tools.get_tree(index, tag_type)
         root_cell = self.data_tools.get_root_cell(cell_tree)
         
         tree = DrawTree(root_cell, self.data_tools)
@@ -73,6 +73,7 @@ class TreeTools():
                 concs = protein.concs
             else:
                 concs = []
+            #print(protein)
 
             props_str = self.data_tools.get_props_str(props, is_initial)
             bar_set = QtCharts.QBarSet(props_str)

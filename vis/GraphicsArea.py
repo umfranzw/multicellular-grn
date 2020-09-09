@@ -8,12 +8,12 @@ from CustomGraphicsPixmapItem import CustomGraphicsPixmapItem
 class GraphicsArea(QWidget):
     selectionChanged = Signal(list)
     
-    def __init__(self, data_tools, tree_tools, initial_index, *args, **kwargs):
+    def __init__(self, data_tools, tree_tools, initial_index, tag_type, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
         self.data_tools = data_tools
         layout = QVBoxLayout()
 
-        self.view = CustomGraphicsView(tree_tools, initial_index)
+        self.view = CustomGraphicsView(tree_tools, initial_index, tag_type)
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
         self.fitness_label = QLabel('Fitness: ')
@@ -33,8 +33,8 @@ class GraphicsArea(QWidget):
         self.update_info_labels(initial_index)
 
     @Slot()
-    def refresh(self, index, checked_info=[]):
-        self.view.refresh(index, checked_info)
+    def refresh(self, index, tag_type, checked_info=[]):
+        self.view.refresh(index, tag_type, checked_info)
         self.update_info_labels(index)
 
     @Slot()
@@ -53,7 +53,7 @@ class GraphicsArea(QWidget):
 class CustomGraphicsView(QGraphicsView):
     selectionChanged = Signal(list)
     
-    def __init__(self, tree_tools, initial_index, *args, **kwargs):
+    def __init__(self, tree_tools, initial_index, tag_type, *args, **kwargs):
         QGraphicsView.__init__(self, *args, **kwargs)
         self.scene = QGraphicsScene()
         #self.scene.setBackgroundBrush(QBrush(Qt.black))
@@ -63,15 +63,15 @@ class CustomGraphicsView(QGraphicsView):
 
         self.scene.selectionChanged.connect(self.handle_selectionChanged)
 
-        self.refresh(initial_index)
+        self.refresh(initial_index, tag_type)
 
     @Slot()
-    def refresh(self, index, checked_info=[]):
+    def refresh(self, index, tag_type, checked_info=[]):
         sel_items = self.scene.selectedItems()
         sel_cell = sel_items[0].cell if sel_items else None
         
         self.tree_tools.clear_scene(self.scene) #clear any previous tree
-        self.tree_tools.draw_scene(self.scene, index, checked_info)
+        self.tree_tools.draw_scene(self.scene, index, tag_type, checked_info)
 
         if sel_cell is not None:
             self.reselect_cell(sel_cell)

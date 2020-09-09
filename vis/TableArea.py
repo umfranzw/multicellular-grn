@@ -75,17 +75,21 @@ class TableArea(QWidget):
 
         return visible_rows
 
+    def get_tag_type(self):
+        if self.after_bind_button.isChecked():
+            tag_type = self.data_tools.tag_type_dict['IndivStateAfterBind']
+        else:
+            tag_type = self.data_tools.tag_type_dict['IndivStateAfterProd']
+
+        return tag_type
+    
     @Slot()
     def reset_colour_picker(self, new_ea_step):
         self.model.reset_colour_picker()
 
     @Slot()
     def refresh(self, index):
-        if self.after_bind_button.isChecked():
-            tag_type = self.data_tools.tag_type_dict['IndivStateAfterBind']
-        else:
-            tag_type = self.data_tools.tag_type_dict['IndivStateAfterProd']
-            
+        tag_type = self.get_tag_type()
         data = self.data_tools.get_protein_info_for_indiv(index, tag_type)
         self.model.refresh(data)
         self.cur_index = index

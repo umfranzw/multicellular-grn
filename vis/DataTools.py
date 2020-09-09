@@ -31,8 +31,8 @@ class DataTools():
     def close(self):
         Main.eval('DataMod.close(data)')
 
-    def get_tree(self, index):
-        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+    def get_tree(self, index, tag_type):
+        indiv = self.get_indiv(index, tag_type)
         Main.indiv = indiv
         Main.eval('tree = indiv.cell_tree')
         
