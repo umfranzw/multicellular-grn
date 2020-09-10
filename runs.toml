@@ -2,8 +2,8 @@
 ######
 # GA #
 ######
-pop_size = 20
-ea_steps = 2
+pop_size = 15
+ea_steps = 10
 mut_prob = 0.1
 num_initial_genes = 10
 max_genes = 10
@@ -82,7 +82,7 @@ max_protein_arg = 255 #must be in range [max(max_children, num_symbols), 2^8 - 1
 #Random Number Generation #
 ###########################
 fix_rng_seed = true
-user_rng_seed = 2000
+user_rng_seed = 2504327168
 
 ############
 # Tracking #
@@ -95,3 +95,6 @@ step_range = "0:1:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = false
+
+#CodecZlib: 151 MB
+#CodecXz: 145 MB

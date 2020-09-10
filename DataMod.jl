@@ -18,7 +18,7 @@ using Printf
 using TrackerMod
 using Formatting
 import Serialization
-import CodecZlib
+import CodecXz
 
 import Base.close
 
@@ -101,7 +101,7 @@ function read_obj(data::Data, pos::Int64, size::Int64)
     seek(data.file_handle, pos)
 
     comp_obj = read(data.file_handle, size)
-    ser_obj = CodecZlib.transcode(CodecZlib.GzipDecompressor, comp_obj)
+    ser_obj = CodecXz.transcode(CodecXz.XzDecompressor, comp_obj)
     ser_buf = IOBuffer(ser_obj)
 
     Serialization.deserialize(ser_buf)

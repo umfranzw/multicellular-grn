@@ -1,6 +1,6 @@
 module TrackerMod
 
-import CodecZlib
+import CodecXz
 using RunMod
 using IndividualMod
 using Serialization
@@ -122,7 +122,7 @@ function write_obj(tag_type::TagType, tag::Array{Int64, 1}, obj::Any)
 
     buf = IOBuffer()
     Serialization.serialize(buf, obj)
-    compressed = CodecZlib.transcode(CodecZlib.GzipCompressor, buf.data)
+    compressed = CodecXz.transcode(CodecXz.XzCompressor, buf.data)
     
     lock(tracker.file_handle_lock)
     write(tracker.file_handle, UInt8(tag_type)) #write type
