@@ -16,6 +16,7 @@ using GeneStateMod
 using Statistics
 using Printf
 using TrackerMod
+using CheckpointMod
 using Formatting
 import Serialization
 import CodecXz
@@ -28,9 +29,9 @@ indiv_cache_size = 20
 
 mutable struct Data
     #dictionary order is ea_step, index, reg_step
-    indivs::Cache{Tuple{Int64, Int64, Int64, TrackerMod.TagType}, Individual}
+    indivs::Cache{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Individual}
     #(ea_step, index, reg_step) => (position, size)
-    indivs_index::Dict{Tuple{Int64, Int64, Int64, TrackerMod.TagType}, Tuple{Int64, Int64}}
+    indivs_index::Dict{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Tuple{Int64, Int64}}
     #ea_step, pop_index
     fitnesses::Union{Array{Array{Float64, 1}, 1}, Nothing}
     file_handle::IOStream
@@ -41,8 +42,8 @@ mutable struct Data
         file_path = join((RunMod.DATA_PATH, filename), "/")
         file_handle = open(file_path, "r")
         
-        indivs = Cache{Tuple{Int64, Int64, Int64, TrackerMod.TagType}, Individual}(DataMod.indiv_cache_size)
-        indivs_index = Dict{Tuple{Int64, Int64, Int64, TrackerMod.TagType}, Tuple{Int64, Int64}}()
+        indivs = Cache{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Individual}(DataMod.indiv_cache_size)
+        indivs_index = Dict{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Tuple{Int64, Int64}}()
         
         
         data = new(indivs, indivs_index, nothing, file_handle, nothing, nothing)
@@ -57,27 +58,7 @@ function close(data::Data)
     close(data.file_handle)
 end
 
-# function get_run(data::Data)
-#     seek(data.file_handle, 0)
-#     tag_type = read(data.file_handle, TrackerMod.TagType)
-
-#     if tag_type != TrackerMod.RunState
-#         println("Error - the run is not the first thing in the data file.")
-#         close(data)
-#         exit(1)
-#     end
-
-#     size = read(data.file_handle, Int64)
-
-#     read_obj(data, position(data.file_handle), size)
-# end
-
-# function get_indiv(data::Data, ea_step::Int64, pop_index::Int64)
-#     key = (ea_step,  pop_index)
-#     get_obj(data, key, :indivs, :indivs_index)
-# end
-
-function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, tag_type::TrackerMod.TagType)
+function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, tag_type::TrackerMod.StateTime)
     key = (ea_step, pop_index, reg_step, tag_type)
     if key == data.run_best.index
         indiv = data.run_best.indiv
@@ -109,7 +90,7 @@ end
 
 function create_index(data::Data)
     while !eof(data.file_handle)
-        tag_type = read(data.file_handle, TrackerMod.TagType)
+        tag_type = read(data.file_handle, TrackerMod.StateTime)
         if tag_type == TrackerMod.RunState
             #note: no tag here
             size = read(data.file_handle, Int64)

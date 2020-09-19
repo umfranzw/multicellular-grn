@@ -5,12 +5,15 @@ using RunMod
 using IndividualMod
 using Serialization
 using CellTreeMod
+using BestInfoMod
+using CheckpointMod
 using Printf
 
-@enum BestType::UInt8 RunBest GenBest
-@enum TagType::UInt8 IndivStateAfterBind IndivStateAfterProd RunState RunBestInfoState FitnessesState
+@enum StateType::UInt8 IndivState RunState RunBestInfoState FitnessesState
+@enum StateTime::UInt8 AfterBind AfterProd
+@enum StateContentType::UInt8 Changes Checkpoint
 
-export Tracker, BestInfo
+export Tracker
 
 tracker = nothing
 
@@ -18,33 +21,13 @@ tracker = nothing
 #note: 2^20 bytes = 1MB
 #const cache_size = 512 * 2^20
 
-mutable struct BestInfo
-    index::Union{Nothing, Tuple{Int64, Int64, Int64}} #(ea_step, pop_index, reg_step) - reg step will always be run.reg_steps + 1
-    indiv::Union{Nothing, Individual}
+checkpoint_reg_steps = Set{Int64}([1])
 
-    function BestInfo()
-        new(nothing, nothing)
-    end
-end
-
-function update(info::BestInfo, indiv::Individual, ea_step::Int64, pop_index::Int64, reg_step::Int64; make_copy::Bool=true)
-    updated = false
-    if !is_set(info) || indiv.fitness < info.indiv.fitness
-        if make_copy
-            info.indiv = deepcopy(indiv)
-        else
-            info.indiv = indiv
-        end
-        
-        info.index = (ea_step, pop_index, reg_step)
-        updated = true
-    end
-
-    updated
-end
-
-function is_set(info::BestInfo)
-    info.indiv != nothing
+mutable struct LastCheckpoint
+    indiv_bytes::Array{UInt8, 1}
+    ea_step::Int64
+    pop_index::Int64
+    reg_step::Int64
 end
 
 mutable struct Tracker
@@ -55,6 +38,7 @@ mutable struct Tracker
     gen_best::BestInfo
     fitnesses::Array{Array{Float64, 1}, 1}
     file_handle_lock::ReentrantLock
+    last_checkpoint::Union{LastCheckpoint, Nothing}
 end
 
 function create_tracker(run::Run, path::String)
@@ -65,7 +49,7 @@ function create_tracker(run::Run, path::String)
     else
         file_handle = nothing
     end
-    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), Array{Array{Float64, 1}, 1}(), ReentrantLock())
+    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), Array{Array{Float64, 1}, 1}(), ReentrantLock(), nothing)
     save_run()
 
     tracker
@@ -117,17 +101,25 @@ function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64)
     push!(tracker.fitnesses, fitnesses)
 end
 
-function write_obj(tag_type::TagType, tag::Array{Int64, 1}, obj::Any)
+function write_obj(state_type::StateType, step_tag::Array{Int64, 1}, obj_bytes::Array{UInt8, 1}, state_time::Union{StateTime, Nothing}=nothing, state_content_type::Union{StateContentType, Nothing}=nothing)
     global tracker
 
     buf = IOBuffer()
-    Serialization.serialize(buf, obj)
-    compressed = CodecXz.transcode(CodecXz.XzCompressor, buf.data)
+    compressed = CodecXz.transcode(CodecXz.XzCompressor, take!(buf))
     
     lock(tracker.file_handle_lock)
-    write(tracker.file_handle, UInt8(tag_type)) #write type
-    for tag_val in tag
-        write(tracker.file_handle, tag_val) #write tag
+    write(tracker.file_handle, UInt8(state_tag)) #always write state type
+    #optionally write the other two
+    if state_time != nothing
+        write(tracker.file_handle, UInt8(state_time))
+    end
+    if state_content_type != nothing
+        write(tracker.file_handle, UInt8(state_content_type))
+    end
+
+    #always write step_tag (ea_step, indiv_index, reg_step)
+    for tag_val in step_tag
+        write(tracker.file_handle, tag_val)
     end
     write(tracker.file_handle, Int64(length(compressed))) #write size
     write(tracker.file_handle, compressed) #write obj
@@ -138,7 +130,9 @@ function save_run()
     global tracker
 
     if tracker.run.log_level >= RunMod.LogFitnesses
-        write_obj(RunState, Array{Int64, 1}(), tracker.run)
+        buf = IOBuffer()
+        Serialization.serialize(buf, tracker.run)
+        write_obj(RunState, Array{Int64, 1}(), take!(run))
     end
 end
 
@@ -146,7 +140,9 @@ function save_run_best()
     global tracker
 
     if tracker.run.log_level >= RunMod.LogIndivs
-        write_obj(RunBestInfoState, Array{Int64, 1}(), tracker.run_best)
+        buf = IOBuffer()
+        Serialization.serialize(buf, tracker.run_best)
+        write_obj(RunBestInfoState, Array{Int64, 1}(), take!(buf))
     end
 end
 
@@ -154,27 +150,39 @@ function save_fitnesses()
     global tracker
 
     if tracker.run.log_level >= RunMod.LogFitnesses
-        write_obj(FitnessesState, Array{Int64, 1}(), tracker.fitnesses)
+        buf = IOBuffer()
+        Serialization.serialize(buf, tracker.fitnesses)
+        write_obj(FitnessesState, Array{Int64, 1}(), take!(buf))
     end
 end
 
-# function save_ea_state(pop::Array{Individual, 1}, ea_step::Int64, force::Bool=false)
-#     global tracker
-
-#     if tracker.run.log_data
-#         for i in 1:length(pop)
-#             if ea_step in tracker.run.step_range || force
-#                 write_obj(IndivState, Array{Int64, 1}([ea_step, i]), pop[i])
-#             end
-#         end
-#     end
-# end
-
-function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, index::Int64, state::TagType)
+function save_reg_state(indiv::Individual, ea_step::Int64, reg_step::Int64, pop_index::Int64, state_time::StateTime)
     global tracker
 
     if tracker.run.log_level >= RunMod.LogIndivs
-        write_obj(state, Array{Int64, 1}([ea_step, reg_step, index]), indiv)
+        if reg_step ∈ TrackerMod.checkpoint_reg_steps
+            buf = IOBuffer()
+            Serialization.serialize(buf, indiv)
+            data = take!(buf)
+            state_content_type = Checkpoint
+            tracker.last_checkpoint = LastCheckpoint(data, ea_step, pop_index, reg_step)
+        else
+            if tracker.last_checkpoint == nothing
+                throw Exception("Tracker error: Attempted to save reg state before any checkpoints have been stored")
+            elseif tracker.last_checkpoint.ea_step == ea_step && tracker.last_checkpoint.pop_index == pop_index && tracker.last_checkpoint.reg_step != reg_step
+                buf = IOBuffer()
+                Serialization.serialize(buf, indiv)
+                change_info = CheckpointMod.compress(tracker.last_checkpoint.indiv_bytes, take!(buf))
+                Serialization.serialize(buf, change_info)
+                data = take!(buf)
+                state_content_type = Changes
+            else
+                throw Exception("Tracker error: Attempted to save state using invalid last checkpoint")
+            end
+        end
+        
+        
+        write_obj(IndivState, Array{Int64, 1}([ea_step, reg_step, pop_index]), data, state_time, state_content_type)
     end
 end
 

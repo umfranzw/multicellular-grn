@@ -6,6 +6,7 @@ using MutateMod
 using SelectionMod
 using RegSimMod
 using TrackerMod
+using BestInfoMod
 using Printf
 import Random
 
@@ -68,7 +69,7 @@ end
 function terminate(run::Run)
     tracker = TrackerMod.get_tracker()
     
-    TrackerMod.is_set(tracker.run_best) && tracker.run_best.indiv.fitness <= run.fitness_term_threshold
+    BestInfoMod.is_set(tracker.run_best) && tracker.run_best.indiv.fitness <= run.fitness_term_threshold
 end
 
 function create_pop(run::Run)

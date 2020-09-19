@@ -22,9 +22,9 @@ class DataTools():
         Main.using('TrackerMod')
         Main.eval('data = Data("{}")'.format(filename))
 
-        Main.eval('tag_types = instances(TrackerMod.TagType)')
+        Main.eval('tag_types = instances(TrackerMod.StateTag)')
         Main.eval('tag_names = map(string, tag_types)')
-        Main.eval('tag_type_dict = Dict{String, TrackerMod.TagType}(zip(tag_names, tag_types))')
+        Main.eval('tag_type_dict = Dict{String, TrackerMod.StateTag}(zip(tag_names, tag_types))')
         self.tag_type_dict = Main.tag_type_dict
         self.cache = Cache(DataTools.CACHE_SIZE)
 

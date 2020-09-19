@@ -46,7 +46,7 @@ class IndivArea(QWidget):
     def update_ea_step(self, ea_step):
         self.ea_step = ea_step
         self.table.setRowCount(0) #this deletes all existing rows
-        data, max_cols = self.data_tools.get_gene_descs()
+        data, max_cols = self.data_tools.get_gene_descs(ea_step)
         self.populate_table(data, max_cols)
 
     @Slot()
