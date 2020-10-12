@@ -4,7 +4,7 @@ using DeepDiffs
 
 export ChangeInfo
 
-const chunk_size = 512 #bytes
+const chunk_size = 256 #bytes
 
 mutable struct ChangeInfo
     removed::Array{UnitRange{Int64}, 1}
@@ -23,6 +23,8 @@ function compress(checkpoint::Array{UInt8, 1}, target::Array{UInt8, 1})
     while last <= length(checkpoint) && last <= length(target)
         chunk1 = checkpoint[first:last]
         chunk2 = target[first:last]
+        #chunk1 = view(checkpoint, first:last)
+        #chunk2 = view(target, first:last)
         result = deepdiff(chunk1, chunk2)
         
         update_info(info, first, result, chunk2)
@@ -38,6 +40,8 @@ function compress(checkpoint::Array{UInt8, 1}, target::Array{UInt8, 1})
         if last >= first
             chunk1 = checkpoint[first:last]
             chunk2 = target[first:last]
+            #chunk1 = view(checkpoint, first:last)
+            #chunk2 = view(target, first:last)
             result = deepdiff(chunk1, chunk2)
 
             update_info(info, first, result, chunk2)
@@ -56,6 +60,8 @@ function compress(checkpoint::Array{UInt8, 1}, target::Array{UInt8, 1})
         if last >= first
             chunk1 = checkpoint[first:last]
             chunk2 = target[first:last]
+            #chunk1 = view(checkpoint, first:last)
+            #chunk2 = view(target, first:last)
             result = deepdiff(chunk1, chunk2)
 
             update_info(info, first, result, chunk2)
@@ -91,7 +97,7 @@ function decompress(checkpoint::Array{UInt8, 1}, info::ChangeInfo)
     result
 end
 
-function update_info(info::ChangeInfo, first::Int64, result::VectorDiff{Array{UInt8,1},Array{UInt8,1}}, chunk2::Array{UInt8, 1})
+function update_info(info::ChangeInfo, first::Int64, result::VectorDiff{Array{UInt8,1}, Array{UInt8,1}}, chunk2::Array{UInt8, 1})
     offset = first - 1
     start = nothing
     stop = nothing

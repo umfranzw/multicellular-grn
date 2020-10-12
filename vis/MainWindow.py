@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         self.cell_area = CellArea(self.data_tools)
 
         # graphics area
-        self.graphics_area = GraphicsArea(self.data_tools, self.tree_tools, self.toolbar.getIndex(), self.table_area.get_tag_type())
+        self.graphics_area = GraphicsArea(self.data_tools, self.tree_tools, self.toolbar.getIndex(), self.table_area.get_state_time())
         self.graphics_area.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
 
         #fitness area
@@ -99,8 +99,8 @@ class MainWindow(QMainWindow):
             index = self.toolbar.getIndex()
             checkedInfo = arg
 
-        tag_type = self.table_area.get_tag_type()
-        self.graphics_area.refresh(index, tag_type, checkedInfo)
+        state_time = self.table_area.get_state_time()
+        self.graphics_area.refresh(index, state_time, checkedInfo)
 
     @Slot()
     def show_best(self, is_checked):

@@ -95,6 +95,14 @@ step_range = "0:1:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = false
+#value may be set to any key from CompressionMod.routing_dict
+compression_alg = "blosc"
 
 #CodecZlib: 151 MB
 #CodecXz: 145 MB
+#Checkpoint compression and CodecXz: 31 MB, 13:42
+#Checkpoint compression and Blosc compression: 90 MB, 7:31 **
+#Checkpoint compression and CodecZlib (Gzip): 256 MB, 7:36
+#Checkpoint compression and CodecBzip2: 316 MB, 11:19
+#Checkpoint compression and CodecZstd: 260 MB, 7:24
+

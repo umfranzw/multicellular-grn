@@ -2,6 +2,7 @@ module RunMod
 
 import TOML
 import Random
+import CompressionMod
 
 export Run, Config,
     get_run_channel, get_first_run
@@ -66,8 +67,11 @@ struct Run
     step_range::StepRange{Int64, Int64}
     data_output_file::String
     multithreaded::Bool
+    compression_alg::CompressionMod.CompressionAlg
 
     function Run(run::Dict{AbstractString, Any})
+        compression_alg_dict = get_enum_dict(CompressionMod.CompressionAlg)
+        
         args = Array{Any, 1}()
         for name_sym in fieldnames(Run)
             name_str = string(name_sym)
@@ -75,6 +79,8 @@ struct Run
                 push!(args, parse_step_range(run[name_str]))
             elseif name_str == "log_level"
                 push!(args, LogLevel(run[name_str]))
+            elseif name_str == "compression_alg"
+                push!(args, compression_alg_dict[run[name_str]])
             else
                 push!(args, run[name_str])
             end
@@ -82,6 +88,15 @@ struct Run
         
         new(args...)
     end
+end
+
+#returns a dictionary that maps a string version of each enum option to its value
+function get_enum_dict(enum_type::DataType)
+    options = instances(enum_type)
+    names = map(string, options)
+    key_val_pairs = zip(names, options)
+
+    Dict{String, enum_type}(key_val_pairs)
 end
 
 mutable struct Config

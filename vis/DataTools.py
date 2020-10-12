@@ -22,31 +22,31 @@ class DataTools():
         Main.using('TrackerMod')
         Main.eval('data = Data("{}")'.format(filename))
 
-        Main.eval('tag_types = instances(TrackerMod.StateTag)')
-        Main.eval('tag_names = map(string, tag_types)')
-        Main.eval('tag_type_dict = Dict{String, TrackerMod.StateTag}(zip(tag_names, tag_types))')
-        self.tag_type_dict = Main.tag_type_dict
+        Main.eval('state_time_instances = instances(TrackerMod.StateTime)')
+        Main.eval('state_time_names = map(string, state_time_instances)')
+        Main.eval('state_time_dict = Dict{String, TrackerMod.StateTime}(zip(state_time_names, state_time_instances))')
+        self.state_time_dict = Main.state_time_dict
         self.cache = Cache(DataTools.CACHE_SIZE)
 
     def close(self):
         Main.eval('DataMod.close(data)')
 
-    def get_tree(self, index, tag_type):
-        indiv = self.get_indiv(index, tag_type)
+    def get_tree(self, index, state_time):
+        indiv = self.get_indiv(index, state_time)
         Main.indiv = indiv
         Main.eval('tree = indiv.cell_tree')
         
         return Main.tree
 
-    def get_indiv(self, index, tag_type):
-        key = (index, tag_type)
+    def get_indiv(self, index, state_time):
+        key = (index, state_time)
         if key not in self.cache:
             #note: get_indiv does not require the reg_step arg to be passed
             Main.ea_step = index[0]
             Main.pop_index = index[1]
             Main.reg_step = index[2]
-            Main.tag_type = tag_type
-            Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, tag_type)')
+            Main.state_time = state_time
+            Main.eval('indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, state_time)')
             self.cache[key] = Main.indiv
         #else:
             #still need to set this, since other methods rely on it...
@@ -74,9 +74,9 @@ class DataTools():
         
         return Main.props_str
 
-    #checkpoint is a value from self.tag_type_dict
-    def get_protein_info_for_indiv(self, index, tag_type):
-        indiv = self.get_indiv(index, tag_type)
+    #checkpoint is a value from self.state_time_dict
+    def get_protein_info_for_indiv(self, index, state_time):
+        indiv = self.get_indiv(index, state_time)
         Main.indiv = indiv
         Main.eval('info = DataMod.get_protein_info_for_indiv(indiv)')
         
@@ -170,21 +170,21 @@ class DataTools():
         return (Main.bests, Main.gen_bests, Main.gen_avgs)
 
     def get_indiv_fitness(self, index):
-        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])
         Main.indiv = indiv
         Main.eval('fitness = indiv.fitness')
         
         return Main.fitness
 
     def get_indiv_code(self, index):
-        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])
         Main.indiv = indiv
         Main.eval('code = CellTreeMod.to_expr_str(indiv.cell_tree)')
 
         return Main.code
 
     def get_gene_scores(self, index):
-        indiv = self.get_indiv(index, self.tag_type_dict['IndivStateAfterBind'])
+        indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])
         Main.indiv = indiv
         Main.eval('scores = indiv.gene_scores')
         

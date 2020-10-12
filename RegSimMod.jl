@@ -34,18 +34,18 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
     #@info @sprintf("Individual %d\n", pop_index)
     indiv = pop[pop_index]
     #save initial state under index 0
-    #TrackerMod.save_reg_state(indiv, ea_step, 0, pop_index, TrackerMod.IndivStateAfterBind)
+    #TrackerMod.save_reg_state(indiv, ea_step, pop_index, 0, TrackerMod.IndivStateAfterBind)
 
     reg_step = 1
     while reg_step <= run.reg_steps && IndividualMod.has_proteins(indiv)
         #@info @sprintf("Reg step %d\n", reg_step)
 
         BindStepMod.run_bind(indiv)
-        TrackerMod.save_reg_state(indiv, ea_step, reg_step, pop_index, TrackerMod.IndivStateAfterBind)
+        TrackerMod.save_reg_state(indiv, ea_step, pop_index, reg_step, TrackerMod.AfterBind)
 
         ProduceStepMod.run_produce(indiv)
         BindingComsumeStepMod.run_binding_consum(indiv)
-        TrackerMod.save_reg_state(indiv, ea_step, reg_step, pop_index, TrackerMod.IndivStateAfterProd)
+        TrackerMod.save_reg_state(indiv, ea_step, pop_index, reg_step, TrackerMod.AfterProd)
         
         DiffuseStepMod.run_diffuse(indiv)
         NeighbourCommStepMod.run_neighbour_comm(indiv)
@@ -59,7 +59,7 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
     IndividualMod.run_fix_syms(indiv)
     FitnessMod.eval(indiv, ea_step)
     #save final state under index run.reg_step + 1
-    TrackerMod.save_reg_state(indiv, ea_step, run.reg_steps + 1, pop_index, TrackerMod.IndivStateAfterBind)
+    TrackerMod.save_reg_state(indiv, ea_step, pop_index, run.reg_steps + 1, TrackerMod.AfterBind)
 end
 
 end

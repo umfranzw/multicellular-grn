@@ -16,10 +16,11 @@ using GeneStateMod
 using Statistics
 using Printf
 using TrackerMod
-using CheckpointMod
 using Formatting
+using BestInfoMod
+import CheckpointMod
 import Serialization
-import CodecXz
+import CompressionMod
 
 import Base.close
 
@@ -27,13 +28,22 @@ export Data
 
 indiv_cache_size = 20
 
+struct IndexKey
+    #ea_step, pop_index, reg_step
+    step_tag::Tuple{Int64, Int64, Int64}
+    state_time::Union{TrackerMod.StateTime, Nothing}
+end
+
+struct IndexInfo
+    state_content_type::Union{TrackerMod.StateContentType, Nothing}
+    size::Int64
+    file_pos::Int64
+end
+
 mutable struct Data
-    #dictionary order is ea_step, index, reg_step
-    indivs::Cache{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Individual}
-    #(ea_step, index, reg_step) => (position, size)
-    indivs_index::Dict{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Tuple{Int64, Int64}}
-    #ea_step, pop_index
-    fitnesses::Union{Array{Array{Float64, 1}, 1}, Nothing}
+    indivs::Cache{IndexKey, Individual}
+    indivs_index::Dict{IndexKey, IndexInfo}
+    fitnesses::Union{Array{Array{Float64, 1}, 1}, Nothing} #indexing: ea_step, pop_index
     file_handle::IOStream
     run_best::Union{BestInfo, Nothing}
     run::Union{Run, Nothing}
@@ -41,14 +51,16 @@ mutable struct Data
     function Data(filename::String)
         file_path = join((RunMod.DATA_PATH, filename), "/")
         file_handle = open(file_path, "r")
+
+        #determine the compression method that was used on the file
+        #this is the first thing in the file - it's of type UInt8 (one of the values from the CompressionMod.CompressionAlg enum)
+        compression_alg = CompressionMod.CompressionAlg(read(file_handle, UInt8))
         
-        indivs = Cache{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Individual}(DataMod.indiv_cache_size)
-        indivs_index = Dict{Tuple{Int64, Int64, Int64, TrackerMod.StateTime}, Tuple{Int64, Int64}}()
-        
+        indivs = Cache{IndexKey, Individual}(DataMod.indiv_cache_size)
+        indivs_index = Dict{IndexKey, IndexInfo}()
         
         data = new(indivs, indivs_index, nothing, file_handle, nothing, nothing)
-        #data.run = get_run(data)
-        create_index(data) #note: this also initializes run_best and run
+        create_index(data, compression_alg) #note: this also initializes run_best and run
 
         data
     end
@@ -58,68 +70,128 @@ function close(data::Data)
     close(data.file_handle)
 end
 
-function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, tag_type::TrackerMod.StateTime)
-    key = (ea_step, pop_index, reg_step, tag_type)
-    if key == data.run_best.index
+function get_indiv(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, state_time::TrackerMod.StateTime)
+    get_indiv(data, IndexKey((ea_step, pop_index, reg_step), state_time))
+end
+
+function get_indiv(data::Data, key::IndexKey)
+    if data.run_best != nothing && key.step_tag == data.run_best.index
         indiv = data.run_best.indiv
     else
-        indiv = get_obj(data, key)
+        #if indiv is not in the cache, put it into the cache
+        if key ∉ keys(data.indivs)
+            index_info = data.indivs_index[key]
+            #check if this is a checkpoint indiv
+            #if so, the data stored in the file is the individual. Retrieve it.
+            if index_info.state_content_type == TrackerMod.Checkpoint
+                data.indivs[key] = read_obj(data, index_info.file_pos, index_info.size, data.run.compression_alg)
+                #otherwise, we need to rebuild it using the last checkpoint
+            else
+                #the data stored in the file is a compressed CheckpointMod.ChangInfo struct. Decompress and deserialize it.
+                change_info = read_obj(data, index_info.file_pos, index_info.size, data.run.compression_alg)
+                #println("change_info: $(change_info)")
+                
+                #find the reg_step that the last checkpoint was recorded on
+                ea_step, pop_index, reg_step = key.step_tag
+                it_pair = iterate(TrackerMod.checkpoint_reg_steps)
+                checkpt_reg_step = -1
+                while checkpt_reg_step < reg_step && it_pair != nothing
+                    checkpt_reg_step, state = it_pair
+                    it_pair = iterate(TrackerMod.checkpoint_reg_steps, state)
+                end
+
+                if checkpt_reg_step == -1
+                    throw(Error("The first checkpoint regstep must be 1"))
+                end
+                
+                #get the index_info for the checkpoint indiv from data.indivs_index
+                #note: only AfterBind indivs can be checkpoints - all AfterProd indivs use the last Afterbind checkpoint
+                checkpt_key = IndexKey((ea_step, pop_index, checkpt_reg_step), TrackerMod.AfterBind)
+                #println("checkpt_key: $(ea_step), $(pop_index), $(checkpt_reg_step)")
+                checkpt_info = data.indivs_index[checkpt_key]
+                #read the (compressed) bytes for the checkpoint indiv from the file
+                #don't decompress here, since Checkpoint compression was performed on *compressed* data
+                checkpt_bytes = read_bytes(data, checkpt_info.file_pos, checkpt_info.size, nothing)
+                #reconstruct the target individual using the checkpoint bytes and the change_info
+                resurrected_bytes = CheckpointMod.decompress(checkpt_bytes, change_info)
+                decomp_resurrected_bytes = CompressionMod.decompress(data.run.compression_alg, resurrected_bytes)
+                resurrected_indiv = Serialization.deserialize(IOBuffer(decomp_resurrected_bytes))
+
+                #add it to the index
+                data.indivs[key] = resurrected_indiv
+            end
+            
+        end
+
+        #retrieve the indiv from the cache
+        indiv = data.indivs[key]
     end
 
     indiv
 end
 
-function get_obj(data::Data, key::Any)
-    if key ∉ keys(data.indivs)
-        pos, size = data.indivs_index[key]
-        data.indivs[key] = read_obj(data, pos, size)
-    end    
-    
-    data.indivs[key]
+#will only perform decompression if decompression_alg is supplied
+function read_obj(data::Data, pos::Int64, size::Int64, decompression_alg::Union{CompressionMod.CompressionAlg, Nothing}=nothing)
+    decomp_bytes = read_bytes(data, pos, size, decompression_alg)
+    buf = IOBuffer(decomp_bytes)
+
+    Serialization.deserialize(buf)
 end
 
-function read_obj(data::Data, pos::Int64, size::Int64)
+#will only perform decompression if decompression_alg is supplied
+function read_bytes(data::Data, pos::Int64, size::Int64, decompression_alg::Union{CompressionMod.CompressionAlg, Nothing}=nothing)
     seek(data.file_handle, pos)
+    comp_bytes = read(data.file_handle, size)
 
-    comp_obj = read(data.file_handle, size)
-    ser_obj = CodecXz.transcode(CodecXz.XzDecompressor, comp_obj)
-    ser_buf = IOBuffer(ser_obj)
+    if decompression_alg == nothing
+        result = comp_bytes
+    else
+        result = CompressionMod.decompress(decompression_alg, comp_bytes)
+    end
 
-    Serialization.deserialize(ser_buf)
+    result
 end
 
-function create_index(data::Data)
+function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg)
+    #format: state_type, size, compressed_data, [step_tag], [state_time], [state_content_type]
     while !eof(data.file_handle)
-        tag_type = read(data.file_handle, TrackerMod.StateTime)
-        if tag_type == TrackerMod.RunState
-            #note: no tag here
-            size = read(data.file_handle, Int64)
+        #read the information that is always present,
+        #with the exception of the compressed data - instead, just record its position in the file
+        state_type = read(data.file_handle, TrackerMod.StateType)
+        size = read(data.file_handle, Int64)
+        comp_data_pos = position(data.file_handle)
+        
+        if state_type == TrackerMod.RunState
             #no need to add this to an index - we'll save it in the data object
-            data.run = read_obj(data, position(data.file_handle), size)
+            data.run = read_obj(data, comp_data_pos, size, compression_alg)
+            #println("read run")
             
-        elseif tag_type ∈ (TrackerMod.IndivStateAfterBind, TrackerMod.IndivStateAfterProd)
-            ea_step = read(data.file_handle, Int64)
-            reg_step = read(data.file_handle, Int64)
-            pop_index = read(data.file_handle, Int64)
-            size = read(data.file_handle, Int64)
-
-            key = (ea_step, pop_index, reg_step, tag_type)
-            data.indivs_index[key] = (position(data.file_handle), size)
-
-            #go to next item
+        elseif state_type == TrackerMod.IndivState
+            #since we don't want to consume the comp_data (just index it for later use), we need to skip over it to go to the following metadata
             seek(data.file_handle, position(data.file_handle) + size)
+            
+            #read step tag (ea_step, pop_index, reg_step)
+            ea_step = read(data.file_handle, Int64)
+            pop_index = read(data.file_handle, Int64)
+            reg_step = read(data.file_handle, Int64)
 
-        elseif tag_type == TrackerMod.RunBestInfoState
-            #note: no tag here
-            size = read(data.file_handle, Int64)
-            #no need to add this to an index - we'll save it in the data object
-            data.run_best = read_obj(data, position(data.file_handle), size)
+            #read state_time and state_content_type
+            state_time = TrackerMod.StateTime(read(data.file_handle, UInt8))
+            state_content_type = read(data.file_handle, TrackerMod.StateContentType)
 
-        elseif tag_type == TrackerMod.FitnessesState
-            #note: no tag here
-            size = read(data.file_handle, Int64)
+            key = IndexKey((ea_step, pop_index, reg_step), state_time)
+            val = IndexInfo(state_content_type, size, comp_data_pos)
+            data.indivs_index[key] = val
+
+        elseif state_type == TrackerMod.RunBestInfoState
             #no need to add this to an index - we'll save it in the data object
-            data.fitnesses = read_obj(data, position(data.file_handle), size)
+            data.run_best = read_obj(data, comp_data_pos, size, compression_alg)
+            #println("read run_best")
+
+        elseif state_type == TrackerMod.FitnessesState
+            #no need to add this to an index - we'll save it in the data object
+            data.fitnesses = read_obj(data, comp_data_pos, size, compression_alg)
+            #println("read tag_type")
         end
     end
 end
@@ -233,7 +305,8 @@ function add_neighbour_edges(graph::NeighbourGraph, cell::Cell, id_to_cell::Dict
 end
 
 function build_neighbour_comm_graph(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64)
-    indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, TrackerMod.IndivStateAfterBind)
+    key = IndexKey((ea_step, pop_index, reg_step), TrackerMod.AfterBind)
+    indiv = DataMod.get_indiv(data, key)
     graph = NeighbourGraph(indiv.cell_tree)
     id_to_cell = Dict{UInt64, Cell}()
     CellTreeMod.traverse(cell -> id_to_cell[cell.id] = cell, indiv.cell_tree)
@@ -244,7 +317,8 @@ end
 
 function build_graph_for_cell(data::Data, ea_step::Int64, pop_index::Int64, reg_step::Int64, cell::Cell)
     graph = InternalGraph()
-    indiv = DataMod.get_indiv(data, ea_step, pop_index, reg_step, TrackerMod.IndivStateAfterBind)
+    key = IndexKey((ea_step, pop_index, reg_step), TrackerMod.AfterBind)
+    indiv = DataMod.get_indiv(data, key)
     tree = indiv.cell_tree
     cur_cell = CellTreeMod.find_by_id(tree, cell.id)
     if cur_cell != nothing
@@ -327,7 +401,8 @@ function get_gene_descs(data::Data, indiv_index::Int64)
     push!(rows, headers)
     
     for ea_step in 0:data.run.ea_steps
-        cur_indiv = DataMod.get_indiv(data, ea_step, indiv_index, 1, TrackerMod.IndivStateAfterBind)
+        key = IndexKey((ea_step, indiv_index, 1), TrackerMod.AfterBind)
+        cur_indiv = DataMod.get_indiv(data, key)
         max_genes = max(max_genes, length(cur_indiv.genes))
         row = Array{String, 1}()
         push!(row, string(ea_step))
@@ -421,7 +496,8 @@ function save_all_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_in
     write(handle, "\n")
     
     for reg_step in 1:data.run.reg_steps + 1
-        indiv = DataMod.get_indiv(data, ea_step, indiv_index, reg_step, TrackerMod.IndivStateAfterBind)
+        key = IndexKey((ea_step, indiv_index, reg_step), TrackerMod.AfterBind)
+        indiv = DataMod.get_indiv(data, key)
         tree = indiv.cell_tree
         cur_cell = CellTreeMod.find_by_id(tree, cell.id)
 
@@ -471,7 +547,8 @@ function get_best_fitnesses(data::Data)
 end
 
 function get_base_seed(data::Data)
-    first_indiv = DataMod.get_indiv(data, 0, 1, 1, TrackerMod.IndivStateAfterBind)
+    key = IndexKey((0, 1, 1), TrackerMod.AfterBind)
+    first_indiv = DataMod.get_indiv(data, key)
     
     first_indiv.config.rng.seed[1] - 1 #note: offset starts at 1
 end

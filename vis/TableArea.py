@@ -11,7 +11,7 @@ class TableArea(QWidget):
         QWidget.__init__(self, *args, **kwargs)
         self.data_tools = data_tools
         self.cur_index = initial_index
-        data = self.data_tools.get_protein_info_for_indiv(initial_index, self.data_tools.tag_type_dict["IndivStateAfterBind"])
+        data = self.data_tools.get_protein_info_for_indiv(initial_index, self.data_tools.state_time_dict["AfterBind"])
         
         vlayout = QVBoxLayout()
 
@@ -75,13 +75,13 @@ class TableArea(QWidget):
 
         return visible_rows
 
-    def get_tag_type(self):
+    def get_state_time(self):
         if self.after_bind_button.isChecked():
-            tag_type = self.data_tools.tag_type_dict['IndivStateAfterBind']
+            state_time = self.data_tools.state_time_dict['AfterBind']
         else:
-            tag_type = self.data_tools.tag_type_dict['IndivStateAfterProd']
+            state_time = self.data_tools.state_time_dict['AfterProd']
 
-        return tag_type
+        return state_time
     
     @Slot()
     def reset_colour_picker(self, new_ea_step):
@@ -89,8 +89,8 @@ class TableArea(QWidget):
 
     @Slot()
     def refresh(self, index):
-        tag_type = self.get_tag_type()
-        data = self.data_tools.get_protein_info_for_indiv(index, tag_type)
+        state_time = self.get_state_time()
+        data = self.data_tools.get_protein_info_for_indiv(index, state_time)
         self.model.refresh(data)
         self.cur_index = index
 
