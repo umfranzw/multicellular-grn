@@ -233,20 +233,6 @@ function save_reg_state(indiv::Individual, ea_step::Int64, pop_index::Int64, reg
         
         write_obj(IndivState, data, Array{Int64, 1}([ea_step, pop_index, reg_step]), state_time, state_content_type)
 
-        if ea_step == 1 && pop_index == 6 && reg_step ∈ (1, 2)
-            creating = !isfile("/home/wayne/Documents/school/thesis/multicellular-grn/data/test")
-            test_handle = open("/home/wayne/Documents/school/thesis/multicellular-grn/data/test", "a")
-            temp = tracker.file_handle
-            tracker.file_handle = test_handle
-            if creating
-                save_compression_type()
-                save_run()
-            end
-            write_obj(IndivState, data, Array{Int64, 1}([ea_step, pop_index, reg_step]), state_time, state_content_type)
-            tracker.file_handle = temp
-            close(test_handle)
-        end
-            
         #println()
     end
 end
