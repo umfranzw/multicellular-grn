@@ -26,7 +26,7 @@ import Base.close
 
 export Data
 
-indiv_cache_size = 20
+indiv_cache_size = 25
 
 struct IndexKey
     #ea_step, pop_index, reg_step

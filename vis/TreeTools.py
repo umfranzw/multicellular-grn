@@ -60,13 +60,19 @@ class TreeTools():
             scene.addItem(line)
             
             self.draw_edges(scene, child, depth + 1)
-    
+
+    #call this one!
     def build_conc_graph(self, cell, checked_info):
+        return self.build_conc_graph_group_bar(cell, checked_info)
+            
+    def build_conc_graph_group_bar(self, cell, checked_info):
         chart = QtCharts.QChart() #note: we're not going to show this widget in the GUI, it's just for generating charts
         num_concs = self.data_tools.get_num_genes(cell)
 
         #build bar_series
         bar_series = QtCharts.QBarSeries()
+        #the group of bars above each position on the x-axis (category) will be allowed to consume this proportion of the x-axis space for the category
+        bar_series.setBarWidth(0.9)
         for props, colour, is_initial in checked_info:
             protein = self.data_tools.get_protein(cell, props)
             if protein is not None:
@@ -112,6 +118,82 @@ class TreeTools():
 
         #attach y axis to series
         bar_series.attachAxis(y_axis)
+        for line_series in threshold_series:
+            line_series.attachAxis(y_axis)
+            
+        y_axis.setRange(0.0, 1.0)
+
+        #title and legend
+        cell_label = str(cell.sym.val) if cell.sym != None else '(None)'
+        chart.setTitle(cell_label)
+        chart.legend().setVisible(False)
+
+        #view
+        chartView = QtCharts.QChartView(chart)
+        chartView.setRenderHint(QPainter.RenderHint.Antialiasing)
+        chartView.resize(TreeTools.node_width, TreeTools.node_height)
+        pixmap = QPixmap(chartView.size())
+        chartView.render(pixmap)
+
+        return pixmap
+    
+    def build_conc_graph_steps(self, cell, checked_info):
+        chart = QtCharts.QChart() #note: we're not going to show this widget in the GUI, it's just for generating charts
+        num_concs = self.data_tools.get_num_genes(cell)
+
+        #build line_series
+        data_series = []
+        for props, colour, is_initial in checked_info:
+            protein = self.data_tools.get_protein(cell, props)
+            if protein is not None:
+                concs = protein.concs
+            else:
+                concs = []
+            #print(protein)
+
+            props_str = self.data_tools.get_props_str(props, is_initial)
+            line_series = QtCharts.QLineSeries()
+            line_series.setName(props_str)
+            line_series.setColor(colour)
+            for x, y in enumerate(concs):
+                line_series.append(x, y)
+                line_series.append(x + 1, y) #draw "steps" (two points for each conc)
+
+            data_series.append(line_series)
+            
+        #this is an array of line series
+        threshold_series = self.get_threshold_series(num_concs)
+
+        #add series to chart
+        for line_series in data_series:
+            chart.addSeries(line_series)
+        
+        for line_series in threshold_series:
+            chart.addSeries(line_series)
+
+        #create x axis and add to chart
+        x_axis = QtCharts.QCategoryAxis()
+        categories = list(range(1, num_concs + 1))
+        for cat in categories:
+            x_axis.append(str(cat), cat)
+
+        chart.addAxis(x_axis, Qt.AlignBottom)
+
+        #attach x axis to series
+        for line_series in data_series:
+            line_series.attachAxis(x_axis)
+            
+        for line_series in threshold_series:
+            line_series.attachAxis(x_axis)
+
+        #create y axis and add to chart
+        y_axis = QtCharts.QValueAxis()
+        chart.addAxis(y_axis, Qt.AlignLeft)
+
+        #attach y axis to series
+        for line_series in data_series:
+            line_series.attachAxis(y_axis)
+            
         for line_series in threshold_series:
             line_series.attachAxis(y_axis)
             
