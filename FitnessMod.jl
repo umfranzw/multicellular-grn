@@ -7,8 +7,19 @@ using SymMod
 using RegSimInfoMod
 using Printf
 
+function eval_intermediate(indiv::Individual, reg_step::Int64)
+    #ideas:
+    #reward cycles
+    #reward inter-cell signalling
+    #reward bind coverage
+    #reward prod coverage
+    #reward non-terminal leaves (that haven't got a symbol yet)
+    #reward the appearance of x
+    #reward the duration of production without stagnation
+end
+
 #note: there's nothing restricting fitnesses' upper (worst) limit to 1.0!
-function eval(indiv::Individual, ea_step::Int64)
+function eval_final(indiv::Individual, ea_step::Int64)
     # run = indiv.config.run
     # completeness = ea_step / run.ea_steps #low -> high
     # inv_completeness = 1.0 - completeness #high -> low
@@ -33,8 +44,9 @@ function eval(indiv::Individual, ea_step::Int64)
 
     # indiv.fitness = fitness
 
-    bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
-    prod_coverage = RegSimInfoMod.get_prod_coverage(indiv.reg_sim_info)
+    #bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
+    #prod_coverage = RegSimInfoMod.get_prod_coverage(indiv.reg_sim_info)
+    #indiv.fitness = bind_coverage
     
     indiv.fitness = get_accuracy_fitness(indiv)
 end

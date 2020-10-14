@@ -26,7 +26,6 @@ function reg_sim(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
     end
 end
 
-
 #TODO:
 #no need to save state at reg step 0 (but still need to save initial fitnesses on "ea_step 0")
 
@@ -53,11 +52,13 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
         DecayStepMod.run_decay(indiv)
         AgeStepMod.run_age(indiv)
 
+        #FitnessMod.eval_intermediate(indiv, reg_step)
+
         reg_step += 1
     end
 
     IndividualMod.run_fix_syms(indiv)
-    FitnessMod.eval(indiv, ea_step)
+    FitnessMod.eval_final(indiv, ea_step)
     #save final state under index run.reg_step + 1
     TrackerMod.save_reg_state(indiv, ea_step, pop_index, run.reg_steps + 1, TrackerMod.AfterBind)
 end

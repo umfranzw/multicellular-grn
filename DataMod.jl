@@ -182,6 +182,7 @@ function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg
             key = IndexKey((ea_step, pop_index, reg_step), state_time)
             val = IndexInfo(state_content_type, size, comp_data_pos)
             data.indivs_index[key] = val
+            #println("read indiv: ($ea_step, $pop_index, $reg_step)")
 
         elseif state_type == TrackerMod.RunBestInfoState
             #no need to add this to an index - we'll save it in the data object
@@ -191,7 +192,7 @@ function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg
         elseif state_type == TrackerMod.FitnessesState
             #no need to add this to an index - we'll save it in the data object
             data.fitnesses = read_obj(data, comp_data_pos, size, compression_alg)
-            #println("read tag_type")
+            #println("read fitnesses")
         end
     end
 end

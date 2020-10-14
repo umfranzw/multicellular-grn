@@ -81,7 +81,7 @@ max_protein_arg = 255 #must be in range [max(max_children, num_symbols), 2^8 - 1
 ###########################
 #Random Number Generation #
 ###########################
-fix_rng_seed = true
+fix_rng_seed = false
 user_rng_seed = 2504327168
 
 ############
@@ -94,7 +94,7 @@ log_level = 2
 step_range = "0:1:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
-multithreaded = false
+multithreaded = true
 #value may be set to any key from CompressionMod.routing_dict
 compression_alg = "blosc"
 

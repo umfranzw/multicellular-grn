@@ -9,7 +9,7 @@ mutable struct RegSimInfo
     alter_sym_prob_count::Int64
 
     function RegSimInfo(num_genes::Int64)
-        new(zeros(num_genes), zeros(num_genes))
+        new(zeros(num_genes), zeros(num_genes), 0, 0)
     end
 end
 

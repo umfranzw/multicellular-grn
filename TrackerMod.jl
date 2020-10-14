@@ -24,6 +24,7 @@ tracker = nothing
 
 #Note: items should be inserted in ascending order
 checkpoint_reg_steps = OrderedSet{Int64}([1])
+file_chunk_size = 1024 #bytes
 
 mutable struct LastCheckpoint
     indiv_bytes::Array{UInt8, 1}
@@ -35,23 +36,30 @@ end
 mutable struct Tracker
     run::Run
     path::String
-    file_handle::Union{IOStream, Nothing}
+    local_files::Union{Array{IOStream, 1}, Nothing}
     run_best::BestInfo
     gen_best::BestInfo
     fitnesses::Array{Array{Float64, 1}, 1}
-    file_handle_lock::ReentrantLock
-    last_checkpoint::Union{LastCheckpoint, Nothing}
+    last_checkpoint::Union{Array{Union{LastCheckpoint, Nothing}, 1}, Nothing}
 end
 
 function create_tracker(run::Run, path::String)
     global tracker
 
     if run.log_level > RunMod.LogNone
-        file_handle = open(path, "w")
+        local_files = Array{IOStream, 1}()
+        last_checkpoint = Array{Union{LastCheckpoint, Nothing}, 1}()
+        for i in 1:Threads.nthreads()
+            local_fname = get_local_fname(path, i)
+            push!(local_files, open(local_fname, "w+")) #open for writing *and reading* (see destroy_tracker())
+            push!(last_checkpoint, nothing)
+        end
     else
-        file_handle = nothing
+        local_files = nothing
+        last_checkpoint = nothing
     end
-    tracker = Tracker(run, path, file_handle, BestInfo(), BestInfo(), Array{Array{Float64, 1}, 1}(), ReentrantLock(), nothing)
+    
+    tracker = Tracker(run, path, local_files, BestInfo(), BestInfo(), Array{Array{Float64, 1}, 1}(), last_checkpoint)
     save_compression_type()
     save_run()
 
@@ -63,15 +71,34 @@ function get_tracker()
     tracker
 end
 
+function get_local_fname(path::String, threadid::Int64)
+    "$(path)-$(threadid)"
+end
+
 function destroy_tracker()
     global tracker
 
     if tracker.run.log_level > RunMod.LogNone
-        close(tracker.file_handle)
+        #copy each of the tracker.local_files into a single global file (location is given by tracker.path)
+        #note: it's important that local_files[1] is written first, since it contains the compression_type and run, and they need to be at the top (DataMod expects it)
+        global_file = open(tracker.path, "w")
+        for i in 1:Threads.nthreads()
+            info = stat(tracker.local_files[i])
+            seek(tracker.local_files[i], 0)
+            while !eof(tracker.local_files[i])
+                chunk = read(tracker.local_files[i], TrackerMod.file_chunk_size)
+                write(global_file, chunk)
+            end
+            close(tracker.local_files[i])
+            fname = get_local_fname(tracker.path, i)
+            rm(fname)
+        end
+        close(global_file)
     end
     tracker = nothing
 end
 
+#note: this will always be called with in a single threaded context, so there's no need for locking
 function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64)
     global tracker
     
@@ -116,48 +143,52 @@ function write_obj(
     #format: state_type, size, compressed_data, [step_tag], [state_time], [state_content_type]
     
     #this needs to be thread safe
-    lock(tracker.file_handle_lock)
+    #lock(tracker.file_handle_lock)
 
+    file_index = Threads.threadid()
+    
     #always write state type, size, and compressed data
     #println("writing state_type: $(state_type)")
-    write(tracker.file_handle, UInt8(state_type))
+    write(tracker.local_files[file_index], UInt8(state_type))
     #println("writing size: $(length(comp_obj_bytes))")
-    write(tracker.file_handle, Int64(length(comp_obj_bytes)))
+    write(tracker.local_files[file_index], Int64(length(comp_obj_bytes)))
     #println("writing comp_obj_bytes")
-    write(tracker.file_handle, comp_obj_bytes)
+    write(tracker.local_files[file_index], comp_obj_bytes)
     
     #optionally write the others
     #step tag format: (ea_step, indiv_index, reg_step)
     if step_tag != nothing
         #println("writing step tag: $(step_tag)")
         for tag_val in step_tag
-            write(tracker.file_handle, tag_val)
+            write(tracker.local_files[file_index], tag_val)
         end
     end
 
     if state_time != nothing
         #println("writing state_time: $(state_time)")
-        write(tracker.file_handle, UInt8(state_time))
+        write(tracker.local_files[file_index], UInt8(state_time))
     end
 
     if state_content_type != nothing
         #println("writing state_content_type: $(state_content_type)")
-        write(tracker.file_handle, UInt8(state_content_type))
+        write(tracker.local_files[file_index], UInt8(state_content_type))
     end
     
-    unlock(tracker.file_handle_lock)
+    #unlock(tracker.file_handle_lock)
 end
 
 function save_compression_type()
     global tracker
 
-    write(tracker.file_handle, UInt8(tracker.run.compression_alg))
+    if tracker.run.log_level > RunMod.LogNone
+        write(tracker.local_files[Threads.threadid()], UInt8(tracker.run.compression_alg))
+    end
 end
 
 function save_run()
     global tracker
 
-    if tracker.run.log_level >= RunMod.LogFitnesses
+    if tracker.run.log_level > RunMod.LogNone
         #println("saving run")
         buf = IOBuffer()
         Serialization.serialize(buf, tracker.run)
@@ -193,12 +224,14 @@ function save_fitnesses()
     end
 end
 
+#This function should be thread-safe as long as each thread sticks to it's indiv, doing all reg_steps sequentially
 function save_reg_state(indiv::Individual, ea_step::Int64, pop_index::Int64, reg_step::Int64, state_time::StateTime)
     global tracker
 
     #println("Saving reg state for: ($(ea_step), $(pop_index), $(reg_step))")
-
+    
     if tracker.run.log_level >= RunMod.LogIndivs
+        file_index = Threads.threadid()
         #note: only AfterBind indivs can be checkpoints - all AfterProd indivs use the last AfterBind indiv as their checkpoint base for checkpoint compression
         if state_time == AfterBind && reg_step ∈ TrackerMod.checkpoint_reg_steps
             #println("It's a checkpoint indiv")
@@ -206,22 +239,22 @@ function save_reg_state(indiv::Individual, ea_step::Int64, pop_index::Int64, reg
             Serialization.serialize(buf, indiv)
             data = CompressionMod.compress(tracker.run.compression_alg, take!(buf))
             state_content_type = Checkpoint
-            
-            tracker.last_checkpoint = LastCheckpoint(data, ea_step, pop_index, reg_step)
+
+            tracker.last_checkpoint[file_index] = LastCheckpoint(data, ea_step, pop_index, reg_step)
         else
             if tracker.last_checkpoint == nothing
                 throw(Exception("Tracker error: Attempted to save reg state before any checkpoints have been stored"))
-            elseif tracker.last_checkpoint.ea_step == ea_step && tracker.last_checkpoint.pop_index == pop_index && (tracker.last_checkpoint.reg_step < reg_step || state_time == AfterProd) #note: all AfterProd indivs use the last AfterBind checkpoint indiv as their checkpoint base for checkpoint compression
+            elseif tracker.last_checkpoint[file_index].ea_step == ea_step && tracker.last_checkpoint[file_index].pop_index == pop_index && (tracker.last_checkpoint[file_index].reg_step < reg_step || state_time == AfterProd) #note: all AfterProd indivs use the last AfterBind checkpoint indiv as their checkpoint base for checkpoint compression
                 #println("It's a change indiv")
                 buf = IOBuffer()
                 Serialization.serialize(buf, indiv)
                 compressed = CompressionMod.compress(tracker.run.compression_alg, take!(buf))
-                change_info = CheckpointMod.compress(tracker.last_checkpoint.indiv_bytes, compressed)
+                change_info = CheckpointMod.compress(tracker.last_checkpoint[file_index].indiv_bytes, compressed)
                 Serialization.serialize(buf, change_info)
                 data = CompressionMod.compress(tracker.run.compression_alg, take!(buf))
                 state_content_type = Changes
             else
-                throw(Exception("Tracker error: Attempted to save state using invalid last checkpoint"))
+                throw(ErrorException("Tracker error: Attempted to save state using invalid last checkpoint"))
             end
         end
 
