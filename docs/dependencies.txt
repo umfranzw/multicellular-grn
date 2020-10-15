@@ -1,10 +1,15 @@
 ---------
 Packages:
 ---------
-CodecZlib
 DataStructures
+DeepDiffs
+Blosc
+CodecBzip2
+CodecXz
+CodecZlib
+CodecZstd
+Statistics
 LightGraphs
-Mustache
 Formatting
 TOML
 

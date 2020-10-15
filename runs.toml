@@ -96,7 +96,7 @@ step_range = "0:1:10"
 data_output_file = "data"
 multithreaded = true
 #value may be set to any key from CompressionMod.routing_dict
-compression_alg = "blosc"
+compression_alg = "codecxz"
 
 #CodecZlib: 151 MB
 #CodecXz: 145 MB
