@@ -10,7 +10,7 @@ export Run, Config,
 if gethostname() == "ibis"
     const CONFIG_PATH = "/home/umfranzw/multicellular-grn/runs.toml"
     #no trailing "/"
-    const DATA_PATH = "/home/umfranzw/multicellular-grn/data"
+    const DATA_PATH = "/var/www/data"
 else
     const CONFIG_PATH = "/home/wayne/Documents/school/thesis/multicellular-grn/runs.toml"
     #no trailing "/"
