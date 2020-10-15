@@ -69,7 +69,8 @@ struct Run
     multithreaded::Bool
     compression_alg::CompressionMod.CompressionAlg
 
-    function Run(run::Dict{AbstractString, Any})
+    #note: different TOML versions use AbstractString or String
+    function Run(run::Union{Dict{AbstractString, Any}, Dict{String, Any}})
         compression_alg_dict = get_enum_dict(CompressionMod.CompressionAlg)
         
         args = Array{Any, 1}()
