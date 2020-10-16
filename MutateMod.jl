@@ -63,7 +63,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     end
 
     #swap locations
-    mutate_location(indiv.config, indiv.genes)
+    #mutate_location(indiv.config, indiv.genes)
 
     #update genome_indices
     # foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
