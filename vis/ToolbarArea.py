@@ -7,6 +7,7 @@ from CustomStyle import CustomStyle
 class ToolbarArea(QToolBar):
     indexChanged = Signal(tuple) #fires when anything changes
     eaStepChanged = Signal(int)
+    popIndexChanged = Signal(int)
     showBestChanged = Signal(bool)
     
     def __init__(self, run, data_tools, *args, **kwargs):
@@ -23,6 +24,7 @@ class ToolbarArea(QToolBar):
         self.indivSpin.setStyle(CustomStyle())
         self.indivSpin.setRange(1, run.pop_size)
         self.indivSpin.valueChanged.connect(self.handle_index_changed)
+        self.indivSpin.valueChanged.connect(self.handle_pop_index_changed)
         
         self.regStepSpin = QSpinBox()
         self.regStepSpin.setStyle(CustomStyle())
@@ -84,6 +86,10 @@ class ToolbarArea(QToolBar):
     @Slot()
     def handle_ea_step_changed(self, new_val):
         self.eaStepChanged.emit(new_val)
+
+    @Slot()
+    def handle_pop_index_changed(self, new_val):
+        self.popIndexChanged.emit(new_val)
 
     @Slot()
     def handle_show_best_changed(self, new_val):

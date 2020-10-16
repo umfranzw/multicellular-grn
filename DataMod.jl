@@ -394,13 +394,6 @@ function get_gene_descs(data::Data, indiv_index::Int64)
     max_genes = -1
     rows = Array{Array{String, 1}, 1}()
     
-    headers = Array{String, 1}()
-    push!(headers, "ea_step")
-    for i in 1:max_genes
-        push!(headers, "Gene $(i)")
-    end
-    push!(rows, headers)
-    
     for ea_step in 0:data.run.ea_steps
         key = IndexKey((ea_step, indiv_index, 1), TrackerMod.AfterBind)
         cur_indiv = DataMod.get_indiv(data, key)
@@ -413,6 +406,13 @@ function get_gene_descs(data::Data, indiv_index::Int64)
         end
         push!(rows, row)
     end
+
+    headers = Array{String, 1}()
+    push!(headers, "ea_step")
+    for i in 1:max_genes
+        push!(headers, "Gene $(i)")
+    end
+    insert!(rows, 1, headers)
 
     (rows, max_genes)
 end

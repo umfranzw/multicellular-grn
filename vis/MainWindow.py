@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self.toolbar.indexChanged.connect(self.table_area.refresh)
         self.toolbar.indexChanged.connect(self.refresh_graphics_area)
         self.toolbar.indexChanged.connect(lambda index: self.neighbour_area.update(index))
-        self.toolbar.eaStepChanged.connect(self.indiv_area.update_ea_step)
+        self.toolbar.popIndexChanged.connect(self.indiv_area.update_pop_index)
         self.toolbar.showBestChanged.connect(self.show_best)
         self.toolbar.showBestChanged.connect(lambda checked: self.table_area.refresh(self.toolbar.getIndex()))
         self.toolbar.showBestChanged.connect(lambda checked: self.refresh_graphics_area(self.toolbar.getIndex()))

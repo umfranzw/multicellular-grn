@@ -195,16 +195,16 @@ class DataTools():
         
         return Main.best_index
 
-    def get_gene_descs(self, ea_step):
-        Main.ea_step = ea_step
-        Main.eval('table, max_cols = DataMod.get_gene_descs(data, ea_step)')
+    def get_gene_descs(self, pop_index):
+        Main.pop_index = pop_index
+        Main.eval('table, max_cols = DataMod.get_gene_descs(data, pop_index)')
 
         return Main.table, Main.max_cols
     
-    def export_gene_descs(self, ea_step, filename):
+    def export_gene_descs(self, pop_index, filename):
         Main.filename = filename
-        Main.ea_step = ea_step
-        Main.eval('DataMod.export_gene_descs(data, ea_step, filename)')
+        Main.pop_index = pop_index
+        Main.eval('DataMod.export_gene_descs(data, pop_index, filename)')
 
     def get_base_seed(self):
         Main.eval('base_seed = DataMod.get_base_seed(data)')
