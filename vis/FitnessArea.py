@@ -52,8 +52,8 @@ class FitnessArea(QWidget):
         x_axis = QtCharts.QValueAxis()
         x_axis.setRange(0, self.run.ea_steps)
         #x_axis.setTickInterval(self.run.step_range.step)
-        #x_axis.setTickCount(self.run.ea_steps // self.run.step_range.step + 1)        
-        #x_axis.setLabelFormat('%0.0f') #display as integer
+        x_axis.setTickCount(self.run.ea_steps // self.run.step_range.step + 1)        
+        x_axis.setLabelFormat('%0.0f') #display as integer
         x_axis.setTitleText('EA Step')
 
         y_axis = QtCharts.QValueAxis()

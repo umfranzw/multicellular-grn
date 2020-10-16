@@ -527,7 +527,7 @@ function get_best_fitnesses(data::Data)
     gen_avgs = Array{Float64, 1}()
 
     best = nothing
-    for ea_step in 0:length(data.fitnesses)
+    for ea_step in 0:data.run.ea_steps
         gen_avg = 0.0
         gen_best = nothing
         for pop_index in 1:data.run.pop_size
