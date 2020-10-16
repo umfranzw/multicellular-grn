@@ -400,6 +400,7 @@ function get_gene_descs(data::Data, indiv_index::Int64)
         max_genes = max(max_genes, length(cur_indiv.genes))
         row = Array{String, 1}()
         push!(row, string(ea_step))
+        push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][indiv_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         for gene_index in 1:length(cur_indiv.genes)
             site_str = GeneMod.get_sites_str(cur_indiv.genes[gene_index])
             push!(row, site_str)
@@ -409,6 +410,7 @@ function get_gene_descs(data::Data, indiv_index::Int64)
 
     headers = Array{String, 1}()
     push!(headers, "ea_step")
+    push!(headers, "fitness")
     for i in 1:max_genes
         push!(headers, "Gene $(i)")
     end
@@ -515,17 +517,21 @@ function save_all_gs_table_data(data::Data, cell::Cell, ea_step::Int64, indiv_in
     close(handle)
 end
 
+function get_indiv_fitness(data::Data, ea_step::Int64, pop_index::Int64)
+    data.fitnesses[ea_step + 1][pop_index]
+end
+
 function get_best_fitnesses(data::Data)
     bests = Array{Float64, 1}()
     gen_bests = Array{Float64, 1}()
     gen_avgs = Array{Float64, 1}()
 
     best = nothing
-    for ea_step in 1:length(data.fitnesses)
+    for ea_step in 0:length(data.fitnesses)
         gen_avg = 0.0
         gen_best = nothing
         for pop_index in 1:data.run.pop_size
-            fitness = data.fitnesses[ea_step][pop_index]
+            fitness = data.fitnesses[ea_step + 1][pop_index] #remember, we store fitness for ea_step 0, so everything's offset
             gen_avg += fitness
 
             if gen_best == nothing || fitness < gen_best

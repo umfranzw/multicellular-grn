@@ -170,9 +170,9 @@ class DataTools():
         return (Main.bests, Main.gen_bests, Main.gen_avgs)
 
     def get_indiv_fitness(self, index):
-        indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])
-        Main.indiv = indiv
-        Main.eval('fitness = indiv.fitness')
+        Main.ea_step = index[0]
+        Main.pop_index = index[1]
+        Main.eval('fitness = DataMod.get_indiv_fitness(data, ea_step, pop_index)')
         
         return Main.fitness
 

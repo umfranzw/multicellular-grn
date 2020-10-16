@@ -15,7 +15,7 @@ class IndivArea(QWidget):
         export_button.clicked.connect(self.export_gene_desc)
 
         data, max_cols = self.data_tools.get_gene_descs(self.pop_index)
-        self.table = QTableWidget(len(data) - 1, max_cols + 1) #first row is headers, length is max_cols + 1 (extra 1 is for the ea_step)
+        self.table = QTableWidget(len(data) - 1, max_cols + 2) #first row is headers, length is max_cols + 1 (extra 2 is for the ea_step and fitness)
         headers = data[0]
         #headers.extend([''] * (len(headers) - max_cols))
         self.table.setHorizontalHeaderLabels(headers)
@@ -30,7 +30,7 @@ class IndivArea(QWidget):
     def populate_table(self, data, max_cols):
         widths = list(map(len, data[0])) #start with widths of headers (note: length of data[0] (headers) is max_cols + 1)
         for i in range(1, len(data)): #start at 1 to skip over header row
-            for j in range(max_cols + 1):
+            for j in range(max_cols + 2):
                 if j < len(data[i]):
                     item = QTableWidgetItem(data[i][j])
                     self.table.setItem(i - 1, j, item)
@@ -40,7 +40,7 @@ class IndivArea(QWidget):
 
                 widths[j] = max(widths[j], len(item.text()))
 
-        for col in range(max_cols + 1):
+        for col in range(max_cols + 2):
             self.table.setColumnWidth(col, widths[col] * 7)
         
     @Slot()
