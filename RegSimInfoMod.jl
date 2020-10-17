@@ -20,8 +20,11 @@ function reset(info::RegSimInfo)
     info.alter_sym_prob_count = 0
 end
 
+divided(info::RegSimInfo) = info.division_count > 0
+altered_sym_probs(info::RegSimInfo) = info.alter_sym_prob_count > 0
 get_bind_coverage(info::RegSimInfo) = get_coverage(info.bind_count)
 get_prod_coverage(info::RegSimInfo) = get_coverage(info.produce_count)
 get_coverage(count::Array{Int64, 1}) = sum(count .> 0) / length(count)
+
 
 end

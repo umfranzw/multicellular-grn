@@ -43,24 +43,94 @@ function eval_final(indiv::Individual, ea_step::Int64)
     # fitness += accuracy_fitness * incr_weight
 
     # indiv.fitness = fitness
-
-    #bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
-    #prod_coverage = RegSimInfoMod.get_prod_coverage(indiv.reg_sim_info)
-    #indiv.fitness = bind_coverage
     
-    indiv.fitness = get_accuracy_fitness(indiv)
-end
+    contains_x_fitness = get_contains_x_fitness(indiv)
+    bind_coverage_fitness = get_bind_coverage_fitness(indiv)
+    prod_coverage_fitness = get_prod_coverage_fitness(indiv)
+    divided_fitness = get_divided_fitness(indiv)
+    acc_fitness = get_accuracy_fitness(indiv)
 
-function get_size_fitness(indiv::Individual, target_size::Int64)
-    size = CellTreeMod.size(indiv.cell_tree)
-    
-    1.0 - min(size / target_size, 1.0)
+    indiv.fitness =
+        0.15 * contains_x_fitness +
+        0.15 * bind_coverage_fitness +
+        0.15 * prod_coverage_fitness +
+        0.15 * divided_fitness +
+        0.4 * acc_fitness
 end
 
 function get_contains_x_fitness(indiv::Individual)
     contains_x = CellTreeMod.contains_sym(indiv.cell_tree.root, :x)
 
     Float64(!contains_x)
+end
+
+function get_bind_coverage_fitness(indiv::Individual)
+    bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
+    
+    1.0 - bind_coverage
+end
+
+function get_prod_coverage_fitness(indiv::Individual)
+    prod_coverage = RegSimInfoMod.get_prod_coverage(indiv.reg_sim_info)
+    
+    1.0 - prod_coverage
+end
+
+function get_divided_fitness(indiv::Individual)
+    Float64(!RegSimInfoMod.divided(indiv.reg_sim_info))
+end
+
+function get_accuracy_fitness(indiv::Individual)
+    expr_str = "f(x) = "
+    expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
+
+    #f(x) = x + 1
+    test_data = [(1, 2), (4, 5), (8, 9)]
+
+    #f(x) = x * 2 + 1
+    #test_data = [(1, 3), (2, 5), (3, 7)]
+    
+    fitness = 0
+    num_data_tests = length(test_data)
+    num_extra_tests = 0
+    total_tests = num_data_tests + num_extra_tests
+    chunk = 1 / total_tests
+    #num_exceptions = 0
+
+    #input / output tests
+    for (input, output) in test_data
+        try
+            test_str = "$(expr_str); f($(input))"
+            test_expr = Meta.parse(test_str)
+            result = Meta.eval(test_expr)
+
+            if result != chunk
+                error = abs(result - output)
+                #Notes:
+                # 1 / (1 + error) shrinks as error grows (when error is 0, result is 1. When error > 0, result is < 1, range is [0, 1])
+                # 1 - 1 / (1 + error) grows as error grows, range is [0, 1]
+                # (1 - 1 / (1 + error) * chunk grows as error grows, range is [0, chunk]
+                fitness += (1 - 1 / (1 + error)) * chunk
+            end
+            
+        catch
+            #num_exceptions += 1
+            #consider an exception to be very bad - penalize to the max extent (set error = 1)
+            error = 1
+            fitness += (1 - 1 / (1 + error)) * chunk
+            continue
+        end
+    end
+
+    fitness
+end
+
+#------------
+
+function get_size_fitness(indiv::Individual, target_size::Int64)
+    size = CellTreeMod.size(indiv.cell_tree)
+    
+    1.0 - min(size / target_size, 1.0)
 end
 
 function get_non_term_fitness(indiv::Individual)
@@ -101,50 +171,6 @@ end
 
 function is_non_term(cell::Cell)
     cell.sym != nothing && cell.sym.type == SymMod.FcnCall
-end
-
-function get_accuracy_fitness(indiv::Individual)
-    expr_str = "f(x) = "
-    expr_str *= CellTreeMod.to_expr_str(indiv.cell_tree)
-
-    #f(x) = x + 1
-    test_data = [(1, 2), (4, 5), (8, 9)]
-
-    #f(x) = x * 2 + 1
-    #test_data = [(1, 3), (2, 5), (3, 7)]
-    
-    fitness = 1.0
-    num_data_tests = length(test_data)
-    num_extra_tests = 0
-    total_tests = num_data_tests + num_extra_tests
-    chunk = 1 / total_tests
-    num_exceptions = 0
-
-    #input / output tests
-    for (input, output) in test_data
-        try
-            test_str = "$(expr_str); f($(input))"
-            test_expr = Meta.parse(test_str)
-            result = Meta.eval(test_expr)
-
-            if result == output
-                fitness -= chunk
-            else
-                error = abs(result - output)
-                fitness -= (1 / (1 + error)) * chunk
-            end
-            
-        catch
-            num_exceptions += 1
-            continue
-        end
-    end
-
-    #other tests
-    #reward a lack of exceptions
-    fitness -= (1 / (1 + num_exceptions)) * chunk
-
-    fitness
 end
 
 end
