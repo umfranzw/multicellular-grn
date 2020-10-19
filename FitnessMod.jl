@@ -5,6 +5,7 @@ using CellTreeMod
 using CellMod
 using SymMod
 using RegSimInfoMod
+using FitnessInfoMod
 using Printf
 
 function eval_intermediate(indiv::Individual, reg_step::Int64)
@@ -38,24 +39,26 @@ function eval_final(indiv::Individual, ea_step::Int64)
     # stable_weight = 0.4
     
     # fitness = 0.0
-    # fitness += (size_fitness + non_term_fitness) * decr_weight / 2
+    # fitness += (size_fitness + non_term_fit\ness) * decr_weight / 2
     # fitness += (contains_x_fitness + prod_genes_fitness) * stable_weight / 2
     # fitness += accuracy_fitness * incr_weight
 
     # indiv.fitness = fitness
     
-    contains_x_fitness = get_contains_x_fitness(indiv)
-    bind_coverage_fitness = get_bind_coverage_fitness(indiv)
-    prod_coverage_fitness = get_prod_coverage_fitness(indiv)
-    divided_fitness = get_divided_fitness(indiv)
-    acc_fitness = get_accuracy_fitness(indiv)
+    indiv.fitness_info = FitnessInfo(
+        get_contains_x_fitness(indiv),
+        get_bind_coverage_fitness(indiv),
+        get_prod_coverage_fitness(indiv),
+        get_divided_fitness(indiv),
+        get_accuracy_fitness(indiv)
+    )
 
     indiv.fitness =
-        0.15 * contains_x_fitness +
-        0.15 * bind_coverage_fitness +
-        0.15 * prod_coverage_fitness +
-        0.15 * divided_fitness +
-        0.4 * acc_fitness
+        0.15 * indiv.fitness_info.contains_x +
+        0.15 * indiv.fitness_info.bind_coverage +
+        0.15 * indiv.fitness_info.prod_coverage +
+        0.15 * indiv.fitness_info.divided +
+        0.4 * indiv.fitness_info.accuracy
 end
 
 function get_contains_x_fitness(indiv::Individual)

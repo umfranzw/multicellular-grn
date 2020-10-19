@@ -374,14 +374,14 @@ function save_all_graphs_for_cell(data::Data, ea_step::Int64, pop_index::Int64, 
     end
 end
 
-function export_gene_descs(data::Data, indiv_index::Int64, filename::String)
-    rows, max_genes = get_gene_descs(data, indiv_index)
+function export_table(data::Data, filename::String, data_fcn::Function)
+    rows, max_cols = data_fcn()
 
     handle = open(filename, "w")
     for row in rows
-        row_genes = length(row) - 1
-        if row_genes < max_genes
-            append!(row, repeat([","], max_genes - row_genes))
+        row_cols = length(row) - 1
+        if row_cols < max_cols
+            append!(row, repeat([","], max_cols - row_cols))
         end
         write(handle, join(row, ","))
         write(handle, "\n")
@@ -390,27 +390,135 @@ function export_gene_descs(data::Data, indiv_index::Int64, filename::String)
     close(handle)
 end
 
-function get_gene_descs(data::Data, indiv_index::Int64)
+function export_gene_descs(data::Data, indiv_index::Int64, filename::String)
+    export_table(data, filename, () -> get_gene_descs(data, indiv_index))
+end
+
+function export_reg_sim_info(data::Data, indiv_index::Int64, filename::String)
+    export_table(data, filename, () -> get_reg_sim_info(data, indiv_index))
+end
+
+function export_fitness_info(data::Data, invid_index::Int64, filename::String)
+    export_table(
+        data,
+        filename,
+        function()
+            table = get_fitness_info(data, indiv_index)
+            cols = length(table[1]) #length of header row
+
+            (table, cols)
+        end
+    )
+end
+
+function get_fitness_info(data::Data, pop_index::Int64)
+    rows = Array{Array{String, 1}, 1}()
+    headers = Array{String, 1}([
+        "EA Step",
+        "Fitness",
+        "Contains X",
+        "Bind Coverage",
+        "Prod Coverage",
+        "Divided",
+        "Accuracy"
+    ])
+    push!(rows, headers)
+
+    for ea_step in 0:data.run.ea_steps
+        key = IndexKey((ea_step, pop_index, data.run.reg_steps + 1), TrackerMod.AfterBind)
+        cur_indiv = DataMod.get_indiv(data, key)
+        row = Array{String, 1}()
+        #ea_step
+        push!(row, string(ea_step))
+        #fitness
+        #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness))
+
+        #fitness_info
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.contains_x))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.bind_coverage))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.prod_coverage))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.divided))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.accuracy))
+
+        push!(rows, row)
+    end
+    
+    rows
+end
+
+function get_reg_sim_info(data::Data, pop_index::Int64)
+    #get reg_sim_info after the simulation has ended
     max_genes = -1
     rows = Array{Array{String, 1}, 1}()
     
     for ea_step in 0:data.run.ea_steps
-        key = IndexKey((ea_step, indiv_index, 1), TrackerMod.AfterBind)
+        key = IndexKey((ea_step, pop_index, data.run.reg_steps + 1), TrackerMod.AfterBind)
         cur_indiv = DataMod.get_indiv(data, key)
         max_genes = max(max_genes, length(cur_indiv.genes))
         row = Array{String, 1}()
+        #ea_step
         push!(row, string(ea_step))
-        push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][indiv_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
+        #fitness
+        #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness))
+
+        push!(row, string(cur_indiv.reg_sim_info.division_count))
+        push!(row, string(cur_indiv.reg_sim_info.alter_sym_prob_count))
+        
+        #reg_sim_info
         for gene_index in 1:length(cur_indiv.genes)
-            site_str = GeneMod.get_sites_str(cur_indiv.genes[gene_index])
-            push!(row, site_str)
+            push!(row, string(cur_indiv.reg_sim_info.bind_count[gene_index]))
+            push!(row, string(cur_indiv.reg_sim_info.produce_count[gene_index]))
         end
+
         push!(rows, row)
     end
 
     headers = Array{String, 1}()
-    push!(headers, "ea_step")
-    push!(headers, "fitness")
+    push!(headers, "EA Step")
+    push!(headers, "Fitness")
+    
+    push!(headers, "Division Count")
+    push!(headers, "Alter Sym Prob Count")
+    
+    for i in 1:max_genes
+        push!(headers, "Bind Count $(i)")
+        push!(headers, "Prod Count $(i)")
+    end
+    insert!(rows, 1, headers)
+
+    (rows, max_genes)
+end
+
+function get_gene_descs(data::Data, pop_index::Int64)
+    max_genes = -1
+    rows = Array{Array{String, 1}, 1}()
+    
+    for ea_step in 0:data.run.ea_steps
+        key = IndexKey((ea_step, pop_index, data.run.reg_steps + 1), TrackerMod.AfterBind)
+        cur_indiv = DataMod.get_indiv(data, key)
+        max_genes = max(max_genes, length(cur_indiv.genes))
+        row = Array{String, 1}()
+        #ea_step
+        push!(row, string(ea_step))
+        #fitness
+        #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness))
+
+        #gene descriptions
+        for gene_index in 1:length(cur_indiv.genes)
+            site_str = GeneMod.get_sites_str(cur_indiv.genes[gene_index])
+            push!(row, site_str)
+        end
+
+        push!(rows, row)
+    end
+
+    headers = Array{String, 1}()
+    push!(headers, "EA Step")
+    push!(headers, "Fitness")
+    
     for i in 1:max_genes
         push!(headers, "Gene $(i)")
     end

@@ -16,6 +16,7 @@ using MiscUtilsMod
 using SymProbsMod
 using Printf
 using RegSimInfoMod
+using FitnessInfoMod
 
 import Random
 import RandUtilsMod
@@ -36,6 +37,7 @@ mutable struct Individual
     #note: this is a value in [0.0, 1.0], where 0.0 is optimal
     fitness::Float64
     reg_sim_info::RegSimInfo #holds info about the *last* reg sim, if any
+    fitness_info::Union{FitnessInfo, Nothing}
 end
 
 function rand_init(run::Run, pop_index::UInt64)
@@ -52,7 +54,7 @@ function rand_init(run::Run, pop_index::UInt64)
     initial_proteins = make_initial_proteins(config, genes, root_cell)
     reg_sim_info = RegSimInfo(length(genes))
     
-    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info)
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing)
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv

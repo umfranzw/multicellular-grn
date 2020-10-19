@@ -53,8 +53,9 @@ class MainWindow(QMainWindow):
         self.toolbar.indexChanged.connect(lambda index: self.neighbour_area.update(index))
         self.toolbar.popIndexChanged.connect(self.indiv_area.update_pop_index)
         self.toolbar.showBestChanged.connect(self.show_best)
-        self.toolbar.showBestChanged.connect(lambda checked: self.table_area.refresh(self.toolbar.getIndex()))
-        self.toolbar.showBestChanged.connect(lambda checked: self.refresh_graphics_area(self.toolbar.getIndex()))
+        # self.toolbar.showBestChanged.connect(lambda checked: self.table_area.refresh(self.toolbar.getIndex()))
+        # self.toolbar.showBestChanged.connect(lambda checked: self.refresh_graphics_area(self.toolbar.getIndex()))
+        
         self.toolbar.eaStepChanged.connect(self.table_area.reset_colour_picker)
         self.table_area.checksChanged.connect(self.refresh_graphics_area)
         self.graphics_area.selectionChanged.connect(self.relay_selection_changed)
@@ -109,11 +110,14 @@ class MainWindow(QMainWindow):
         if is_checked:
             self.prev_index = self.toolbar.getIndex()
             best_index = self.data_tools.get_run_best_index()
-            self.toolbar.setIndex(best_index)
+            
             self.toolbar.disable_spin_buttons()
+            self.blockSignals(False)
+            self.toolbar.setIndex(best_index)
 
         else:
-            self.toolbar.enable_spin_buttons()
+            self.blockSignals(False)
             self.toolbar.setIndex(self.prev_index)
+            self.toolbar.enable_spin_buttons()
 
-        self.blockSignals(False)
+        #self.blockSignals(False)

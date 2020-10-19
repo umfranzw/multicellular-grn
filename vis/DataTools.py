@@ -195,11 +195,24 @@ class DataTools():
         
         return Main.best_index
 
+    def get_reg_sim_info(self, pop_index):
+        Main.pop_index = pop_index
+        Main.eval('table, max_cols = DataMod.get_reg_sim_info(data, pop_index)')
+
+        return Main.table, Main.max_cols
+    
     def get_gene_descs(self, pop_index):
         Main.pop_index = pop_index
         Main.eval('table, max_cols = DataMod.get_gene_descs(data, pop_index)')
 
         return Main.table, Main.max_cols
+
+    def get_fitness_info(self, pop_index):
+        Main.pop_index = pop_index
+        Main.eval('table = DataMod.get_fitness_info(data, pop_index)')
+        Main.eval('cols = length(table[1])') #length of header row
+
+        return Main.table, Main.cols
     
     def export_gene_descs(self, pop_index, filename):
         Main.filename = filename
