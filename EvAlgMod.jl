@@ -20,15 +20,17 @@ function ev_alg(run::Run)
 
     @info "Beginning algorithm"
 
-    @time begin
-        @info "EA step: 0"
+    val, el_time, total_bytes, gc_time, counters = @timed begin
+        step_output_buf = IOBuffer()
+        write_ea_step_title(step_output_buf, 0)
         RegSimMod.reg_sim(run, pop, 0)
-        TrackerMod.update_fitnesses(pop, 0)
+        TrackerMod.update_fitnesses(pop, 0, step_output_buf)
         foreach(IndividualMod.reset_cell_tree, pop)
+        @info String(take!(step_output_buf))
 
         ea_step = 1
         while !terminate(run) && ea_step <= run.ea_steps
-            @info @sprintf("EA step: %d", ea_step)
+            write_ea_step_title(step_output_buf, ea_step)
             
             #run the genetic operators
             pop = SelectionMod.select(selector, pop)
@@ -45,21 +47,40 @@ function ev_alg(run::Run)
             enforce_fitness_front(run, prev_pop, pop)
             
             #update fitnesses in the fitnesses array, as well as the best fitnesses
-            TrackerMod.update_fitnesses(pop, ea_step)
+            TrackerMod.update_fitnesses(pop, ea_step, step_output_buf)
             #print_trees(pop)
 
             #reset the individuals before the next iteration
             foreach(IndividualMod.reset_cell_tree, pop)
 
             ea_step += 1
+            
+            @info String(take!(step_output_buf))
         end
     end
+
+    write(step_output_buf, "\n------\n")
+    write(step_output_buf, "Stats:\n")
+    write(step_output_buf, "------\n")
+    total_alloc = total_bytes / 2^20 #in MiB
+    num_allocs = Base.gc_alloc_count(counters)
+    write(step_output_buf, @sprintf("Elapsed time: %0.2f sec (%0.2f sec gc time)\n", el_time, gc_time))
+    write(step_output_buf, @sprintf("Memory: %0.2f MiB (%d allocations)\n", total_alloc, num_allocs))
+    @info String(take!(step_output_buf))
 
     @info "Cleaning up"
     TrackerMod.save_run_best()
     TrackerMod.save_fitnesses()
     TrackerMod.destroy_tracker()
     @info "Done"
+end
+
+function write_ea_step_title(output_buf::IOBuffer, ea_step::Int64)
+    title = "EA step: $(ea_step)"
+    divider = repeat('-', length(title))
+    write(output_buf, "\n$(divider)\n")
+    write(output_buf, "$(title)\n")
+    write(output_buf, "$(divider)\n")
 end
 
 function enforce_fitness_front(run::Run, prev_pop::Array{Individual, 1}, pop::Array{Individual, 1})

@@ -9,6 +9,7 @@ using CheckpointMod
 using Printf
 using DataStructures
 using CompressionMod
+import Statistics
 
 @enum StateType::UInt8 IndivState RunState RunBestInfoState FitnessesState
 @enum StateTime::UInt8 AfterBind AfterProd
@@ -99,17 +100,15 @@ function destroy_tracker()
 end
 
 #note: this will always be called with in a single threaded context, so there's no need for locking
-function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64)
+function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64, output_buf::IOBuffer)
     global tracker
     
     rb_updated = false
     gb_updated = false
     fitnesses = Array{Float64, 1}()
-    sum = 0
     for pop_index in 1:length(pop)
         indiv = pop[pop_index]
         push!(fitnesses, indiv.fitness)
-        sum += indiv.fitness
         
         if BestInfoMod.update(tracker.gen_best, indiv, ea_step, pop_index, tracker.run.reg_steps + 1)
             gb_updated = true
@@ -120,17 +119,15 @@ function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64)
         end
     end
 
-    @info @sprintf("avg fitness: %0.2f", sum / length(pop))
+    mean = Statistics.mean(fitnesses)
+    std = Statistics.std(fitnesses, mean=mean)
+    write(output_buf, @sprintf("mean fitness: %0.5f\n", mean))
+    write(output_buf, @sprintf("std fitness: %0.5f\n", std))
     
     if rb_updated
-        @info join(
-            (
-                "run_best:",
-                @sprintf("fitness: %0.2f", tracker.run_best.indiv.fitness),
-                CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)
-            ),
-            "\n"
-        )
+        write(output_buf, "run_best updated:\n")
+        write(output_buf, @sprintf("\tfitness: %0.5f\n", tracker.run_best.indiv.fitness))
+        write(output_buf, @sprintf("\texpr: %s\n", CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)))
     end
     push!(tracker.fitnesses, fitnesses)
 end
