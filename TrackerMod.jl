@@ -79,6 +79,7 @@ end
 function destroy_tracker()
     global tracker
 
+    size = -1
     if tracker.run.log_level > RunMod.LogNone
         #copy each of the tracker.local_files into a single global file (location is given by tracker.path)
         #note: it's important that local_files[1] is written first, since it contains the compression_type and run, and they need to be at the top (DataMod expects it)
@@ -95,8 +96,12 @@ function destroy_tracker()
             rm(fname)
         end
         close(global_file)
+        file_info = stat(tracker.path)
+        size = file_info.size #in bytes
     end
     tracker = nothing
+
+    size
 end
 
 #note: this will always be called with in a single threaded context, so there's no need for locking

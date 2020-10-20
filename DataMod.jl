@@ -415,6 +415,7 @@ function get_fitness_info(data::Data, pop_index::Int64)
     rows = Array{Array{String, 1}, 1}()
     headers = Array{String, 1}([
         "EA Step",
+        "ID",
         "Fitness",
         "Contains X",
         "Bind Coverage",
@@ -430,6 +431,10 @@ function get_fitness_info(data::Data, pop_index::Int64)
         row = Array{String, 1}()
         #ea_step
         push!(row, string(ea_step))
+
+        #ID
+        push!(row, IndividualMod.get_id_str(cur_indiv))
+        
         #fitness
         #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
@@ -459,6 +464,10 @@ function get_reg_sim_info(data::Data, pop_index::Int64)
         row = Array{String, 1}()
         #ea_step
         push!(row, string(ea_step))
+
+        #ID
+        push!(row, IndividualMod.get_id_str(cur_indiv))
+        
         #fitness
         #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
@@ -477,6 +486,7 @@ function get_reg_sim_info(data::Data, pop_index::Int64)
 
     headers = Array{String, 1}()
     push!(headers, "EA Step")
+    push!(headers, "ID")
     push!(headers, "Fitness")
     
     push!(headers, "Division Count")
@@ -502,6 +512,10 @@ function get_gene_descs(data::Data, pop_index::Int64)
         row = Array{String, 1}()
         #ea_step
         push!(row, string(ea_step))
+
+        #ID
+        push!(row, IndividualMod.get_id_str(cur_indiv))
+        
         #fitness
         #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
@@ -517,6 +531,7 @@ function get_gene_descs(data::Data, pop_index::Int64)
 
     headers = Array{String, 1}()
     push!(headers, "EA Step")
+    push!(headers, "ID")
     push!(headers, "Fitness")
     
     for i in 1:max_genes

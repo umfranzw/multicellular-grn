@@ -16,6 +16,8 @@ class GraphicsArea(QWidget):
         self.view = CustomGraphicsView(tree_tools, initial_index, state_time)
         save_button = QPushButton('Save')
         save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
+        self.id_label = QLabel('ID: ')
+        self.id_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.fitness_label = QLabel('Fitness: ')
         self.fitness_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.code_label = QLabel('Code: ')
@@ -45,8 +47,10 @@ class GraphicsArea(QWidget):
         self.view.disconnect_signals()
 
     def update_info_labels(self, index):
+        id_str = self.data_tools.get_indiv_id_str(index)
         fitness = self.data_tools.get_indiv_fitness(index)
         code = self.data_tools.get_indiv_code(index)
+        self.id_label.setText('ID: {}'.format(id_str))
         self.fitness_label.setText('Fitness: {:.2f}'.format(fitness))
         self.code_label.setText('Code: {}'.format(code))
 

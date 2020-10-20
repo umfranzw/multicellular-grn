@@ -38,10 +38,12 @@ mutable struct Individual
     fitness::Float64
     reg_sim_info::RegSimInfo #holds info about the *last* reg sim, if any
     fitness_info::Union{FitnessInfo, Nothing}
+    id::Union{UInt64, Nothing} #for unique identification in the vis UI
+    last_mod::Int64 #ea_step of last *genetic* (not regulatory) modification
 end
 
-function rand_init(run::Run, pop_index::UInt64)
-    config = Config(run, pop_index)
+function rand_init(run::Run, seed_offset::UInt64)
+    config = Config(run, seed_offset)
 
     #genes, initial_protein_props = make_initial_genes(config)
     #genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)
@@ -54,10 +56,15 @@ function rand_init(run::Run, pop_index::UInt64)
     initial_proteins = make_initial_proteins(config, genes, root_cell)
     reg_sim_info = RegSimInfo(length(genes))
     
-    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing)
+    indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
+    indiv.id = hash(indiv)
     CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
     indiv
+end
+
+function get_id_str(indiv::Individual)
+    "$(indiv.id):$(indiv.last_mod)"
 end
 
 function reset_reg_sim_info(indiv::Individual)

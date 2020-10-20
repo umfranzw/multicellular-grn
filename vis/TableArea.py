@@ -90,6 +90,11 @@ class TableArea(QWidget):
     @Slot()
     def refresh(self, index):
         state_time = self.get_state_time()
+
+        #the final (extra) reg step is only stored for state_time AfterBind (there is no binding or prod that goes on here, so there's no difference between the two)
+        if state_time == self.data_tools.state_time_dict['AfterProd'] and index[2] == self.data_tools.get_run().reg_steps + 1:
+            state_time = self.data_tools.state_time_dict['AfterBind']
+            
         data = self.data_tools.get_protein_info_for_indiv(index, state_time)
         self.model.refresh(data)
         self.cur_index = index

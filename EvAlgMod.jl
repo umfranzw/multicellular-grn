@@ -14,7 +14,6 @@ function ev_alg(run::Run)
     @info "Setting up"
     data_filename = join((RunMod.DATA_PATH, run.data_output_file), "/")
     pop = create_pop(run)
-    selector = Selector(run)
     TrackerMod.create_tracker(run, data_filename)
     #TrackerMod.save_ea_state(pop, 0, true)
 
@@ -33,7 +32,7 @@ function ev_alg(run::Run)
             write_ea_step_title(step_output_buf, ea_step)
             
             #run the genetic operators
-            pop = SelectionMod.select(selector, pop)
+            pop = SelectionMod.select(run, pop)
             prev_pop = deepcopy(pop)
             MutateMod.mutate(run, pop, ea_step)
 
@@ -59,19 +58,23 @@ function ev_alg(run::Run)
         end
     end
 
+    @info "Logging final data"
+    TrackerMod.save_run_best()
+    TrackerMod.save_fitnesses()
+    data_file_size = TrackerMod.destroy_tracker() / 2^20 #in MiB
+    total_alloc = total_bytes / 2^20 #in MiB
+    num_allocs = Base.gc_alloc_count(counters)
+    
     write(step_output_buf, "\n------\n")
     write(step_output_buf, "Stats:\n")
     write(step_output_buf, "------\n")
-    total_alloc = total_bytes / 2^20 #in MiB
-    num_allocs = Base.gc_alloc_count(counters)
     write(step_output_buf, @sprintf("Elapsed time: %0.2f sec (%0.2f sec gc time)\n", el_time, gc_time))
     write(step_output_buf, @sprintf("Memory: %0.2f MiB (%d allocations)\n", total_alloc, num_allocs))
+    if run.log_level > RunMod.LogNone
+        write(step_output_buf, @sprintf("Data file size: %0.2f MiB", data_file_size))
+    end
+    
     @info String(take!(step_output_buf))
-
-    @info "Cleaning up"
-    TrackerMod.save_run_best()
-    TrackerMod.save_fitnesses()
-    TrackerMod.destroy_tracker()
     @info "Done"
 end
 

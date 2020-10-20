@@ -20,6 +20,7 @@ class DataTools():
         Main.using('ProteinPropsMod')
         Main.using('CellTreeMod')
         Main.using('TrackerMod')
+        Main.using('IndividualMod')
         Main.eval('data = Data("{}")'.format(filename))
 
         Main.eval('state_time_instances = instances(TrackerMod.StateTime)')
@@ -175,6 +176,13 @@ class DataTools():
         Main.eval('fitness = DataMod.get_indiv_fitness(data, ea_step, pop_index)')
         
         return Main.fitness
+
+    def get_indiv_id_str(self, index):
+        indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])
+        Main.indiv = indiv
+        Main.eval('id_str = IndividualMod.get_id_str(indiv)')
+
+        return Main.id_str
 
     def get_indiv_code(self, index):
         indiv = self.get_indiv(index, self.state_time_dict['AfterBind'])

@@ -29,6 +29,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     # score_total = sum(indiv.reg_sim_info.produce_count)
     # copy_locations = Array{Int64, 1}()
     gene_index = 1
+    mutated = false
     while gene_index <= length(indiv.genes)
         # if ea_step < indiv.config.run.gene_dup_gen_limit && indiv.gene_scores[gene_index] > indiv.config.run.gene_score_threshold && length(indiv.genes) < indiv.config.run.max_genes
         #     mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
@@ -55,7 +56,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
         #     end
         # else
         #if indiv.gene_scores[gene_index] == 0
-            point_mutate_gene(indiv, gene_index, ea_step)
+            mutated = mutated || point_mutate_gene(indiv, gene_index, ea_step)
         #end
         # end
         
@@ -67,6 +68,10 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
 
     #update genome_indices
     # foreach(i -> indiv.genes[i].genome_index = i, 1:length(indiv.genes))
+
+    if mutated
+        indiv.last_mod = ea_step
+    end
 end
 
 function mutate_location(config::Config, genes::Array{Gene, 1})
@@ -96,53 +101,68 @@ function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
 end
 
 function point_mutate_gene(indiv::Individual, gene_index::Int64, ea_step::Int64)
+    mutated = false
     gene = indiv.genes[gene_index]
     tree_size = CellTreeMod.size(indiv.cell_tree)
     #bind sites:
     for site in gene.bind_sites
-        mutate_bind_site(gene.config, site, ea_step, tree_size)
+        mutated = mutated || mutate_bind_site(gene.config, site, ea_step, tree_size)
     end
 
     #prod sites:
     for site in gene.prod_sites
-        mutate_prod_site(gene.config, site, ea_step)
+        mutated = mutated || mutate_prod_site(gene.config, site, ea_step)
     end
+
+    mutated
 end
 
 function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
+    mutated = false
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         #valid_types = filter(t -> t != site.type, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, instances(ProteinPropsMod.ProteinType))
+        mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
+        mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         #valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
         site.action = Random.rand(config.rng, instances(ProteinPropsMod.ProteinAction))
+        mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         site.arg = RandUtilsMod.rand_int(config, 0, 127)
+        mutated = true
     end
 
     #mutate site.threshold and site.consum_rate
     #mutate_floats(config, site, ea_step)
+
+    mutated
 end
 
 function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64, tree_size::Int64)
+    mutated = false
     #note: all bind sites must not have type Application
     #note: if tree size is 1, there's no point to having neighbour or diffusion bind sites -
     #so the only type left is internal, and no type mutation is possible
     if RandUtilsMod.rand_float(config) < config.run.mut_prob && tree_size > 1
         valid_types = filter(t -> t != ProteinPropsMod.Application, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, valid_types)
+        mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.mut_prob
         site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
+        mutated = true
     end
 
     #mutate site.threshold and site.consum_rate
     #mutate_floats(config, site, ea_step)
+
+    mutated
 end
 
 function mutate_floats(config::Config, site::BindSite, ea_step::Int64)
