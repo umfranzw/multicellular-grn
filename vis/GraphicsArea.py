@@ -27,6 +27,7 @@ class GraphicsArea(QWidget):
         self.view.selectionChanged.connect(self.handle_selectionChanged)
 
         layout.addWidget(self.view)
+        layout.addWidget(self.id_label)
         layout.addWidget(self.fitness_label)
         layout.addWidget(self.code_label)
         layout.addWidget(save_button)

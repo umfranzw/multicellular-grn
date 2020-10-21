@@ -27,7 +27,7 @@ struct Run
     max_genes::Int64
     tourn_size::Int64
     fitness_term_threshold::Float64
-    gene_score_threshold::Int64
+    gene_dup_count_threshold::Int64
     gene_dup_gen_limit::Int64
     
     reg_steps::Int64

@@ -5,8 +5,8 @@
 pop_size = 10
 ea_steps = 10
 mut_prob = 0.1
-num_initial_genes = 3
-max_genes = 3
+num_initial_genes = 1
+max_genes = 10
 
 tourn_size = 3
 
@@ -15,8 +15,7 @@ fitness_term_threshold = 0.0
 
 #if the gene score (# of times the gene produces)
 #is above this threshold, the gene will be duplicated when mutation happens
-gene_score_threshold = 3
-
+gene_dup_count_threshold = 3
 gene_dup_gen_limit = 10
 
 #########################
