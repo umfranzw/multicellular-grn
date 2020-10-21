@@ -421,6 +421,8 @@ function get_fitness_info(data::Data, pop_index::Int64)
         "Bind Coverage",
         "Prod Coverage",
         "Divided",
+        "Altered Sym Prob",
+        "Genome Length",
         "Accuracy"
     ])
     push!(rows, headers)
@@ -444,6 +446,8 @@ function get_fitness_info(data::Data, pop_index::Int64)
         push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.bind_coverage))
         push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.prod_coverage))
         push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.divided))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.altered_sym_prob))
+        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.genome_len))
         push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.accuracy))
 
         push!(rows, row)

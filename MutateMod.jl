@@ -38,7 +38,6 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
 
             mut_copy = dup_gene(indiv.genes[gene_index])
             if mut_copy != nothing
-                println("duplicating gene")
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
                 insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config.run, mut_copy)) #insert a new GeneState into the root cell
                 RegSimInfoMod.insert_new_counts(indiv.reg_sim_info, gene_index + 1, 0) #insert new counts for the gene

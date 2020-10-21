@@ -7,6 +7,8 @@ mutable struct FitnessInfo
     bind_coverage::Float64
     prod_coverage::Float64
     divided::Float64
+    altered_sym_prob::Float64
+    genome_len::Float64
     accuracy::Float64
 end
 

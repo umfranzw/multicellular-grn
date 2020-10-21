@@ -50,15 +50,27 @@ function eval_final(indiv::Individual, ea_step::Int64)
         get_bind_coverage_fitness(indiv),
         get_prod_coverage_fitness(indiv),
         get_divided_fitness(indiv),
+        get_altered_sym_prob_fitness(indiv),
+        get_genome_len_fitness(indiv),
         get_accuracy_fitness(indiv)
     )
 
     indiv.fitness =
-        0.15 * indiv.fitness_info.contains_x +
-        0.15 * indiv.fitness_info.bind_coverage +
-        0.15 * indiv.fitness_info.prod_coverage +
-        0.15 * indiv.fitness_info.divided +
+        0.1 * indiv.fitness_info.contains_x +
+        0.1 * indiv.fitness_info.bind_coverage +
+        0.1 * indiv.fitness_info.prod_coverage +
+        0.1 * indiv.fitness_info.divided +
+        0.1 * indiv.fitness_info.altered_sym_prob +
+        0.1 * indiv.fitness_info.genome_len +
         0.4 * indiv.fitness_info.accuracy
+end
+
+function get_genome_len_fitness(indiv::Individual)
+    Float64(!(length(indiv.genes) > indiv.config.run.num_initial_genes))
+end
+
+function get_altered_sym_prob_fitness(indiv::Individual)
+    Float64(!RegSimInfoMod.altered_sym_probs(indiv.reg_sim_info))
 end
 
 function get_contains_x_fitness(indiv::Individual)

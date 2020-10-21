@@ -92,14 +92,9 @@ class CellArea(QWidget):
         layout.addWidget(button)
         
         scroll_area = QScrollArea()
-        inner_layout = QVBoxLayout()
+        scroll_area.setBackgroundRole(QPalette.Light)
         self.interaction_img = QLabel()
-        self.no_interaction_msg = QLabel("No Interaction")
-        self.no_interaction_msg.hide()
-        inner_layout.addWidget(self.no_interaction_msg)
-        inner_layout.addWidget(self.interaction_img)
-        scroll_area.setLayout(inner_layout)
-        #scroll_area.setWidget(self.interaction_img)
+        scroll_area.setWidget(self.interaction_img)
         layout.addWidget(scroll_area)
 
         save_button = QPushButton('Save')
@@ -333,14 +328,11 @@ class CellArea(QWidget):
             self.interaction_img.setPixmap(pixmap)
             self.interaction_img.resize(0, 0)
             self.interaction_img.hide()
-            self.no_interaction_msg.hide()
         else:
             pixmap_data = self.data_tools.get_interaction_graph(self.index, self.cell)
             if pixmap_data is None:
-                self.no_interaction_msg.show()
                 self.interaction_img.hide()
             else:
-                self.no_interaction_msg.hide()
                 pixmap = QPixmap(0, 0)
                 pixmap.loadFromData(pixmap_data, format='png')
                 size = pixmap.size()
