@@ -21,7 +21,7 @@ function reset(info::RegSimInfo)
 end
 
 function insert_new_counts(info::RegSimInfo, index::Int64, val::Int64=0)
-    insert(info.prod_count, index, val)
+    insert!(info.produce_count, index, val)
     insert!(info.bind_count, index, val)
 end
 
@@ -30,6 +30,5 @@ altered_sym_probs(info::RegSimInfo) = info.alter_sym_prob_count > 0
 get_bind_coverage(info::RegSimInfo) = get_coverage(info.bind_count)
 get_prod_coverage(info::RegSimInfo) = get_coverage(info.produce_count)
 get_coverage(count::Array{Int64, 1}) = sum(count .> 0) / length(count)
-
 
 end

@@ -2,9 +2,10 @@
 ######
 # GA #
 ######
-pop_size = 10
+pop_size = 15
 ea_steps = 10
-mut_prob = 0.1
+point_mut_prob = 0.1
+dup_mut_prob = 1.0
 num_initial_genes = 1
 max_genes = 10
 

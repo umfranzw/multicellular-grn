@@ -32,12 +32,13 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
     gene_index = 1
     mutated = false
     while gene_index <= length(indiv.genes)
-        if (ea_step < indiv.config.run.gene_dup_gen_limit &&
-            indiv.reg_sim_info.produce_count[gene_index] > indiv.config.run.gene_dup_count_threshold &&
+        if (ea_step <= indiv.config.run.gene_dup_gen_limit &&
+            indiv.reg_sim_info.produce_count[gene_index] >= indiv.config.run.gene_dup_count_threshold &&
             length(indiv.genes) < indiv.config.run.max_genes)
-            
-            mut_copy = dup_and_mutate_gene(indiv.genes[gene_index], ea_step)
+
+            mut_copy = dup_gene(indiv.genes[gene_index])
             if mut_copy != nothing
+                println("duplicating gene")
                 insert!(indiv.genes, gene_index + 1, mut_copy) #insert mutated copy after the src gene
                 insert!(indiv.cell_tree.root.gene_states, gene_index + 1, GeneState(indiv.config.run, mut_copy)) #insert a new GeneState into the root cell
                 RegSimInfoMod.insert_new_counts(indiv.reg_sim_info, gene_index + 1, 0) #insert new counts for the gene
@@ -55,9 +56,12 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
                         insert!(active_protein.concs, gene_index + 1, conc)
                     end
                 end
-                
+
+                #point mutate the new copy
+                point_mutate_gene(indiv, gene_index + 1, ea_step)
+                mutated = true #since we duplicated the genome, always consider a mutation to have happened here (regardless of whether or not the copy was mutated)
+
                 gene_index += 1 #skip over the copy
-                mutated = true
             end
         else
             if indiv.reg_sim_info.produce_count[gene_index] == 0
@@ -80,7 +84,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
 end
 
 function mutate_location(config::Config, genes::Array{Gene, 1})
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         src = RandUtilsMod.rand_int(config, 1, length(genes))
         delta = Random.rand(config.rng, [1, -1])
         dest = src + delta
@@ -95,11 +99,10 @@ function mutate_location(config::Config, genes::Array{Gene, 1})
     end
 end
 
-function dup_and_mutate_gene(gene::Gene, ea_step::Int64)
+function dup_gene(gene::Gene)
     copy = nothing
-    if RandUtilsMod.rand_float(gene.config) < gene.config.run.mut_prob
+    if RandUtilsMod.rand_float(gene.config) < gene.config.run.dup_mut_prob
         copy = deepcopy(gene)
-        point_mutate_gene(copy, ea_step)
     end
 
     copy
@@ -124,21 +127,21 @@ end
 
 function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
     mutated = false
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         #valid_types = filter(t -> t != site.type, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, instances(ProteinPropsMod.ProteinType))
         mutated = true
     end
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
         mutated = true
     end
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         #valid_actions = filter(t -> t != site.action, [instances(ProteinPropsMod.ProteinAction)...])
         site.action = Random.rand(config.rng, instances(ProteinPropsMod.ProteinAction))
         mutated = true
     end
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         site.arg = RandUtilsMod.rand_int(config, 0, 127)
         mutated = true
     end
@@ -154,12 +157,12 @@ function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64, tree_s
     #note: all bind sites must not have type Application
     #note: if tree size is 1, there's no point to having neighbour or diffusion bind sites -
     #so the only type left is internal, and no type mutation is possible
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob && tree_size > 1
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob && tree_size > 1
         valid_types = filter(t -> t != ProteinPropsMod.Application, [instances(ProteinPropsMod.ProteinType)...])
         site.type = Random.rand(config.rng, valid_types)
         mutated = true
     end
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
         mutated = true
     end
@@ -174,7 +177,7 @@ function mutate_floats(config::Config, site::BindSite, ea_step::Int64)
     time_factor = 1.0 - ea_step / config.run.ea_steps
     
     for fieldname in (:threshold, :consum_rate)
-        if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
             range = time_factor
             delta = RandUtilsMod.rand_float(config) * range - range / 2 #value in [-range / 2, +range / 2]
             cur_val = getfield(site, fieldname)
@@ -201,7 +204,7 @@ function mutate_props(
         (ProteinPropsMod.ProteinAction, action, :action)
     )
     while i <= length(enum_info)
-        if RandUtilsMod.rand_float(config) < config.run.mut_prob
+        if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
             enum, options, fieldname = enum_info[i]
             if options == nothing
                 #make sure we don't select the current value
@@ -218,7 +221,7 @@ function mutate_props(
     end
 
     #mutate props.arg
-    if RandUtilsMod.rand_float(config) < config.run.mut_prob
+    if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
         if arg == nothing
             time_factor = 1.0 - ea_step / config.run.ea_steps
             range = Int64(floor(time_factor * config.run.max_protein_arg))

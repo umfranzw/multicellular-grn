@@ -22,7 +22,8 @@ end
 struct Run
     pop_size::Int64
     ea_steps::Int64
-    mut_prob::Float64
+    point_mut_prob::Float64
+    dup_mut_prob::Float64
     num_initial_genes::Int64
     max_genes::Int64
     tourn_size::Int64
