@@ -320,10 +320,9 @@ function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell:
 
     #choose genes that the initial proteins will be designed to bind to
     #note: these will only bind to bind sites (no inhibitory proteins here)
-    indices = Random.shuffle(config.rng, 1:num_concs)
     for i in 1:config.run.num_initial_proteins
-        index = indices[i]
-        gene = genes[index]
+        gene_index = Random.rand(config.rng, 1:length(genes))
+        gene = genes[gene_index]
         bind_site_index = RandUtilsMod.rand_int(config, 1, length(gene.bind_sites))
         bind_site = gene.bind_sites[bind_site_index]
         props = ProteinPropsMod.rand_init(
