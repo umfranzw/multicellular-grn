@@ -147,6 +147,8 @@ function system_level(indiv::Individual, ea_step::Int64)
         if RandUtilsMod.rand_float(indiv.config) < indiv.config.run.sys_level_mut_prob
             println("System level mutation at ea_step: $(ea_step)")
             temp_to_self_sustaining(indiv, index)
+
+            update_genome_indices(indiv, index + 3)
         end
     else
         for i in 1:length(indiv.genes)
@@ -178,6 +180,20 @@ function insert_genes(indiv::Individual, new_genes::Array{Gene, 1}, start::Int64
                 insert!(active_protein.concs, gene_index, conc)
             end
         end
+    end
+end
+
+function replace_genes(indiv::Individual, new_genes::Array{Gene, 1}, start::Int64)
+    for i in 1:length(new_genes)
+        gene_index = start + i - 1
+        new_gene = new_genes[i]
+
+        #overwrite the existing gene in the indiv's array
+        indiv.genes[gene_index] = new_gene
+        #the gene state in the root cell contains a reference to the old gene. Update it.
+        indiv.cell_tree.root.gene_states[gene_index].gene = new_gene
+        #clear any existing bindings
+        GeneStateMod.clear_all_bindings(indiv.cell_tree.root.gene_states[gene_index])
     end
 end
 
@@ -371,7 +387,7 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
                       b_arg,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
-            )
+                      )
         ])
     )
 
@@ -385,7 +401,7 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
                       b_tag,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
-            )
+                      )
         ]),
         Array{ProdSite, 1}([
             ProdSite( #produces 'a' protein
@@ -395,7 +411,7 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
                       a_arg,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
-            )
+                      )
         ])
     )
 
@@ -409,17 +425,23 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
                       b_tag,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
-            )
+                      )
         ]),
         src_gene.prod_sites
     )
 
     #left replaces src_gene at index
-    indiv.genes[index] = left_gene
+    replace_genes(indiv, [left_gene], index)
     #new gene gets inserted next
-    insert!(indiv.genes, index + 1, new_gene)
+    insert_genes(indiv, [new_gene], index + 1)
     #followed by right
-    insert!(indiv.genes, index + 2, right_gene)
+    insert_genes(indiv, [right_gene], index + 2)
+
+    println("src: $(GeneMod.get_sites_str(src_gene))")
+    println("left: $(GeneMod.get_sites_str(left_gene))")
+    println("mid: $(GeneMod.get_sites_str(new_gene))")
+    println("right: $(GeneMod.get_sites_str(right_gene))")
+    println()
 end
 
 end

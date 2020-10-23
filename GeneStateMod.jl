@@ -88,6 +88,14 @@ function run_binding_consum(gs::GeneState)
     end
 end
 
+function clear_all_bindings(gs::GeneState)
+    for site_type in keys(gs.bindings)
+        for i in 1:length(gs.bindings[site_type])
+            gs.bindings[site_type][i] = nothing
+        end
+    end
+end
+
 function bind(gs::GeneState, protein::Protein, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64)
     gs.bindings[site_type][site_index] = protein
 end
