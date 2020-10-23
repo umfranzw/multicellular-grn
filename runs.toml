@@ -2,10 +2,11 @@
 ######
 # GA #
 ######
-pop_size = 15
-ea_steps = 10
+pop_size = 10
+ea_steps = 1
 point_mut_prob = 0.1
 dup_mut_prob = 0.5
+sys_level_mut_prob = 0.5
 num_initial_genes = 1
 max_genes = 10
 
@@ -17,7 +18,9 @@ fitness_term_threshold = 0.0
 #if the gene score (# of times the gene produces)
 #is above this threshold, the gene will be duplicated when mutation happens
 gene_dup_count_threshold = 3
+gene_sys_level_threshold = 3
 gene_dup_gen_limit = 10
+gene_sys_level_gen_limit = 10
 
 #########################
 # Regulatory Simulation #
@@ -91,7 +94,7 @@ user_rng_seed = 2504327168
 #1 = fitnesses
 #2 = fitnesses & indivs
 log_level = 2
-step_range = "0:1:10"
+step_range = "0:1:1"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = true

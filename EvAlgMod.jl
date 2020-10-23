@@ -8,6 +8,7 @@ using RegSimMod
 using TrackerMod
 using BestInfoMod
 using Printf
+import MiscUtilsMod
 import Random
 
 function ev_alg(run::Run)
@@ -61,14 +62,14 @@ function ev_alg(run::Run)
     @info "Logging final data"
     TrackerMod.save_run_best()
     TrackerMod.save_fitnesses()
-    data_file_size = TrackerMod.destroy_tracker() / 2^20 #in MiB
-    total_alloc = total_bytes / 2^20 #in MiB
+    data_file_size = TrackerMod.destroy_tracker() / 2^30 #in MiB
+    total_alloc = total_bytes / 2^30 #in MiB
     num_allocs = Base.gc_alloc_count(counters)
     
     write(step_output_buf, "\n------\n")
     write(step_output_buf, "Stats:\n")
     write(step_output_buf, "------\n")
-    write(step_output_buf, @sprintf("Elapsed time: %0.2f sec (%0.2f sec gc time)\n", el_time, gc_time))
+    write(step_output_buf, @sprintf("Elapsed time: %s (%s gc time)\n", MiscUtilsMod.get_time_str(el_time), MiscUtilsMod.get_time_str(gc_time)))
     write(step_output_buf, @sprintf("Memory: %0.2f MiB (%d allocations)\n", total_alloc, num_allocs))
     if run.log_level > RunMod.LogNone
         write(step_output_buf, @sprintf("Data file size: %0.2f MiB", data_file_size))

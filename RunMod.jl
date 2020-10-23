@@ -24,12 +24,15 @@ struct Run
     ea_steps::Int64
     point_mut_prob::Float64
     dup_mut_prob::Float64
+    sys_level_mut_prob::Float64
     num_initial_genes::Int64
     max_genes::Int64
     tourn_size::Int64
     fitness_term_threshold::Float64
     gene_dup_count_threshold::Int64
+    gene_sys_level_threshold::Int64
     gene_dup_gen_limit::Int64
+    gene_sys_level_gen_limit::Int64
     
     reg_steps::Int64
     protein_deletion_threshold::Float64
