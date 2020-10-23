@@ -145,7 +145,7 @@ function system_level(indiv::Individual, ea_step::Int64)
         length(indiv.genes) <= indiv.config.run.max_genes - 2)
 
         if RandUtilsMod.rand_float(indiv.config) < indiv.config.run.sys_level_mut_prob
-            #println("System level mutation at ea_step: $(ea_step)")
+            println("System level mutation at ea_step: $(ea_step)")
             temp_to_self_sustaining(indiv, index)
         end
     else
@@ -345,9 +345,9 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
     low_exception = min(src_c_prod_site.tag, src_a_bind_site.tag)
     high_exception = max(src_c_prod_site.tag, src_a_bind_site.tag)
     b_tags = vcat(
-        collect(1:low_exception - 1),
-        collect(low_exception + 1, high_exception - 1),
-        collect(high_exception + 1, 2^8-1)
+        collect(1 : low_exception - 1),
+        collect(low_exception + 1 : high_exception - 1),
+        collect(high_exception + 1 : 2^8-1)
     )
     b_type = ProteinPropsMod.Internal
     b_tag = Random.rand(src_gene.config.rng, b_tags)
@@ -356,6 +356,7 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
 
     #note: this does not need to be unique
     a_arg = Random.rand(Int8)
+    a_action = RandUtilsMod.rand_enum_val(src_gene.config, ProteinPropsMod.ProteinAction)
     
     new_gene = Gene(
         src_gene.config,
@@ -390,7 +391,7 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
             ProdSite( #produces 'a' protein
                       src_a_bind_site.type,
                       src_a_bind_site.tag,
-                      src_a_bind_site.action,
+                      a_action,
                       a_arg,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
@@ -414,11 +415,11 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
     )
 
     #left replaces src_gene at index
-    indiv.genes[index] = left
+    indiv.genes[index] = left_gene
     #new gene gets inserted next
     insert!(indiv.genes, index + 1, new_gene)
     #followed by right
-    insert!(indiv.genes, index + 2, right)
+    insert!(indiv.genes, index + 2, right_gene)
 end
 
 end

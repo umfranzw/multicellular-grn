@@ -62,8 +62,8 @@ function ev_alg(run::Run)
     @info "Logging final data"
     TrackerMod.save_run_best()
     TrackerMod.save_fitnesses()
-    data_file_size = TrackerMod.destroy_tracker() / 2^30 #in MiB
-    total_alloc = total_bytes / 2^30 #in MiB
+    data_file_size = TrackerMod.destroy_tracker() / 2^20 #in MiB
+    total_alloc = total_bytes / 2^20 #in MiB
     num_allocs = Base.gc_alloc_count(counters)
     
     write(step_output_buf, "\n------\n")
