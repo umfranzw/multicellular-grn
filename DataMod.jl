@@ -18,6 +18,7 @@ using Printf
 using TrackerMod
 using Formatting
 using BestInfoMod
+using FitnessInfoMod
 import CheckpointMod
 import Serialization
 import CompressionMod
@@ -419,7 +420,7 @@ function get_fitness_info(data::Data, pop_index::Int64)
         "Fitness"
     ])
     for name in fieldnames(FitnessInfo)
-        push!(headers, name)
+        push!(headers, string(name))
     end
     push!(rows, headers)
 
@@ -439,7 +440,7 @@ function get_fitness_info(data::Data, pop_index::Int64)
 
         #fitness_info
         for name in fieldnames(FitnessInfo)
-            push!(row, @sprintf("%0.2f", getproperty(name)))
+            push!(row, @sprintf("%0.2f", getproperty(cur_indiv.fitness_info, name)))
         end
 
         push!(rows, row)
