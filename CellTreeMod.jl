@@ -46,20 +46,20 @@ function build_info(cell::Cell, cell_to_level::Dict{Cell, Int64}, level_to_cell:
     end
 end
 
-function contains_sym(tree::CellTree, sym::Symbol)
+function contains_syms(tree::CellTree, syms::Array{Sym, 1})
     result = false
     if tree.root != nothing
-        result = contains_sym(tree.root, sym)
+        result = contains_syms(tree.root, syms)
     end
 
     result
 end
 
-function contains_sym(cell::Cell, sym::Symbol)
-    result = cell.sym != nothing && cell.sym.val == sym
+function contains_syms(cell::Cell, syms::Array{Sym, 1})
+    result = cell.sym != nothing && cell.sym in syms
     i = 1
     while !result && i <= length(cell.children)
-        result = contains_sym(cell.children[i], sym)
+        result = contains_syms(cell.children[i], syms)
         i += 1
     end
 

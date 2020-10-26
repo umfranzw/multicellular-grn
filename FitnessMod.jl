@@ -7,6 +7,7 @@ using SymMod
 using RegSimInfoMod
 using FitnessInfoMod
 using Printf
+import SettingsMod
 
 function eval_intermediate(indiv::Individual, reg_step::Int64)
     #ideas:
@@ -47,6 +48,7 @@ function eval_final(indiv::Individual, ea_step::Int64)
     
     indiv.fitness_info = FitnessInfo(
         get_contains_x_fitness(indiv),
+        get_contains_fncall_fitness(indiv),
         get_bind_coverage_fitness(indiv),
         get_prod_coverage_fitness(indiv),
         get_divided_fitness(indiv),
@@ -57,12 +59,13 @@ function eval_final(indiv::Individual, ea_step::Int64)
 
     indiv.fitness =
         0.1 * indiv.fitness_info.contains_x +
+        0.1 * indiv.fitness_info.contains_fncall +
         0.1 * indiv.fitness_info.bind_coverage +
         0.1 * indiv.fitness_info.prod_coverage +
-        0.1 * indiv.fitness_info.divided +
-        0.1 * indiv.fitness_info.altered_sym_prob +
-        0.1 * indiv.fitness_info.genome_len +
-        0.4 * indiv.fitness_info.accuracy
+        0.2 * indiv.fitness_info.divided +
+        0.2 * indiv.fitness_info.altered_sym_prob +
+        0.15 * indiv.fitness_info.genome_len +
+        0.05 * indiv.fitness_info.accuracy
 end
 
 function get_genome_len_fitness(indiv::Individual)
@@ -74,9 +77,17 @@ function get_altered_sym_prob_fitness(indiv::Individual)
 end
 
 function get_contains_x_fitness(indiv::Individual)
-    contains_x = CellTreeMod.contains_sym(indiv.cell_tree.root, :x)
+    get_contains_syms_fitness(indiv, SettingsMod.terms[1:1])
+end
 
-    Float64(!contains_x)
+function get_contains_fncall_fitness(indiv::Individual)
+    get_contains_syms_fitness(indiv, SettingsMod.fcns)
+end
+
+function get_contains_syms_fitness(indiv::Individual, syms::Array{Sym, 1})
+    contained = CellTreeMod.contains_syms(indiv.cell_tree.root, syms)
+
+    Float64(!contained)
 end
 
 function get_bind_coverage_fitness(indiv::Individual)

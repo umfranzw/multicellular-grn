@@ -416,15 +416,11 @@ function get_fitness_info(data::Data, pop_index::Int64)
     headers = Array{String, 1}([
         "EA Step",
         "ID",
-        "Fitness",
-        "Contains X",
-        "Bind Coverage",
-        "Prod Coverage",
-        "Divided",
-        "Altered Sym Prob",
-        "Genome Length",
-        "Accuracy"
+        "Fitness"
     ])
+    for name in fieldnames(FitnessInfo)
+        push!(headers, name)
+    end
     push!(rows, headers)
 
     for ea_step in 0:data.run.ea_steps
@@ -442,13 +438,9 @@ function get_fitness_info(data::Data, pop_index::Int64)
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
 
         #fitness_info
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.contains_x))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.bind_coverage))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.prod_coverage))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.divided))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.altered_sym_prob))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.genome_len))
-        push!(row, @sprintf("%0.2f", cur_indiv.fitness_info.accuracy))
+        for name in fieldnames(FitnessInfo)
+            push!(row, @sprintf("%0.2f", getproperty(name)))
+        end
 
         push!(rows, row)
     end

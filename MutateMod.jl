@@ -145,7 +145,7 @@ function system_level(indiv::Individual, ea_step::Int64)
         length(indiv.genes) <= indiv.config.run.max_genes - 2)
 
         if RandUtilsMod.rand_float(indiv.config) < indiv.config.run.sys_level_mut_prob
-            println("System level mutation at ea_step: $(ea_step)")
+            #println("System level mutation at ea_step: $(ea_step)")
             temp_to_self_sustaining(indiv, index)
 
             update_genome_indices(indiv, index + 3)
@@ -437,11 +437,11 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
     #followed by right
     insert_genes(indiv, [right_gene], index + 2)
 
-    println("src: $(GeneMod.get_sites_str(src_gene))")
-    println("left: $(GeneMod.get_sites_str(left_gene))")
-    println("mid: $(GeneMod.get_sites_str(new_gene))")
-    println("right: $(GeneMod.get_sites_str(right_gene))")
-    println()
+    # println("src: $(GeneMod.get_sites_str(src_gene))")
+    # println("left: $(GeneMod.get_sites_str(left_gene))")
+    # println("mid: $(GeneMod.get_sites_str(new_gene))")
+    # println("right: $(GeneMod.get_sites_str(right_gene))")
+    # println()
 end
 
 end
