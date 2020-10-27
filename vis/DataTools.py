@@ -231,3 +231,8 @@ class DataTools():
         Main.eval('base_seed = DataMod.get_base_seed(data)')
 
         return Main.base_seed
+
+    def get_pop_fitness_breakdown(self):
+        Main.eval('pop_fit_data = DataMod.get_pop_fitness_breakdown(data)')
+
+        return Main.pop_fit_data

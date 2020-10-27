@@ -9,6 +9,7 @@ from TableArea import TableArea
 from ToolbarArea import ToolbarArea
 from GraphicsArea import GraphicsArea
 from FitnessArea import FitnessArea
+from FitnessBreakdownArea import FitnessBreakdownArea
 from NeighbourArea import NeighbourArea
 from IndivArea import IndivArea
 from SettingsArea import SettingsArea, Settings
@@ -40,6 +41,9 @@ class MainWindow(QMainWindow):
         #fitness area
         self.fitness_area = FitnessArea(self.data_tools)
 
+        #fitness breakdown
+        self.fitness_breakdown_area = FitnessBreakdownArea(self.data_tools)
+
         #neighbour interaction area
         self.neighbour_area = NeighbourArea(self.data_tools, self.toolbar.getIndex())
 
@@ -66,6 +70,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.table_area, "Protein Info")
         tabs.addTab(self.cell_area, "Cell Info")
         tabs.addTab(self.fitness_area, "Fitness Info")
+        tabs.addTab(self.fitness_breakdown_area, "Fitness Breakdown")
         tabs.addTab(self.neighbour_area, "Neighbour Info")
         tabs.addTab(self.indiv_area, "Individual Info")
         tabs.addTab(self.settings_area, "Settings")

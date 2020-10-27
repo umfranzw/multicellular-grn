@@ -404,10 +404,10 @@ function export_fitness_info(data::Data, invid_index::Int64, filename::String)
         data,
         filename,
         function()
-            table = get_fitness_info(data, indiv_index)
-            cols = length(table[1]) #length of header row
+        table = get_fitness_info(data, indiv_index)
+        cols = length(table[1]) #length of header row
 
-            (table, cols)
+        (table, cols)
         end
     )
 end
@@ -678,6 +678,48 @@ function get_base_seed(data::Data)
     first_indiv = DataMod.get_indiv(data, key)
     
     first_indiv.config.rng.seed[1] - 1 #note: offset starts at 1
+end
+
+function get_pop_fitness_breakdown(data::Data)
+    rows = Array{Array{String, 1}, 1}()
+    sums = Dict{Symbol, Float64}()
+    headers = Array{String, 1}()
+    push!(headers, "EA Step")
+    push!(headers, "Avg. Fitness")
+    fitness_sum = 0
+    for name in fieldnames(FitnessInfo)
+        push!(headers, string(name))
+    end
+    
+    push!(rows, headers)
+    
+    for ea_step in 0:data.run.ea_steps
+        row = Array{String, 1}()
+        fitness_sum = 0
+        push!(row, string(ea_step))
+        
+        for pop_index in 1:data.run.pop_size
+            cur_indiv = DataMod.get_indiv(data, ea_step, pop_index, data.run.reg_steps + 1, TrackerMod.AfterBind)
+            fitness_sum += cur_indiv.fitness
+            for name in fieldnames(FitnessInfo)
+                if pop_index == 1
+                    sums[name] = getproperty(cur_indiv.fitness_info, name)
+                else
+                    sums[name] += getproperty(cur_indiv.fitness_info, name)
+                end
+            end
+        end
+
+        push!(row, @sprintf("%0.2f", fitness_sum / data.run.pop_size))
+        
+        for name in fieldnames(FitnessInfo)
+            push!(row, @sprintf("%0.2f", sums[name] / data.run.pop_size))
+        end
+
+        push!(rows, row)
+    end
+
+    rows
 end
 
 end
