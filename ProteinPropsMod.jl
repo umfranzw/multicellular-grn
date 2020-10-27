@@ -42,7 +42,9 @@ function rand_prop(
 ) where {T <: Union{ProteinPropsMod.ProteinType, ProteinPropsMod.ProteinAction, Int8, UInt8}}
     if vals == nothing
         #choose a completely random option
-        if enum in (Int8, UInt8)
+        if enum == UInt8
+            instance = Random.rand(config.rng, UInt8(0):UInt8(config.run.tag_limit))
+        elseif enum == Int8
             instance = Random.rand(config.rng, enum)
         else
             instance = RandUtilsMod.rand_enum_val(config, enum)

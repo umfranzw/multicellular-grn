@@ -33,6 +33,8 @@ struct Run
     gene_sys_level_threshold::Int64
     gene_dup_gen_limit::Int64
     gene_sys_level_gen_limit::Int64
+
+    tag_limit::Int64
     
     reg_steps::Int64
     protein_deletion_threshold::Float64

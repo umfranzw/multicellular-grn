@@ -28,8 +28,8 @@ end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
     #dup_and_swap(indiv, ea_step)
-    #dup_and_mut(indiv, ea_step)
-    system_level(indiv, ea_step)
+    dup_and_mut(indiv, ea_step)
+    #system_temp_to_ss(indiv, ea_step)
 end
 
 function dup_and_swap(indiv::Individual, ea_step::Int64)
@@ -138,7 +138,7 @@ function dup_and_mut(indiv::Individual, ea_step::Int64)
     end
 end
 
-function system_level(indiv::Individual, ea_step::Int64)
+function system(indiv::Individual, ea_step::Int64)
     val, index = findmax(indiv.reg_sim_info.produce_count)
     if (ea_step <= indiv.config.run.gene_sys_level_gen_limit &&
         val >= indiv.config.run.gene_sys_level_threshold &&
@@ -244,7 +244,7 @@ function mutate_prod_site(config::Config, site::ProdSite, ea_step::Int64)
         mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
-        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
+        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, config.run.tag_limit))
         mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
@@ -274,7 +274,7 @@ function mutate_bind_site(config::Config, site::BindSite, ea_step::Int64, tree_s
         mutated = true
     end
     if RandUtilsMod.rand_float(config) < config.run.point_mut_prob
-        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, 255))
+        site.tag = UInt8(RandUtilsMod.rand_int(config, 0, config.run.tag_limit))
         mutated = true
     end
 
@@ -351,9 +351,7 @@ function mutate_props(
     end
 end
 
-#note: right now this will only work with 1 bind site and 1 prod site
-function temp_to_self_sustaining(indiv::Individual, index::Int64)
-    src_gene = indiv.genes[index]
+function get_intermediate_props(src_bind_site, src_prod_site, type::ProteinPropsMod.ProteinType)
     src_a_bind_site = src_gene.bind_sites[1]
     src_c_prod_site = src_gene.prod_sites[1]
     #build a list of values that b's tag could take on
@@ -365,14 +363,25 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
         collect(low_exception + 1 : high_exception - 1),
         collect(high_exception + 1 : 2^8-1)
     )
-    b_type = ProteinPropsMod.Internal
-    b_tag = Random.rand(src_gene.config.rng, b_tags)
-    b_action = RandUtilsMod.rand_enum_val(src_gene.config, ProteinPropsMod.ProteinAction)
-    b_arg = Random.rand(Int8)
+
+    ProteinProps(
+        type,
+        Random.rand(src_gene.config.rng, b_tags),
+        RandUtilsMod.rand_enum_val(src_gene.config, ProteinPropsMod.ProteinAction),
+        Random.rand(Int8)
+    )
+end
+
+#note: right now this will only work with 1 bind site and 1 prod site
+function system_temp_to_ss(indiv::Individual, index::Int64)
+    src_gene = indiv.genes[index]
+    src_a_bind_site = src_gene.bind_sites[1]
+    src_c_prod_site = src_gene.prod_sites[1]
+    b_props = get_intermediate_props(src_a_bind_site, src_c_prod_site)
 
     #note: this does not need to be unique
     a_arg = Random.rand(Int8)
-    a_action = RandUtilsMod.rand_enum_val(src_gene.config, ProteinPropsMod.ProteinAction)
+    a_action = RandUtilsMod.rand_enum_val(src_gene.config, ProteinPropsMod.ProteinAction, ProteinPropsMod.Internal)
     
     new_gene = Gene(
         src_gene.config,
@@ -381,10 +390,10 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
         src_gene.bind_sites,
         Array{ProdSite, 1}([
             ProdSite( #will produce intermediate b protein
-                      b_type,
-                      b_tag,
-                      b_action,
-                      b_arg,
+                      b_props.type,
+                      b_props.tag,
+                      b_props.action,
+                      b_props.arg,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
                       )
@@ -397,8 +406,8 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
         GeneMod.Id,
         Array{BindSite, 1}([
             BindSite( #accepts intermediate b protein
-                      b_type,
-                      b_tag,
+                      b_props.type,
+                      b_props.tag,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
                       )
@@ -421,8 +430,8 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
         GeneMod.Id,
         Array{BindSite, 1}([
             BindSite( #accepts intermediate b protein
-                      b_type,
-                      b_tag,
+                      b_props.type,
+                      b_props.tag,
                       IndividualMod.initial_threshold,
                       IndividualMod.initial_consum_rate
                       )
@@ -442,6 +451,47 @@ function temp_to_self_sustaining(indiv::Individual, index::Int64)
     # println("mid: $(GeneMod.get_sites_str(new_gene))")
     # println("right: $(GeneMod.get_sites_str(right_gene))")
     # println()
+end
+
+function system_local_to_neighbour(indiv::Individual, index::Int64)
+    src_gene = indiv.genes[index]
+    src_a_bind_site = src_gene.bind_sites[1]
+    src_c_prod_site = src_gene.prod_sites[1]
+    b_props = get_intermediate_props(src_a_bind_site, src_c_prod_site, ProteinPropsMod.Neighbour)
+
+    new_gene = Gene(
+        src_gene.config,
+        index,
+        GeneMod.Id,
+        src_gene.bind_sites,
+        Array{ProdSite, 1}([
+            ProdSite(
+                b_props_type,
+                b_props_tag,
+                b_props_action,
+                b_props_arg,
+                IndividualMod.initial_threshold,
+                IndividualMod.initial_consum_rate
+            )
+        ])
+    )
+
+    right_gene = Gene(
+        src_gene.config,
+        index + 1,
+        GeneMod.Id,
+        Array{BindSite, 1}([
+            BindSite(
+                b_props_type,
+                b_props_tag,
+                IndividualMod.initial_threshold,
+                IndividualMod.initial_consum_rate
+            )
+        ])
+    )
+
+    replace_genes(indiv, [new_gene], index)
+    insert_genes(indiv, [right_gene], index + 1)
 end
 
 end
