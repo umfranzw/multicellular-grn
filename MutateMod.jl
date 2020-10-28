@@ -27,8 +27,8 @@ function mutate(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
 end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
-    #dup_and_swap(indiv, ea_step)
-    dup_and_mut(indiv, ea_step)
+    dup_and_swap(indiv, ea_step)
+    #dup_and_mut(indiv, ea_step)
     #system_temp_to_ss(indiv, ea_step)
 end
 

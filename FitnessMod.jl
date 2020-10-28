@@ -57,15 +57,26 @@ function eval_final(indiv::Individual, ea_step::Int64)
         get_accuracy_fitness(indiv)
     )
 
-    indiv.fitness =
-        0.1 * indiv.fitness_info.contains_x +
-        0.1 * indiv.fitness_info.contains_fncall +
-        0.1 * indiv.fitness_info.bind_coverage +
-        0.1 * indiv.fitness_info.prod_coverage +
-        0.2 * indiv.fitness_info.divided +
-        0.2 * indiv.fitness_info.altered_sym_prob +
-        0.15 * indiv.fitness_info.genome_len +
-        0.05 * indiv.fitness_info.accuracy
+    # indiv.fitness =
+    #     0.3 * indiv.fitness_info.contains_x +
+    #     0.3 * indiv.fitness_info.contains_fncall +
+    #     #0.1 * indiv.fitness_info.bind_coverage +
+    #     #0.1 * indiv.fitness_info.prod_coverage +
+    #     0.3 * indiv.fitness_info.divided +
+    #     0.1 * indiv.fitness_info.altered_sym_prob +
+    #     #0.15 * indiv.fitness_info.genome_len +
+    # #0.05 * indiv.fitness_info.accuracy
+
+    if ea_step == 0
+        indiv.fitness =
+            0.9 * indiv.fitness_info.prod_coverage +
+            0.1 * indiv.fitness_info.accuracy
+    elseif ea_step >= 1
+        indiv.fitness =
+            0.45 * indiv.fitness_info.genome_len +
+            0.45 * indiv.fitness_info.prod_coverage + 
+            0.1 * indiv.fitness_info.accuracy
+    end
 end
 
 function get_genome_len_fitness(indiv::Individual)

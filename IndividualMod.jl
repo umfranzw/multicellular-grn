@@ -327,8 +327,10 @@ function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell:
         bind_site = gene.bind_sites[bind_site_index]
         props = ProteinPropsMod.rand_init(
             config,
-            type=[bind_site.type],
-            tag=[bind_site.tag],
+            #type=[bind_site.type],
+            #tag=[bind_site.tag],
+            type=[ProteinPropsMod.Internal],
+            tag= (i == 1) ? [bind_site.tag] : nothing, #ensure that at least one initial protein has a tag that matches the first gene
             fcn=ProteinPropsMod.Activate
         )
         protein = Protein(config, props, false, true, num_concs, root_cell.id)
