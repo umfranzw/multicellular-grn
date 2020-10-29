@@ -527,7 +527,7 @@ function get_gene_descs(data::Data, pop_index::Int64)
         #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
 
-        rolled_back = (ea_step, pop_index) in keys(data.rolled_back_indivs)
+        rolled_back = (ea_step, pop_index) in data.rolled_back_indivs
         push!(row, string(rolled_back))
 
         #gene descriptions
