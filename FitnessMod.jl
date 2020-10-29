@@ -69,7 +69,7 @@ function eval_final(indiv::Individual, ea_step::Int64)
 
     if ea_step == 0
         indiv.fitness =
-            0.9 * indiv.fitness_info.prod_coverage +
+            0.45 * indiv.fitness_info.prod_coverage +
             0.1 * indiv.fitness_info.accuracy
     elseif ea_step >= 1
         indiv.fitness =

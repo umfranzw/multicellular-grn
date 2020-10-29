@@ -44,6 +44,7 @@ end
 mutable struct Data
     indivs::Cache{IndexKey, Individual}
     indivs_index::Dict{IndexKey, IndexInfo}
+    rolled_back_indivs::Set{Tuple{Int64, Int64}} #(ea_step, pop_index)
     fitnesses::Union{Array{Array{Float64, 1}, 1}, Nothing} #indexing: ea_step, pop_index
     file_handle::IOStream
     run_best::Union{BestInfo, Nothing}
@@ -60,7 +61,7 @@ mutable struct Data
         indivs = Cache{IndexKey, Individual}(DataMod.indiv_cache_size)
         indivs_index = Dict{IndexKey, IndexInfo}()
         
-        data = new(indivs, indivs_index, nothing, file_handle, nothing, nothing)
+        data = new(indivs, indivs_index, Set{Tuple{Int64, Int64}}(), nothing, file_handle, nothing, nothing)
         create_index(data, compression_alg) #note: this also initializes run_best and run
 
         data
@@ -194,6 +195,10 @@ function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg
             #no need to add this to an index - we'll save it in the data object
             data.fitnesses = read_obj(data, comp_data_pos, size, compression_alg)
             #println("read fitnesses")
+        elseif state_type == TrackerMod.RolledBackState
+            ea_step = read(data.file_handle, Int64)
+            pop_index = read(data.file_handle, Int64)
+            push!(data.rolled_back_indivs, (ea_step, pop_index))
         end
     end
 end
@@ -517,6 +522,9 @@ function get_gene_descs(data::Data, pop_index::Int64)
         #push!(row, @sprintf("%0.2f", data.fitnesses[ea_step + 1][pop_index])) #note: since we store fitnesses for ea_step 0, the array is offset by one
         push!(row, @sprintf("%0.2f", cur_indiv.fitness))
 
+        rolled_back = (ea_step, pop_index) in keys(data.rolled_back_indivs)
+        push!(row, string(rolled_back))
+
         #gene descriptions
         for gene_index in 1:length(cur_indiv.genes)
             site_str = GeneMod.get_sites_str(cur_indiv.genes[gene_index])
@@ -530,6 +538,7 @@ function get_gene_descs(data::Data, pop_index::Int64)
     push!(headers, "EA Step")
     push!(headers, "ID")
     push!(headers, "Fitness")
+    push!(headers, "Rolled Back")
     
     for i in 1:max_genes
         push!(headers, "Gene $(i)")

@@ -11,7 +11,7 @@ using DataStructures
 using CompressionMod
 import Statistics
 
-@enum StateType::UInt8 IndivState RunState RunBestInfoState FitnessesState
+@enum StateType::UInt8 IndivState RunState RunBestInfoState FitnessesState RolledBackState
 @enum StateTime::UInt8 AfterBind AfterProd
 @enum StateContentType::UInt8 Changes Checkpoint
 
@@ -139,7 +139,7 @@ end
 
 function write_obj(
     state_type::StateType,
-    comp_obj_bytes::Array{UInt8, 1},
+    comp_obj_bytes::Union{Array{UInt8, 1}, Nothing}=nothing,
     step_tag::Union{Array{Int64, 1}, Nothing}=nothing,
     state_time::Union{StateTime, Nothing}=nothing,
     state_content_type::Union{StateContentType, Nothing}=nothing
@@ -153,13 +153,16 @@ function write_obj(
 
     file_index = Threads.threadid()
     
-    #always write state type, size, and compressed data
+    #always write state type
     #println("writing state_type: $(state_type)")
     write(tracker.local_files[file_index], UInt8(state_type))
     #println("writing size: $(length(comp_obj_bytes))")
-    write(tracker.local_files[file_index], Int64(length(comp_obj_bytes)))
-    #println("writing comp_obj_bytes")
-    write(tracker.local_files[file_index], comp_obj_bytes)
+    #optionally write size and compressed data
+    if comp_obj_bytes != nothing
+        write(tracker.local_files[file_index], Int64(length(comp_obj_bytes)))
+        #println("writing comp_obj_bytes")
+        write(tracker.local_files[file_index], comp_obj_bytes)
+    end
     
     #optionally write the others
     #step tag format: (ea_step, indiv_index, reg_step)
@@ -227,6 +230,18 @@ function save_fitnesses()
         compressed = CompressionMod.compress(tracker.run.compression_alg, take!(buf))
         write_obj(FitnessesState, compressed)
         #println()
+    end
+end
+
+function save_rolledback_state(ea_step::Int64, pop_index::Int64)
+    global tracker
+
+    if tracker.run.log_level >= RunMod.LogIndivs
+        write_obj(
+            TrackerMod.RolledBackState,
+            nothing,
+            Array{Int64, 1}([ea_step, pop_index])
+        )
     end
 end
 
