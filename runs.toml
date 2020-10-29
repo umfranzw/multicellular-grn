@@ -2,7 +2,7 @@
 ######
 # GA #
 ######
-pop_size = 15
+pop_size = 20
 ea_steps = 10
 point_mut_prob = 0.1
 dup_mut_prob = 0.5

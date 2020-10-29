@@ -166,7 +166,7 @@ function get_accuracy_fitness(indiv::Individual)
             test_expr = Meta.parse(test_str)
             result = Meta.eval(test_expr)
 
-            if result != chunk
+            if result != output
                 error = abs(result - output)
                 #Notes:
                 # 1 / (1 + error) shrinks as error grows (when error is 0, result is 1. When error > 0, result is < 1, range is [0, 1])
@@ -178,8 +178,9 @@ function get_accuracy_fitness(indiv::Individual)
         catch
             #num_exceptions += 1
             #consider an exception to be very bad - penalize to the max extent (set error = 1)
-            error = 1
-            fitness += (1 - 1 / (1 + error)) * chunk
+            #error = 1
+            #fitness += (1 - 1 / (1 + error)) * chunk
+            fitness += chunk
             continue
         end
     end
