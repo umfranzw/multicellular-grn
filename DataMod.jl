@@ -155,20 +155,21 @@ function read_bytes(data::Data, pos::Int64, size::Int64, decompression_alg::Unio
 end
 
 function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg)
-    #format: state_type, size, compressed_data, [step_tag], [state_time], [state_content_type]
+    #format: state_type, [size], [compressed_data], [step_tag], [state_time], [state_content_type]
     while !eof(data.file_handle)
-        #read the information that is always present,
-        #with the exception of the compressed data - instead, just record its position in the file
         state_type = read(data.file_handle, TrackerMod.StateType)
-        size = read(data.file_handle, Int64)
-        comp_data_pos = position(data.file_handle)
         
         if state_type == TrackerMod.RunState
+            size = read(data.file_handle, Int64)
+            comp_data_pos = position(data.file_handle)
+            
             #no need to add this to an index - we'll save it in the data object
             data.run = read_obj(data, comp_data_pos, size, compression_alg)
             #println("read run")
             
         elseif state_type == TrackerMod.IndivState
+            size = read(data.file_handle, Int64)
+            comp_data_pos = position(data.file_handle)
             #since we don't want to consume the comp_data (just index it for later use), we need to skip over it to go to the following metadata
             seek(data.file_handle, position(data.file_handle) + size)
             
@@ -187,11 +188,15 @@ function create_index(data::Data, compression_alg::CompressionMod.CompressionAlg
             #println("read indiv: ($ea_step, $pop_index, $reg_step)")
 
         elseif state_type == TrackerMod.RunBestInfoState
+            size = read(data.file_handle, Int64)
+            comp_data_pos = position(data.file_handle)
             #no need to add this to an index - we'll save it in the data object
             data.run_best = read_obj(data, comp_data_pos, size, compression_alg)
             #println("read run_best")
 
         elseif state_type == TrackerMod.FitnessesState
+            size = read(data.file_handle, Int64)
+            comp_data_pos = position(data.file_handle)
             #no need to add this to an index - we'll save it in the data object
             data.fitnesses = read_obj(data, comp_data_pos, size, compression_alg)
             #println("read fitnesses")
