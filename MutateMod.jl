@@ -48,7 +48,11 @@ function dup_and_swap(indiv::Individual, ea_step::Int64)
                 for i in 1:length(gene.bind_sites)
                     bsite = gene.bind_sites[i]
                     psite = gene.prod_sites[i]
+
                     bsite.type, psite.type = psite.type, bsite.type
+                    if bsite.type == ProteinPropsMod.Application
+                        bsite.type = ProteinPropsMod.Internal
+                    end
                     bsite.tag, psite.tag = psite.tag, bsite.tag
                 end
 

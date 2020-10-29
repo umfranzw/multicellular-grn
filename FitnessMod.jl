@@ -69,12 +69,37 @@ function eval_final(indiv::Individual, ea_step::Int64)
 
     if ea_step == 0
         indiv.fitness =
-            0.45 * indiv.fitness_info.prod_coverage +
+            0.8 +
+            0.1 * indiv.fitness_info.prod_coverage +
             0.1 * indiv.fitness_info.accuracy
-    elseif ea_step >= 1
+    elseif 1 <= ea_step <= 2
         indiv.fitness =
-            0.45 * indiv.fitness_info.genome_len +
-            0.45 * indiv.fitness_info.prod_coverage + 
+            0.7 +
+            0.1 * indiv.fitness_info.genome_len +
+            0.1 * indiv.fitness_info.prod_coverage + 
+            0.1 * indiv.fitness_info.accuracy
+    elseif 3 <= ea_step <= 4
+        indiv.fitness =
+            0.6 +
+            0.1 * indiv.fitness_info.divided +
+            0.1 * indiv.fitness_info.genome_len +
+            0.1 * indiv.fitness_info.prod_coverage + 
+            0.1 * indiv.fitness_info.accuracy
+    elseif 5 <= ea_step <= 6
+        indiv.fitness =
+            0.5 +
+            0.1 * indiv.fitness_info.contains_fncall
+            0.1 * indiv.fitness_info.divided +
+            0.1 * indiv.fitness_info.genome_len +
+            0.1 * indiv.fitness_info.prod_coverage + 
+            0.1 * indiv.fitness_info.accuracy
+    else
+        indiv.fitness =
+            0.5 +
+            0.1 * indiv.fitness_info.contains_fncall
+            0.1 * indiv.fitness_info.divided +
+            0.1 * indiv.fitness_info.genome_len +
+            0.1 * indiv.fitness_info.prod_coverage + 
             0.1 * indiv.fitness_info.accuracy
     end
 end
