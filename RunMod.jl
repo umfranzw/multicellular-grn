@@ -25,6 +25,7 @@ struct Run
     point_mut_prob::Float64
     dup_mut_prob::Float64
     sys_level_mut_prob::Float64
+    growth_threshold::Float64
     num_initial_genes::Int64
     max_genes::Int64
     tourn_size::Int64

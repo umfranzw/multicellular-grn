@@ -4,9 +4,10 @@
 ######
 pop_size = 15
 ea_steps = 10
-point_mut_prob = 0.1
+point_mut_prob = 0.2
 dup_mut_prob = 0.5
 sys_level_mut_prob = 0.5
+growth_threshold = 0.8
 num_initial_genes = 1
 max_genes = 10
 
@@ -96,7 +97,7 @@ user_rng_seed = 2504327168
 #1 = fitnesses
 #2 = fitnesses & indivs
 log_level = 2
-step_range = "0:1:20"
+step_range = "0:1:10"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = true

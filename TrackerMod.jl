@@ -132,6 +132,7 @@ function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64, output_buf:
     if rb_updated
         write(output_buf, "run_best updated:\n")
         write(output_buf, @sprintf("\tfitness: %0.5f\n", tracker.run_best.indiv.fitness))
+        write(output_buf, @sprintf("\tgenome len: %i\n", length(tracker.run_best.indiv.genes)))
         write(output_buf, @sprintf("\texpr: %s\n", CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)))
     end
     push!(tracker.fitnesses, fitnesses)
