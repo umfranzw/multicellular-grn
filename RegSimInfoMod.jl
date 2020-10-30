@@ -30,5 +30,6 @@ get_prod_coverage(info::RegSimInfo) = get_coverage(info.produce_count)
 get_coverage(count::Array{Int64, 1}) = sum(count .> 0) / length(count)
 divided(info::RegSimInfo) = info.division_count > 0
 altered_sym_probs(info::RegSimInfo) = info.alter_sym_prob_count > 0
+get_avg_binds_per_gene(info::RegSimInfo) = info.bind_count / length(info.bind_count)
 
 end
