@@ -6,7 +6,7 @@ using FitnessMod
 
 import BindStepMod
 import ProduceStepMod
-import BindingComsumeStepMod
+import BindingConsumeStepMod
 import DiffuseStepMod
 import NeighbourCommStepMod
 import ProteinAppStepMod
@@ -43,7 +43,7 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
         TrackerMod.save_reg_state(indiv, ea_step, pop_index, reg_step, TrackerMod.AfterBind)
 
         ProduceStepMod.run_produce(indiv)
-        BindingComsumeStepMod.run_binding_consum(indiv)
+        BindingConsumeStepMod.run_binding_consum(indiv)
         TrackerMod.save_reg_state(indiv, ea_step, pop_index, reg_step, TrackerMod.AfterProd)
         
         DiffuseStepMod.run_diffuse(indiv)

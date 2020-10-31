@@ -1,4 +1,4 @@
-module BindingComsumeStepMod
+module BindingConsumeStepMod
 
 using IndividualMod
 using CellTreeMod
