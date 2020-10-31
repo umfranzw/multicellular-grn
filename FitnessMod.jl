@@ -69,7 +69,7 @@ function eval_final(indiv::Individual, ea_step::Int64)
 end
 
 function get_lifetime_fitness(indiv::Individual)
-    indiv.reg_sim_info.reg_step_count / indiv.config.run.reg_steps
+    1 - indiv.reg_sim_info.reg_step_count / indiv.config.run.reg_steps
 end
 
 function get_genome_len_fitness(indiv::Individual)
