@@ -27,10 +27,16 @@ function mutate(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
 end
 
 function mutate_indiv(indiv::Individual, ea_step::Int64)
+    mutated = false
     if should_grow(indiv)
         grow(indiv)
+        mutated = true
     else
-        point_mutate(indiv)
+        mutated = point_mutate(indiv)
+    end
+
+    if mutated
+        indiv.last_mod = ea_step
     end
 end
 
@@ -38,7 +44,7 @@ function should_grow(indiv::Individual)
     bind_coverage = RegSimInfoMod.get_bind_coverage(indiv.reg_sim_info)
     
     length(indiv.genes) < indiv.config.run.max_genes &&
-        bind_coverage > indiv.config.run.growth_threshold &&
+        bind_coverage >= indiv.config.run.growth_threshold &&
         rand_decision(indiv.config, indiv.config.run.dup_mut_prob)
 end
 
@@ -66,6 +72,7 @@ function rand_decision(config::Config, threshold::Float64)
 end
 
 function point_mutate(indiv::Individual)
+    mutated = false
     for gene in indiv.genes
         #make a 50-50 decision about whether to mutate bind_sites or prod_sites
         #can't do both, or they may get out of sync (bind site mutates to prod site's characteristics, then that prod site mutates)
@@ -83,6 +90,8 @@ function point_mutate(indiv::Individual)
                     target_option = Random.rand(indiv.config.rng, valid_options)
                     bind_site.tag = target_option.tag
                     bind_site.type = target_option.type
+                    
+                    mutated = true
                 end
             end
             
@@ -100,14 +109,18 @@ function point_mutate(indiv::Individual)
                         target_option = Random.rand(indiv.config.rng, valid_options)
                         prod_site.tag = target_option.tag
                         prod_site.type = target_option.type
+                    else
+                        #mutate the arg instead
+                        prod_site.arg = Random.rand(indiv.config.rng, UInt8(0):UInt8(indiv.config.run.tag_limit))
                     end
-                else
-                    #mutate the arg instead
-                    prod_site.arg = Random.rand(indiv.config.rng, UInt8(0):UInt8(indiv.config.run.tag_limit))
+
+                    mutated = true
                 end
             end
         end 
     end
+
+    mutated
 end
 
 function insert_genes(indiv::Individual, new_genes::Array{Gene, 1}, start::Int64)

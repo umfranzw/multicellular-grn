@@ -56,6 +56,7 @@ function step(run::Run, pop::Array{Individual, 1}, pop_index::Int64, ea_step::In
 
         reg_step += 1
     end
+    indiv.reg_sim_info.reg_step_count = reg_step - 1
 
     IndividualMod.run_fix_syms(indiv)
     FitnessMod.eval_final(indiv, ea_step)

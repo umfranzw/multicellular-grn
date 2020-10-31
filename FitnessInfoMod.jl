@@ -11,6 +11,7 @@ mutable struct FitnessInfo
     altered_sym_prob::Float64
     genome_len::Float64
     accuracy::Float64
+    lifetime::Float64
 end
 
 end

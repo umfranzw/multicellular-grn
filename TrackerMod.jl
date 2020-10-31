@@ -124,14 +124,19 @@ function update_fitnesses(pop::Array{Individual, 1}, ea_step::Int64, output_buf:
         end
     end
 
-    mean = Statistics.mean(fitnesses)
-    std = Statistics.std(fitnesses, mean=mean)
-    write(output_buf, @sprintf("mean fitness: %0.5f\n", mean))
-    write(output_buf, @sprintf("std fitness: %0.5f\n", std))
+    mean_fit = Statistics.mean(fitnesses)
+    std_fit = Statistics.std(fitnesses, mean=mean_fit)
+    genome_lens = map(i -> length(i.genes), pop)
+    mean_len = Statistics.mean(genome_lens)
+    std_len = Statistics.std(genome_lens, mean=mean_len)
+    write(output_buf, @sprintf("mean fitness: %0.8f\n", mean_fit))
+    write(output_buf, @sprintf("std fitness: %0.8f\n", std_fit))
+    write(output_buf, @sprintf("mean len: %0.8f\n", mean_len))
+    write(output_buf, @sprintf("std len: %0.8f\n", std_len))
     
     if rb_updated
         write(output_buf, "run_best updated:\n")
-        write(output_buf, @sprintf("\tfitness: %0.5f\n", tracker.run_best.indiv.fitness))
+        write(output_buf, @sprintf("\tfitness: %0.8f\n", tracker.run_best.indiv.fitness))
         write(output_buf, @sprintf("\tgenome len: %i\n", length(tracker.run_best.indiv.genes)))
         write(output_buf, @sprintf("\texpr: %s\n", CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)))
     end

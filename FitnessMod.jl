@@ -54,54 +54,22 @@ function eval_final(indiv::Individual, ea_step::Int64)
         get_divided_fitness(indiv),
         get_altered_sym_prob_fitness(indiv),
         get_genome_len_fitness(indiv),
-        get_accuracy_fitness(indiv)
+        get_accuracy_fitness(indiv),
+        get_lifetime_fitness(indiv)
     )
 
-    # indiv.fitness =
-    #     0.3 * indiv.fitness_info.contains_x +
-    #     0.3 * indiv.fitness_info.contains_fncall +
-    #     #0.1 * indiv.fitness_info.bind_coverage +
-    #     #0.1 * indiv.fitness_info.prod_coverage +
-    #     0.3 * indiv.fitness_info.divided +
-    #     0.1 * indiv.fitness_info.altered_sym_prob +
-    #     #0.15 * indiv.fitness_info.genome_len +
-    # #0.05 * indiv.fitness_info.accuracy
+    indiv.fitness =
+        0.4 +
+        0.1 * indiv.fitness_info.contains_fncall +
+        0.1 * indiv.fitness_info.divided +
+        0.1 * indiv.fitness_info.genome_len +
+        0.1 * indiv.fitness_info.prod_coverage + 
+        0.1 * indiv.fitness_info.accuracy +
+        0.1 * indiv.fitness_info.lifetime
+end
 
-    if ea_step == 0
-        indiv.fitness =
-            0.8 +
-            0.1 * indiv.fitness_info.prod_coverage +
-            0.1 * indiv.fitness_info.accuracy
-    elseif 1 <= ea_step <= 2
-        indiv.fitness =
-            0.7 +
-            0.1 * indiv.fitness_info.genome_len +
-            0.1 * indiv.fitness_info.prod_coverage + 
-            0.1 * indiv.fitness_info.accuracy
-    elseif 3 <= ea_step <= 4
-        indiv.fitness =
-            0.6 +
-            0.1 * indiv.fitness_info.divided +
-            0.1 * indiv.fitness_info.genome_len +
-            0.1 * indiv.fitness_info.prod_coverage + 
-            0.1 * indiv.fitness_info.accuracy
-    elseif 5 <= ea_step <= 6
-        indiv.fitness =
-            0.5 +
-            0.1 * indiv.fitness_info.contains_fncall
-            0.1 * indiv.fitness_info.divided +
-            0.1 * indiv.fitness_info.genome_len +
-            0.1 * indiv.fitness_info.prod_coverage + 
-            0.1 * indiv.fitness_info.accuracy
-    else
-        indiv.fitness =
-            0.5 +
-            0.1 * indiv.fitness_info.contains_fncall
-            0.1 * indiv.fitness_info.divided +
-            0.1 * indiv.fitness_info.genome_len +
-            0.1 * indiv.fitness_info.prod_coverage + 
-            0.1 * indiv.fitness_info.accuracy
-    end
+function get_lifetime_fitness(indiv::Individual)
+    indiv.reg_sim_info.reg_step_count / indiv.config.run.reg_steps
 end
 
 function get_genome_len_fitness(indiv::Individual)

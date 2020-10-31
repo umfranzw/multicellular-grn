@@ -481,8 +481,8 @@ function get_reg_sim_info(data::Data, pop_index::Int64)
 
         push!(row, string(cur_indiv.reg_sim_info.division_count))
         push!(row, string(cur_indiv.reg_sim_info.alter_sym_prob_count))
+        push!(row, string(cur_indiv.reg_sim_info.reg_step_count))
         
-        #reg_sim_info
         for gene_index in 1:length(cur_indiv.genes)
             push!(row, string(cur_indiv.reg_sim_info.bind_count[gene_index]))
             push!(row, string(cur_indiv.reg_sim_info.produce_count[gene_index]))
@@ -498,6 +498,7 @@ function get_reg_sim_info(data::Data, pop_index::Int64)
     
     push!(headers, "Division Count")
     push!(headers, "Alter Sym Prob Count")
+    push!(headers, "Reg Step Count")
     
     for i in 1:max_genes
         push!(headers, "Bind Count $(i)")
