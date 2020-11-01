@@ -381,14 +381,11 @@ end
 
 function has_proteins(cell::Cell)
     result = ProteinStoreMod.has_proteins(cell.proteins)
-    if !result
-        i = 1
-        while i < length(cell.children) && !has_proteins(cell.children[i])
-            i += 1
-        end
-
-        #if the above loop stopped early, then there are proteins
-        result = i <= length(cell.children)
+    
+    i = 1
+    while !result && i <= length(cell.children)
+        result = has_proteins(cell.children[i])
+        i += 1
     end
 
     result
