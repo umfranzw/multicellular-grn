@@ -168,12 +168,16 @@ function rand_init(
     for i in 1:config.run.bind_sites_per_gene
         bind_site = rand_bind_site(
             config,
-            type=bind_site_types
+            type=bind_site_types,
+            consum_rate=[config.run.bind_consum_rate],
+            threshold=[config.run.bind_threshold]
         )
         push!(bind_sites, bind_site)
 
         prod_site = rand_prod_site(
-            config
+            config,
+            consum_rate=[config.run.bind_consum_rate], #note: these are for inhibitory proteins, which bind to prod sites
+            threshold=[config.run.bind_threshold]
         )
         push!(prod_sites, prod_site)
     end

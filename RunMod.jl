@@ -58,6 +58,9 @@ struct Run
 
     bind_sites_per_gene::Int64
 
+    bind_threshold::Float64
+    bind_consum_rate::Float64
+        
     division_age_limit::Int64
     cell_division_threshold::Float64
     max_children::Int64

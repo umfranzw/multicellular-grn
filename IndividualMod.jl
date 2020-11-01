@@ -26,9 +26,6 @@ import Random
 export Individual,
     rand_init, run_bind
 
-initial_threshold = 0.1
-initial_consum_rate = 0.01
-
 mutable struct Individual
     config::Config
     genes::Array{Gene, 1}
@@ -81,8 +78,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ProteinPropsMod.Internal],
         tag=[UInt8(0)],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     ab_prod_site = GeneMod.rand_prod_site(
@@ -90,8 +87,8 @@ function make_initial_genes_preset(config::Config)
         type=[ProteinPropsMod.Internal],
         tag=[UInt8(1)],
         fcn=ProteinPropsMod.Activate,
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     ab = pop_remaining_sites(config, genome_index, ab_bind_site, ab_prod_site)
 
@@ -108,8 +105,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ab_prod_site.type],
         tag=[ab_prod_site.tag],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     bc_prod_site = GeneMod.rand_prod_site(
@@ -117,8 +114,8 @@ function make_initial_genes_preset(config::Config)
         type=[ProteinPropsMod.Application],
         tag=[UInt8(2)],
         action=[ProteinPropsMod.Divide],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     bc = pop_remaining_sites(config, genome_index, bc_bind_site, bc_prod_site)
 
@@ -127,8 +124,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ab_prod_site.type],
         tag=[ab_prod_site.tag],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     ba_prod_site = GeneMod.rand_prod_site(
@@ -136,8 +133,8 @@ function make_initial_genes_preset(config::Config)
         type=[ab_bind_site.type],
         tag=[ab_bind_site.tag],
         fcn=ProteinPropsMod.Activate,
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     ba = pop_remaining_sites(config, genome_index, ba_bind_site, ba_prod_site)
 
@@ -146,8 +143,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ProteinPropsMod.Internal],
         tag=[UInt8(3)],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     plus_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :+, 1:length(SymProbsMod.index_to_sym)) - 1
@@ -158,8 +155,8 @@ function make_initial_genes_preset(config::Config)
         action=[ProteinPropsMod.SymProb],
         fcn=ProteinPropsMod.Activate,
         arg=[Int8(plus_index)],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     de = pop_remaining_sites(config, genome_index, de_bind_site, de_prod_site)
 
@@ -176,8 +173,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ab_prod_site.type],
         tag=[ab_prod_site.tag],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     bf_prod_site = GeneMod.rand_prod_site(
@@ -186,8 +183,8 @@ function make_initial_genes_preset(config::Config)
         tag=[UInt8(4)],
         fcn=ProteinPropsMod.Activate,
         arg=[Int8(4)], #right child
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     bf = pop_remaining_sites(config, genome_index, bf_bind_site, bf_prod_site)
 
@@ -196,8 +193,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[ab_prod_site.type],
         tag=[ab_prod_site.tag],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     bg_prod_site = GeneMod.rand_prod_site(
@@ -206,8 +203,8 @@ function make_initial_genes_preset(config::Config)
         tag=[UInt8(5)],
         fcn=ProteinPropsMod.Activate,
         arg=[Int8(3)], #left child
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
     bg = pop_remaining_sites(config, genome_index, bg_bind_site, bg_prod_site)
 
@@ -216,8 +213,8 @@ function make_initial_genes_preset(config::Config)
         config,
         type=[bg_prod_site.type],
         tag=[bg_prod_site.tag],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 
     x_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :x, 1:length(SymProbsMod.index_to_sym)) - 1
@@ -228,8 +225,8 @@ function make_initial_genes_preset(config::Config)
         action=[ProteinPropsMod.SymProb],
         fcn=ProteinPropsMod.Activate,
         arg=[Int8(x_index)],
-        threshold=[IndividualMod.initial_threshold],
-        consum_rate=[IndividualMod.initial_consum_rate]
+        threshold=[config.run.bind_threshold],
+        consum_rate=[config.run.bind_consum_rate]
     )
 gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
@@ -238,8 +235,8 @@ fnc_bind_site = GeneMod.rand_bind_site(
     config,
     type=[bf_prod_site.type], #neighbour-only receptor
     tag=[bf_prod_site.tag],
-    threshold=[IndividualMod.initial_threshold],
-    consum_rate=[IndividualMod.initial_consum_rate]
+    threshold=[config.run.bind_threshold],
+    consum_rate=[config.run.bind_consum_rate]
 )
 
 fnc_prod_site = GeneMod.rand_prod_site(
@@ -248,8 +245,8 @@ fnc_prod_site = GeneMod.rand_prod_site(
     tag=[bc_prod_site.tag],
     fcn=ProteinPropsMod.Inhibit,
     arg=[Int8(1)], #parent
-    threshold=[IndividualMod.initial_threshold],
-    consum_rate=[IndividualMod.initial_consum_rate]
+    threshold=[config.run.bind_threshold],
+    consum_rate=[config.run.bind_consum_rate]
 )
 fnc = pop_remaining_sites(config, genome_index, fnc_bind_site, fnc_prod_site)
 
@@ -258,8 +255,8 @@ fi_bind_site = GeneMod.rand_bind_site(
     config,
     type=[bf_prod_site.type], #neighbour-only receptor
     tag=[bf_prod_site.tag],
-    threshold=[IndividualMod.initial_threshold],
-    consum_rate=[IndividualMod.initial_consum_rate]
+    threshold=[config.run.bind_threshold],
+    consum_rate=[config.run.bind_consum_rate]
 )
 
 one_index = findfirst(i -> SymProbsMod.index_to_sym[i].val == :1, 1:length(SymProbsMod.index_to_sym)) - 1
@@ -270,8 +267,8 @@ fi_prod_site = GeneMod.rand_prod_site(
     action=[ProteinPropsMod.SymProb],
     fcn=ProteinPropsMod.Activate,
     arg=[Int8(one_index)],
-    threshold=[IndividualMod.initial_threshold],
-    consum_rate=[IndividualMod.initial_consum_rate]
+    threshold=[config.run.bind_threshold],
+    consum_rate=[config.run.bind_consum_rate]
 )
 fi = pop_remaining_sites(config, genome_index, fi_bind_site, fi_prod_site)
 push!(genes, gh, bg, ba, ab, bc, fnc, bf, fi, de)
@@ -290,8 +287,8 @@ function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_sit
 
     #randomly init the remaining bind and prod sites
     for j in 2:config.run.bind_sites_per_gene
-        push!(bind_sites, GeneMod.rand_bind_site(config))
-        push!(prod_sites, GeneMod.rand_prod_site(config))
+        push!(bind_sites, GeneMod.rand_bind_site(config, consum_rate=[config.run.bind_consum_rate],  threshold=[config.run.bind_threshold]))
+        push!(prod_sites, GeneMod.rand_prod_site(config, consum_rate=[config.run.bind_consum_rate],  threshold=[config.run.bind_threshold]))
     end
 
     Gene(config, genome_index, GeneMod.Id, bind_sites, prod_sites)
@@ -316,7 +313,7 @@ end
 function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell::Cell)
     proteins = Array{Protein, 1}()
     num_concs = length(genes)
-    half = (1.0 - IndividualMod.initial_threshold) / 2
+    half = (1.0 - config.run.bind_threshold) / 2
 
     #choose genes that the initial proteins will be designed to bind to
     #note: these will only bind to bind sites (no inhibitory proteins here)
@@ -334,7 +331,7 @@ function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell:
             fcn=ProteinPropsMod.Activate
         )
         protein = Protein(config, props, false, true, num_concs, root_cell.id)
-        protein.concs = RandUtilsMod.rand_floats(config, IndividualMod.initial_threshold + half, 1.0, num_concs)
+        protein.concs = RandUtilsMod.rand_floats(config, config.run.bind_threshold + half, 1.0, num_concs)
         push!(proteins, protein)
     end
     
