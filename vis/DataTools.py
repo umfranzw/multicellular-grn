@@ -137,7 +137,7 @@ class DataTools():
         pixmap_data = Main.pixmap_data
 
         return pixmap_data
-        
+
     def save_all_interaction_graphs(self, index, cell, path):
         Main.ea_step = index[0]
         Main.pop_index = index[1]

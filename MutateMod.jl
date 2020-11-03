@@ -32,7 +32,7 @@ function mutate_indiv(indiv::Individual, ea_step::Int64)
         grow(indiv)
         mutated = true
     else
-        mutated = point_mutate(indiv)
+        mutated = point_mutate_indiv(indiv)
     end
 
     if mutated
@@ -61,6 +61,7 @@ function grow(indiv::Individual)
 
     src_gene = indiv.genes[i]
     new_gene = deepcopy(src_gene)
+    point_mutate_gene(indiv, new_gene)
     #randomly decide which side of the src_gene (left or right) the new gene should be placed on
     pos_offset = Int64(rand_decision(indiv.config, 0.5))
     insert_genes(indiv, [new_gene], i + pos_offset)
@@ -71,53 +72,61 @@ function rand_decision(config::Config, threshold::Float64)
     RandUtilsMod.rand_float(config) < threshold
 end
 
-function point_mutate(indiv::Individual)
+function point_mutate_indiv(indiv::Individual)
     mutated = false
     for gene in indiv.genes
-        #make a 50-50 decision about whether to mutate bind_sites or prod_sites
-        #can't do both, or they may get out of sync (bind site mutates to prod site's characteristics, then that prod site mutates)
-        if rand_decision(indiv.config, 0.5)
-            for bind_site in gene.bind_sites
-                if rand_decision(indiv.config, indiv.config.run.point_mut_prob)
-                    #a bind site may mutate so that it accepts an initial protein or a protein produced by a prod site - except Application proteins
-                    valid_options = Array{Union{ProdSite, ProteinProps}, 1}()
-                    for gene in indiv.genes
-                        append!(valid_options, filter(ps -> ps.type != ProteinPropsMod.Application, gene.prod_sites))
-                    end
-                    #note: initial proteins never have type Application, so don't need to worry about checking for that here
-                    append!(valid_options, map(p -> p.props, indiv.initial_cell_proteins))
-                    
-                    target_option = Random.rand(indiv.config.rng, valid_options)
-                    bind_site.tag = target_option.tag
-                    bind_site.type = target_option.type
-                    
-                    mutated = true
-                end
-            end
-            
-        else
-            for prod_site in gene.prod_sites
-                if rand_decision(indiv.config, indiv.config.run.point_mut_prob)
-                    #make a 50-50 decision about whether to mutate the prod site or its arg
-                    if rand_decision(indiv.config, 0.5)
-                        #a prod site may mutate so that it produces proteins that will bind to any bind site in the genome, or it may produce an application protein
-                        valid_options = Array{Union{BindSite, NamedTuple{(:tag, :type), Tuple{UInt8, ProteinPropsMod.ProteinType}}}, 1}()
-                        for gene in indiv.genes
-                            append!(valid_options, gene.bind_sites)
-                        end
-                        push!(valid_options, (tag=prod_site.tag, type=ProteinPropsMod.Application))
-                        target_option = Random.rand(indiv.config.rng, valid_options)
-                        prod_site.tag = target_option.tag
-                        prod_site.type = target_option.type
-                    else
-                        #mutate the arg instead
-                        prod_site.arg = Random.rand(indiv.config.rng, UInt8(0):UInt8(indiv.config.run.tag_limit))
-                    end
+        mutated = mutated || point_mutate_gene(indiv, gene)
+    end
 
-                    mutated = true
+    mutated
+end
+
+function point_mutate_gene(indiv::Individual, gene::Gene)
+    mutated = false
+
+    #make a 50-50 decision about whether to mutate bind_sites or prod_sites
+    #can't do both, or they may get out of sync (bind site mutates to prod site's characteristics, then that prod site mutates)
+    if rand_decision(indiv.config, 0.5)
+        for bind_site in gene.bind_sites
+            if rand_decision(indiv.config, indiv.config.run.point_mut_prob)
+                #a bind site may mutate so that it accepts an initial protein or a protein produced by a prod site - except Application proteins
+                valid_options = Array{Union{ProdSite, ProteinProps}, 1}()
+                for other_gene in indiv.genes
+                    append!(valid_options, filter(ps -> ps.type != ProteinPropsMod.Application, other_gene.prod_sites))
                 end
+                #note: initial proteins never have type Application, so don't need to worry about checking for that here
+                append!(valid_options, map(p -> p.props, indiv.initial_cell_proteins))
+                
+                target_option = Random.rand(indiv.config.rng, valid_options)
+                bind_site.tag = target_option.tag
+                bind_site.type = target_option.type
+                
+                mutated = true
             end
-        end 
+        end
+        
+    else
+        for prod_site in gene.prod_sites
+            if rand_decision(indiv.config, indiv.config.run.point_mut_prob)
+                #make a 50-50 decision about whether to mutate the prod site or its arg
+                if rand_decision(indiv.config, 0.5)
+                    #a prod site may mutate so that it produces proteins that will bind to any bind site in the genome, or it may produce an application protein
+                    valid_options = Array{Union{BindSite, NamedTuple{(:tag, :type), Tuple{UInt8, ProteinPropsMod.ProteinType}}}, 1}()
+                    for other_gene in indiv.genes
+                        append!(valid_options, other_gene.bind_sites)
+                    end
+                    push!(valid_options, (tag=prod_site.tag, type=ProteinPropsMod.Application))
+                    target_option = Random.rand(indiv.config.rng, valid_options)
+                    prod_site.tag = target_option.tag
+                    prod_site.type = target_option.type
+                else
+                    #mutate the arg instead
+                    prod_site.arg = Random.rand(indiv.config.rng, UInt8(0):UInt8(indiv.config.run.tag_limit))
+                end
+
+                mutated = true
+            end
+        end
     end
 
     mutated

@@ -372,6 +372,15 @@ function save_all_graphs_for_cell(data::Data, ea_step::Int64, pop_index::Int64, 
         path = string(path, '/')
     end
 
+    #remove all existing png files from the directory
+    files = readdir(path)
+    for cur_file in files
+        full_name = join((path, cur_file))
+        if endswith(full_name, ".png")
+            rm(full_name)
+        end
+    end
+
     digits_needed = Int64(floor(log10(data.run.reg_steps + 1)))
     fmt_spec = Formatting.FormatSpec("0$(digits_needed)d")
     for reg_step in 1:data.run.reg_steps + 1
