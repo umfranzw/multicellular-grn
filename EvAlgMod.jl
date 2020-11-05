@@ -2,6 +2,7 @@ module EvAlgMod
 
 using RunMod
 using IndividualMod
+using CrossoverMod
 using MutateMod
 using SelectionMod
 using RegSimMod
@@ -35,6 +36,7 @@ function ev_alg(run::Run)
             
             #do mutation
             prev_pop = deepcopy(pop)
+            CrossoverMod.crossover(run, pop)
             MutateMod.mutate(run, pop, ea_step)
 
             #TrackerMod.save_ea_state(pop, ea_step)
