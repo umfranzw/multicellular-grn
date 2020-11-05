@@ -92,6 +92,7 @@ function point_mutate_gene(indiv::Individual, gene::Gene)
                 #a bind site may mutate so that it accepts an initial protein or a protein produced by a prod site - except Application proteins
                 valid_options = Array{Union{ProdSite, ProteinProps}, 1}()
                 for other_gene in indiv.genes
+                    #note: this includes the gene itself, which is fine (self-binding could result)
                     append!(valid_options, filter(ps -> ps.type != ProteinPropsMod.Application, other_gene.prod_sites))
                 end
                 #note: initial proteins never have type Application, so don't need to worry about checking for that here
