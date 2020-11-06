@@ -7,6 +7,7 @@ ea_steps = 1
 point_mut_prob = 0.3
 dup_mut_prob = 0.3
 sys_level_mut_prob = 0.5
+cross_prop = 0.3
 growth_threshold = 1.0
 num_initial_genes = 1
 max_genes = 10

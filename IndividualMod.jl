@@ -44,7 +44,7 @@ mutable struct Individual
         initial_proteins = make_initial_proteins(config, genes, root_cell)
         reg_sim_info = RegSimInfo(length(genes))
 
-        indiv = Individual(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
+        indiv = new(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
         indiv.id = hash(indiv)
         CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
