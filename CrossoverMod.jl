@@ -58,6 +58,14 @@ function make_child(p1::Individual, p2::Individual, p1_range::UnitRange{Int64}, 
         push!(genes, gene)
         genome_index += 1
     end
+
+    i = 1
+    while i < length(genes)
+        if genes[i].genome_index != i
+            println("mismatch: $(genes)")
+        end
+        i += 1
+    end
     
     Individual(p1.config, genes)
 end
