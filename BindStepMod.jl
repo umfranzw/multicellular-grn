@@ -11,6 +11,8 @@ using ProteinMod
 using GeneStateMod
 using RandUtilsMod
 
+import Serialization
+
 function run_bind(indiv::Individual)
     CellTreeMod.traverse(cell -> run_bind_for_cell(indiv, cell), indiv.cell_tree)
 end
