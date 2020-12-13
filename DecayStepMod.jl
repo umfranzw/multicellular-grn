@@ -33,12 +33,6 @@ function run_decay_for_cell(cell::Cell)
             ProteinStoreMod.remove(cell.proteins, protein)
         end
     end
-
-    #run decay on the cell sensors
-    # for loc in keys(cell.sensors)
-    #     cell.sensors[loc] = max.(cell.sensors[loc] .- cell.config.run.decay_rate, zeros(length(cell.sensors[loc])))
-    #     #note: sensor proteins are never removed
-    # end
 end
 
 end

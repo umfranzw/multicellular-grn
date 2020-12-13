@@ -38,13 +38,13 @@ mutable struct Individual
     id::Union{UInt64, Nothing} #for unique identification in the vis UI
     last_mod::Int64 #ea_step of last *genetic* (not regulatory) modification
 
-    function Individual(config::Config, genes::Array{Gene, 1})
-        root_cell = Cell(config, genes)
+    function Individual(config::Config, gene::Gene)
+        root_cell = Cell(config, [gene])
         cell_tree = CellTree(root_cell)
-        initial_proteins = make_initial_proteins(config, genes, root_cell)
-        reg_sim_info = RegSimInfo(length(genes))
+        initial_proteins = Array{Protein, 1}([make_initial_protein(config, gene, root_cell)])
+        reg_sim_info = RegSimInfo(1)
 
-        indiv = new(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
+        indiv = new(config, [gene], cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
         indiv.id = hash(indiv)
         CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
@@ -58,9 +58,9 @@ function rand_init(run::Run, seed_offset::UInt64)
     #genes, initial_protein_props = make_initial_genes(config)
     #genes = map(i -> GeneMod.rand_init(config, i, [ProteinPropsMod.Internal], [GeneMod.Id]), 1:config.run.num_initial_genes)
 
-    genes = make_initial_genes(config)
+    gene = make_initial_gene(config)
 
-    Individual(config, genes)
+    Individual(config, gene)
 end
 
 function get_id_str(indiv::Individual)
@@ -297,48 +297,29 @@ function pop_remaining_sites(config::Config, genome_index::Int64, first_bind_sit
     Gene(config, genome_index, GeneMod.Id, bind_sites, prod_sites)
 end
 
-function make_initial_genes(config::Config)
-    genes = Array{Gene, 1}()
-
-    for i in 1:config.run.num_initial_genes
-        gene = GeneMod.rand_init(
-            config,
-            i,
-            bind_site_types=[ProteinPropsMod.Internal],
-            bind_logic=[GeneMod.Id]
-        )
-        push!(genes, gene)
-    end
-
-    genes
+function make_initial_gene(config::Config)
+    GeneMod.rand_init(
+        config,
+        1,
+        bind_site_types=[ProteinPropsMod.Internal],
+        bind_logic=[GeneMod.Id]
+    )
 end
 
-function make_initial_proteins(config::Config, genes::Array{Gene, 1}, root_cell::Cell)
-    proteins = Array{Protein, 1}()
-    num_concs = length(genes)
+function make_initial_protein(config::Config, initial_gene::Gene, root_cell::Cell)
     half = (1.0 - config.run.bind_threshold) / 2
 
-    #choose genes that the initial proteins will be designed to bind to
-    #note: these will only bind to bind sites (no inhibitory proteins here)
-    for i in 1:config.run.num_initial_proteins
-        gene_index = Random.rand(config.rng, 1:length(genes))
-        gene = genes[gene_index]
-        bind_site_index = RandUtilsMod.rand_int(config, 1, length(gene.bind_sites))
-        bind_site = gene.bind_sites[bind_site_index]
-        props = ProteinPropsMod.rand_init(
-            config,
-            #type=[bind_site.type],
-            #tag=[bind_site.tag],
-            type=[ProteinPropsMod.Internal],
-            tag= (i == 1) ? [bind_site.tag] : nothing, #ensure that at least one initial protein has a tag that matches the first gene
-            fcn=ProteinPropsMod.Activate
-        )
-        protein = Protein(config, props, false, true, num_concs, root_cell.id)
-        protein.concs = RandUtilsMod.rand_floats(config, config.run.bind_threshold + half, 1.0, num_concs)
-        push!(proteins, protein)
-    end
+    props = ProteinPropsMod.rand_init(
+        config,
+        type=[ProteinPropsMod.Internal],
+        tag=[initial_gene.bind_sites[1].tag],
+        fcn=ProteinPropsMod.Activate
+    )
     
-    proteins
+    protein = Protein(config, props, false, true, 1, root_cell.id)
+    protein.concs = RandUtilsMod.rand_floats(config, config.run.bind_threshold + half, 1.0, 1)
+    
+    protein
 end
 
 #resets everything to the way it was before the reg sim (so
@@ -347,10 +328,6 @@ function reset_cell_tree(indiv::Individual)
     #just re-initialize the cell (this discards the rest of the tree, along with any protein bindings)
     indiv.cell_tree.root = Cell(indiv.config, indiv.genes)
     CellMod.insert_initial_proteins(indiv.cell_tree.root, indiv.initial_cell_proteins)
-end
-
-function extend_sensors(indiv::Individual, index::Int64)
-    CellTreeMod.traverse(cell -> CellMod.extend_sensors(cell, index), indiv.cell_tree)
 end
 
 function show(io::IO, indiv::Individual, ilevel::Int64=0)

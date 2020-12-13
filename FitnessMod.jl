@@ -73,7 +73,7 @@ function get_lifetime_fitness(indiv::Individual)
 end
 
 function get_genome_len_fitness(indiv::Individual)
-    Float64(!(length(indiv.genes) > indiv.config.run.num_initial_genes))
+    Float64(!(length(indiv.genes) > 1))
 end
 
 function get_altered_sym_prob_fitness(indiv::Individual)

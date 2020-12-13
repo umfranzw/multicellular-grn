@@ -23,39 +23,30 @@ struct Run
     pop_size::Int64
     ea_steps::Int64
     point_mut_prob::Float64
-    dup_mut_prob::Float64
-    sys_level_mut_prob::Float64
-    cross_prop::Float64
     growth_threshold::Float64
-    num_initial_genes::Int64
+    growth_prob::Float64
     max_genes::Int64
+    max_initial_proteins::Int64
+
     tourn_size::Int64
+
     fitness_term_threshold::Float64
-    gene_dup_count_threshold::Int64
-    gene_sys_level_threshold::Int64
-    gene_dup_gen_limit::Int64
-    gene_sys_level_gen_limit::Int64
 
     tag_limit::Int64
     
     reg_steps::Int64
+
     protein_deletion_threshold::Float64
+
     max_prod_rate::Float64
 
     decay_rate::Float64
-    num_initial_proteins::Int64
-    initial_cell_sensor_conc::Float64
+
     max_proteins_per_cell::Int64
     
     diff_alpha::Float64
     diff_h::Float64
     diff_dt::Float64
-
-    initial_acc_weight::Float64
-    initial_ev_weight::Float64
-    weight_shift::Float64
-    max_acc_weight::Float64
-    min_ev_weight::Float64
 
     bind_sites_per_gene::Int64
 
@@ -63,12 +54,14 @@ struct Run
     bind_consum_rate::Float64
         
     division_age_limit::Int64
+
     cell_division_threshold::Float64
+
     max_children::Int64
     max_tree_size::Int64
-    max_sensor_amount::Float64
-    sensor_reinforcement_threshold::Float64
+
     sym_prob_threshold::Float64
+
     max_protein_arg::UInt8
     
     fix_rng_seed::Bool

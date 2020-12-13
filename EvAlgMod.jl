@@ -8,6 +8,7 @@ using SelectionMod
 using RegSimMod
 using TrackerMod
 using BestInfoMod
+using GrowthMod
 using Printf
 import MiscUtilsMod
 import Random
@@ -33,11 +34,16 @@ function ev_alg(run::Run)
         ea_step = 1
         while !terminate(run) && ea_step <= run.ea_steps
             write_ea_step_title(step_output_buf, ea_step)
+
+            #save old pop
+            #prev_pop = deepcopy(pop)
+            
+            #do growth
+            GrowthMod.grow(run, pop)
             
             #do mutation
-            prev_pop = deepcopy(pop)
-            CrossoverMod.crossover(run, pop, ea_step)
-            MutateMod.mutate(run, pop, ea_step)
+            #CrossoverMod.crossover(run, pop, ea_step)
+            #MutateMod.mutate(run, pop, ea_step)
 
             #TrackerMod.save_ea_state(pop, ea_step)
             foreach(IndividualMod.reset_reg_sim_info, pop)
@@ -45,8 +51,8 @@ function ev_alg(run::Run)
             #the reg sim will update the fitnesses in the indiv objects
             RegSimMod.reg_sim(run, pop, ea_step)
 
-            #don't allow individuals whose fitness got worse because of mutation into the next generation (keep the indiv from prev_pop in this case)
-            enforce_fitness_front(run, prev_pop, pop, ea_step)
+            #don't allow individuals whose fitness got worse because of genetic operations into the next generation (keep the indiv from prev_pop in this case)
+            #enforce_fitness_front(run, prev_pop, pop, ea_step)
             
             #update fitnesses in the fitnesses array, as well as the best fitnesses
             TrackerMod.update_fitnesses(pop, ea_step, step_output_buf)

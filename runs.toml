@@ -2,27 +2,18 @@
 ######
 # GA #
 ######
-pop_size = 20
-ea_steps = 10
+pop_size = 10
+ea_steps = 2
 point_mut_prob = 0.3
-dup_mut_prob = 0.3
-sys_level_mut_prob = 0.5
-cross_prop = 1.0
 growth_threshold = 1.0
-num_initial_genes = 1
+growth_prob = 0.5
 max_genes = 10
+max_initial_proteins = 4
 
 tourn_size = 3
 
 #GA will terminate when best fitness drops below this value
 fitness_term_threshold = 0.0
-
-#if the gene score (# of times the gene produces)
-#is above this threshold, the gene will be duplicated when mutation happens
-gene_dup_count_threshold = 2
-gene_sys_level_threshold = 3
-gene_dup_gen_limit = 10
-gene_sys_level_gen_limit = 10
 
 tag_limit = 10
 
@@ -38,27 +29,12 @@ max_prod_rate = 0.75
 
 decay_rate = 0.01
 
-#note: actual number of initial proteins may be less than this (they must be unique)
-num_initial_proteins = 5
-
-initial_cell_sensor_conc = 0.75
-
 #proteins will stop being produced when this count is exceeded
 max_proteins_per_cell = 50
 
 diff_alpha = 0.25
 diff_h = 1.0
 diff_dt = 1.0
-
-#weight given to accuracy in fitness fcn
-initial_acc_weight = 0.5
-#weight given to evolvability in fitness fcn
-initial_ev_weight = 0.5
-#amount the weight shifts (evolvability -> accuracy) on each ea_step
-weight_shift = 0.02
-#weight shift will stop when accuarcy weight gets to this value
-max_acc_weight = 1.0
-min_ev_weight = 0.0
 
 #note: number of production sites = number of bind sites
 bind_sites_per_gene = 1
@@ -79,10 +55,6 @@ cell_division_threshold = 0.2
 max_children = 2
 max_tree_size = 7
 
-#max conc value for sensor proteins (controls how much neighbour protein can be transferred between cells)
-max_sensor_amount = 0.75
-#cell sensors can only be reinforced when the (application) sensor protein exceeds this threshold
-sensor_reinforcement_threshold = 0.2
 #cell symbol probs can only be changed when the (application) sym protein exceeds this threshold
 sym_prob_threshold = 0.2
 
@@ -101,7 +73,7 @@ user_rng_seed = 2504327168
 #1 = fitnesses
 #2 = fitnesses & indivs
 log_level = 2
-step_range = "0:1:10"
+step_range = "0:1:2"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = true
