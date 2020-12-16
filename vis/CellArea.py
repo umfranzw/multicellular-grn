@@ -15,12 +15,10 @@ class CellArea(QWidget):
         layout = QVBoxLayout()
         tabs = QTabWidget(self)
         probs_tab = self.build_probs_tab()
-        sensors_tab = self.build_sensors_tab()
         gene_states_tab = self.build_gene_states_tab()
         interaction_tab = self.build_interaction_tab()
 
         tabs.addTab(probs_tab, "Sym Probs")
-        tabs.addTab(sensors_tab, "Sensors")
         tabs.addTab(gene_states_tab, "Gene States")
         tabs.addTab(interaction_tab, "Interaction")
 
@@ -151,83 +149,6 @@ class CellArea(QWidget):
         for axis in chart.axes(Qt.Horizontal | Qt.Vertical):
             chart.removeAxis(axis)
 
-    def build_sensors_tab(self):
-        tab = QWidget()
-        chart_widget = QWidget()
-        vbox_layout = QVBoxLayout()
-        grid_layout = QGridLayout()
-        chart_size = (200, 200)
-
-        num_locs = 3 + self.data_tools.get_run().max_children
-        self.sensor_charts = []
-        self.sensor_views = []
-
-        for i in range(num_locs):
-            chart = QtCharts.QChart()
-            chart.legend().setVisible(False)
-            view = QtCharts.QChartView(chart)
-            view.setRenderHint(QPainter.RenderHint.Antialiasing)
-            chart.resize(*chart_size)
-
-            self.sensor_charts.append(chart)
-            self.sensor_views.append(view)
-
-        #these must follow the order given in ProteinPropsMod
-        grid_layout.addWidget(self.sensor_views[0], 1, 2) #right
-        grid_layout.addWidget(self.sensor_views[1], 0, 1) #top
-        grid_layout.addWidget(self.sensor_views[2], 1, 0) #left
-
-        #bottom (children)
-        for i in range(3, num_locs):
-            grid_layout.addWidget(self.sensor_views[i], 2, i - 3)
-
-        save_button = QPushButton('Save')
-        save_button.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
-        save_button.clicked.connect(lambda: self.save_sensor_charts(chart_size))
-        
-        chart_widget.setLayout(grid_layout)
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(chart_widget)
-
-        vbox_layout.addWidget(scroll_area)
-        vbox_layout.addWidget(save_button)
-        tab.setLayout(vbox_layout)
-
-        return tab
-
-    @Slot()
-    def save_sensor_charts(self, chart_size):
-        width, height = chart_size
-        num_bottom_locs = self.data_tools.get_run().max_children
-        pixmap = QPixmap(max(3, num_bottom_locs) * width, 3 * height)
-        pixmap.fill(Qt.white)
-
-        right_pixmap = QPixmap(width, height)
-        self.sensor_views[0].render(right_pixmap)
-        
-        top_pixmap = QPixmap(width, height)
-        self.sensor_views[1].render(top_pixmap)
-
-        left_pixmap = QPixmap(width, height)
-        self.sensor_views[2].render(left_pixmap)
-
-        bottom_pixmaps = []
-        for i in range(num_bottom_locs):
-            bpixmap = QPixmap(width, height)
-            self.sensor_views[3 + i].render(bpixmap)
-            bottom_pixmaps.append(bpixmap)
-
-        painter = QPainter(pixmap)
-        painter.drawPixmap(QRect(width * 2, height, width, height), right_pixmap, right_pixmap.rect())
-        painter.drawPixmap(QRect(width, 0, width, height), top_pixmap, top_pixmap.rect())
-        painter.drawPixmap(QRect(0, height, width, height), left_pixmap, left_pixmap.rect())
-
-        for i in range(len(bottom_pixmaps)):
-            painter.drawPixmap(QRect(i * width, height * 2, width, height), bottom_pixmaps[i], bottom_pixmaps[i].rect())
-            
-        painter.end()
-        Utils.save_pixmap(pixmap)
-
     @Slot()
     def refresh(self, cells, index):
         self.index = index
@@ -236,7 +157,6 @@ class CellArea(QWidget):
         self.cell = cell
         
         self.refresh_probs_tab()
-        self.refresh_sensors_tab()
         self.refresh_gene_states_tab()
         self.refresh_interaction_tab(deselected)
 
@@ -289,33 +209,6 @@ class CellArea(QWidget):
                 
             series.setLabelsVisible(True)
             self.probs_chart.addSeries(series)
-
-    def refresh_sensors_tab(self):
-        sensor_concs = self.data_tools.get_sensor_concs(self.cell)
-
-        for loc in range(len(sensor_concs)):
-            chart = self.sensor_charts[loc]
-            self.clear_chart(chart)
-
-            if self.cell is not None: #note: self.cell will be None when an item in the graphics area is de-selected
-                num_concs = len(sensor_concs[loc])
-                categories = list(map(lambda i: str(i), range(num_concs)))
-                x_axis = QtCharts.QBarCategoryAxis()
-                x_axis.append(categories)
-                chart.addAxis(x_axis, Qt.AlignBottom)
-
-                y_axis = QtCharts.QValueAxis()
-                y_axis.setRange(0.0, 1.0)
-                chart.addAxis(y_axis, Qt.AlignLeft)
-
-                series = QtCharts.QBarSeries()
-                bar_set = QtCharts.QBarSet(str(loc))
-                for sensor_conc in sensor_concs[loc]:
-                    bar_set.append(sensor_conc)
-                    
-                series.append(bar_set)
-                chart.addSeries(series)
-                series.attachAxis(y_axis)
 
     def refresh_interaction_tab(self, deselected):
         if deselected:

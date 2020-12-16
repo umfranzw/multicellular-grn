@@ -218,7 +218,6 @@ class TreeTools():
         pairs = (
             (Settings.show_protein_deletion_threshold, self.run.protein_deletion_threshold),
             (Settings.show_cell_division_threshold, self.run.cell_division_threshold),
-            (Settings.show_sensor_reinforcement_threshold, self.run.sensor_reinforcement_threshold),
             (Settings.show_sym_prob_threshold, self.run.sym_prob_threshold),
         )
         for (setting, threshold) in pairs:

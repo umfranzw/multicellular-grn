@@ -159,8 +159,10 @@ end
 function rand_init(
     config::Config,
     genome_index::Int64;
-    bind_site_types::Array{ProteinPropsMod.ProteinType, 1}=Array{ProteinPropsMod.ProteinType, 1}([ProteinPropsMod.Internal]),
-    prod_site_types::Array{ProteinPropsMod.ProteinType, 1}=Array{ProteinPropsMod.ProteinType, 1}(),
+    bind_site_tags::Union{Array{UInt8, 1}, Nothing}=nothing,
+    prod_site_tags::Union{Array{UInt8, 1}, Nothing}=nothing,
+    bind_site_types::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
+    prod_site_types::Union{Array{ProteinPropsMod.ProteinType, 1}, Nothing}=nothing,
     bind_logic::Union{Array{BindLogic, 1}, Nothing}=nothing
 )
     bind_sites = Array{BindSite, 1}()
@@ -168,6 +170,7 @@ function rand_init(
     for i in 1:config.run.bind_sites_per_gene
         bind_site = rand_bind_site(
             config,
+            tag=bind_site_tags,
             type=bind_site_types,
             consum_rate=[config.run.bind_consum_rate],
             threshold=[config.run.bind_threshold]
@@ -176,6 +179,8 @@ function rand_init(
 
         prod_site = rand_prod_site(
             config,
+            tag=prod_site_tags,
+            type=prod_site_types,
             consum_rate=[config.run.bind_consum_rate], #note: these are for inhibitory proteins, which bind to prod sites
             threshold=[config.run.bind_threshold]
         )

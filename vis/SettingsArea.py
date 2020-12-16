@@ -5,7 +5,6 @@ from PySide2.QtWidgets import *
 class Settings():
     show_protein_deletion_threshold = False
     show_cell_division_threshold = False
-    show_sensor_reinforcement_threshold = False
     show_sym_prob_threshold = False
 
 class SettingsArea(QWidget):
@@ -25,12 +24,6 @@ class SettingsArea(QWidget):
         layout.addRow('Show Cell Division Threshold:', cell_division_threshold_checkbox)
         cell_division_threshold_checkbox.setCheckState(SettingsArea.bool_to_state(Settings.show_cell_division_threshold))
         cell_division_threshold_checkbox.stateChanged.connect(lambda state: self.update_bool_setting('show_cell_division_threshold', state))
-
-        sensor_reinforcement_threshold_checkbox = QCheckBox()
-        layout.addRow('Show Sensor Reinforcement Threshold:', sensor_reinforcement_threshold_checkbox)
-        sensor_reinforcement_threshold_checkbox.setCheckState(SettingsArea.bool_to_state(Settings.show_sensor_reinforcement_threshold))
-        sensor_reinforcement_threshold_checkbox.stateChanged.connect(lambda state: self.update_bool_setting('show_sensor_reinforcement_threshold', state))
-        
 
         sym_prob_threshold_checkbox = QCheckBox()
         layout.addRow('Show Sym Prob Threshold:', sym_prob_threshold_checkbox)

@@ -107,15 +107,6 @@ class DataTools():
 
         return Main.num_genes
 
-    def get_sensor_concs(self, cell):
-        concs = {}
-        if cell is not None:
-            Main.cell = cell
-            Main.eval('sensor_concs = DataMod.get_sensor_concs(cell)')
-            concs = Main.sensor_concs
-
-        return concs
-
     def get_interaction_graph(self, index, cell):
         if cell is None:
             pixmap_data = []

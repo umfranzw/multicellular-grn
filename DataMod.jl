@@ -291,16 +291,6 @@ function get_probs_info_for_cell(cell::Cell)
     info
 end
 
-function get_sensor_concs(cell::Cell)
-    concs = Array{Array{Float64, 1}, 1}()
-    num_locs = 3 + cell.config.run.max_children
-    for loc in 0 : num_locs - 1
-        push!(concs, cell.sensors[loc])
-    end
-
-    concs
-end
-
 function add_neighbour_edges(graph::NeighbourGraph, cell::Cell, id_to_cell::Dict{UInt64, Cell})
     for gs in cell.gene_states
         for type in keys(gs.bindings)

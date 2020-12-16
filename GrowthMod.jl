@@ -64,6 +64,7 @@ function grow_indiv(indiv::Individual)
     if link_method == FromInitialProtein
         #choose an initial protein and get its props
         link_info = Random.rand(indiv.config.rng, indiv.initial_cell_proteins).props
+        
     elseif link_method == FromProdSite
         #choose a prod site and get its props
         prod_sites = Array{ProdSite, 1}()
@@ -86,7 +87,9 @@ function grow_indiv(indiv::Individual)
         gene = GeneMod.rand_init(
             indiv.config,
             gene_index,
-            #bind site type must match the type of the things we're linking with
+            #bind site tag must match the tag of the thing we're linking with
+            bind_site_tags=[link_info.tag],
+            #bind site type must match the type of the thing we're linking with
             bind_site_types=[link_info.type],
             bind_logic=[GeneMod.Id]
         )
