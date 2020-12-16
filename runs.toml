@@ -58,7 +58,7 @@ max_tree_size = 7
 #cell symbol probs can only be changed when the (application) sym protein exceeds this threshold
 sym_prob_threshold = 0.2
 
-max_protein_arg = 255 #must be in range [max(max_children, num_symbols), 2^8 - 1=255]
+max_protein_arg = 127 #must be in range [max(max_children, num_symbols), 2^7 - 1=127]
 
 ###########################
 #Random Number Generation #

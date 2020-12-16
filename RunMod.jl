@@ -152,7 +152,7 @@ end
 function get_test_config()
     run = get_first_run()
     
-    Config(run, 0)
+    Config(run, UInt64(0))
 end
 
 end
