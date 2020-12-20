@@ -13,6 +13,7 @@ mutable struct FitnessInfo
     accuracy::Float64
     lifetime::Float64
     neighbour_bind_fitness::Float64
+    neighbour_gene_fitness::Float64
 end
 
 end

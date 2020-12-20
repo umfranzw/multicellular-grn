@@ -8,6 +8,7 @@ using RegSimInfoMod
 using FitnessInfoMod
 using Printf
 import SettingsMod
+import ProteinPropsMod
 
 function eval_intermediate(indiv::Individual, reg_step::Int64)
     #ideas:
@@ -56,18 +57,35 @@ function eval_final(indiv::Individual, ea_step::Int64)
         get_genome_len_fitness(indiv),
         get_accuracy_fitness(indiv),
         get_lifetime_fitness(indiv),
-        get_neighbour_bind_fitness(indiv)
+        get_neighbour_bind_fitness(indiv),
+        get_neighbour_gene_fitness(indiv)
     )
 
     indiv.fitness =
-        0.3 +
+        0.2 +
         0.1 * indiv.fitness_info.contains_fncall +
         0.1 * indiv.fitness_info.divided +
         0.1 * indiv.fitness_info.genome_len +
         0.1 * indiv.fitness_info.prod_coverage + 
         0.1 * indiv.fitness_info.accuracy +
         0.1 * indiv.fitness_info.lifetime +
-        0.1 * indiv.fitness_info.neighbour_bind_fitness
+        0.1 * indiv.fitness_info.neighbour_bind_fitness +
+        0.1 * indiv.fitness_info.neighbour_gene_fitness
+end
+
+function get_neighbour_gene_fitness(indiv::Individual)
+    bind_sites = 0
+    prod_sites = 0
+    for gene in indiv.genes
+        if gene.bind_sites[1].type == ProteinPropsMod.Neighbour
+            bind_sites += 1
+            #use elsif since we only want to count the gene in one category, not both
+        elseif gene.prod_sites[1].type == ProteinPropsMod.Neighbour
+            prod_sites += 1
+        end
+    end
+
+    1 - (Float64(bind_sites > 0) / 2 + Float64(prod_sites > 0) / 2)
 end
 
 function get_neighbour_bind_fitness(indiv::Individual)
