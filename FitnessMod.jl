@@ -55,17 +55,23 @@ function eval_final(indiv::Individual, ea_step::Int64)
         get_altered_sym_prob_fitness(indiv),
         get_genome_len_fitness(indiv),
         get_accuracy_fitness(indiv),
-        get_lifetime_fitness(indiv)
+        get_lifetime_fitness(indiv),
+        get_neighbour_bind_fitness(indiv)
     )
 
     indiv.fitness =
-        0.4 +
+        0.3 +
         0.1 * indiv.fitness_info.contains_fncall +
         0.1 * indiv.fitness_info.divided +
         0.1 * indiv.fitness_info.genome_len +
         0.1 * indiv.fitness_info.prod_coverage + 
         0.1 * indiv.fitness_info.accuracy +
-        0.1 * indiv.fitness_info.lifetime
+        0.1 * indiv.fitness_info.lifetime +
+        0.1 * indiv.fitness_info.neighbour_bind_fitness
+end
+
+function get_neighbour_bind_fitness(indiv::Individual)
+    Float64(!(indiv.reg_sim_info.neighbour_bind_count > 0))
 end
 
 function get_lifetime_fitness(indiv::Individual)

@@ -481,6 +481,7 @@ function get_reg_sim_info(data::Data, pop_index::Int64)
         push!(row, string(cur_indiv.reg_sim_info.division_count))
         push!(row, string(cur_indiv.reg_sim_info.alter_sym_prob_count))
         push!(row, string(cur_indiv.reg_sim_info.reg_step_count))
+        push!(row, string(cur_indiv.reg_sim_info.neighbour_bind_count))
         
         for gene_index in 1:length(cur_indiv.genes)
             push!(row, string(cur_indiv.reg_sim_info.bind_count[gene_index]))

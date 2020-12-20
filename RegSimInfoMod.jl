@@ -8,9 +8,10 @@ mutable struct RegSimInfo
     division_count::Int64
     alter_sym_prob_count::Int64
     reg_step_count::Int64
+    neighbour_bind_count::Int64
 
     function RegSimInfo(num_genes::Int64)
-        new(zeros(num_genes), zeros(num_genes), 0, 0, 0)
+        new(zeros(num_genes), zeros(num_genes), 0, 0, 0, 0)
     end
 end
 
@@ -20,6 +21,7 @@ function reset(info::RegSimInfo)
     info.division_count = 0
     info.alter_sym_prob_count = 0
     info.reg_step_count = 0
+    info.neighbour_bind_count = 0
 end
 
 function insert_new_counts(info::RegSimInfo, index::Int64, val::Int64=0)

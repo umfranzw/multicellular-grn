@@ -135,8 +135,8 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union
             end
         end
     end
-    
-    eligible_proteins
+
+eligible_proteins
 end
 
 function run_bind_for_site(indiv::Individual, gs::GeneState, gene_index::Int64, site_type::Union{Type{BindSite}, Type{ProdSite}}, site_index::Int64, eligible_proteins::Array{Protein, 1})
@@ -155,6 +155,10 @@ function run_bind_for_site_max(indiv::Individual, gs::GeneState, gene_index::Int
 
         GeneStateMod.bind(gs, max_protein, site_type, site_index)
         indiv.reg_sim_info.bind_count[gene_index] += 1
+
+        if max_protein.props.type == ProteinPropsMod.Neighbour
+            indiv.reg_sim_info.neighbour_bind_count += 1
+        end
         
     else
         state = GeneStateMod.get_binding(gs, site_type, site_index)

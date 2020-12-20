@@ -12,6 +12,7 @@ mutable struct FitnessInfo
     genome_len::Float64
     accuracy::Float64
     lifetime::Float64
+    neighbour_bind_fitness::Float64
 end
 
 end
