@@ -39,12 +39,24 @@ mutable struct Individual
     last_mod::Int64 #ea_step of last *genetic* (not regulatory) modification
 
     function Individual(config::Config, gene::Gene)
-        root_cell = Cell(config, [gene])
-        cell_tree = CellTree(root_cell)
+        genes = [gene]
+        root_cell = Cell(config, genes)
         initial_proteins = Array{Protein, 1}([make_initial_protein(config, gene, root_cell)])
+        
+        Individual(config, genes, initial_proteins, root_cell)
+    end
+
+    function Individual(config::Config, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1})
+        root_cell = Cell(config, genes)
+
+        Individual(config, genes, initial_proteins, root_cell)
+    end
+
+    function Individual(config::Config, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1}, root_cell::Cell)
+        cell_tree = CellTree(root_cell)
         reg_sim_info = RegSimInfo(1)
 
-        indiv = new(config, [gene], cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
+        indiv = new(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
         indiv.id = hash(indiv)
         CellMod.insert_initial_proteins(root_cell, indiv.initial_cell_proteins)
 
@@ -231,7 +243,7 @@ function make_initial_genes_preset(config::Config)
         threshold=[config.run.bind_threshold],
         consum_rate=[config.run.bind_consum_rate]
     )
-gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
+    gh = pop_remaining_sites(config, genome_index, gh_bind_site, gh_prod_site)
 
 #fnc
 fnc_bind_site = GeneMod.rand_bind_site(

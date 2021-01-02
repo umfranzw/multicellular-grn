@@ -2,13 +2,14 @@
 ######
 # GA #
 ######
-pop_size = 10
-ea_steps = 2
+pop_size = 20
+ea_steps = 1
 point_mut_prob = 0.3
 growth_threshold = 1.0
 growth_prob = 0.5
 max_genes = 10
 max_initial_proteins = 4
+cross_prop = 0.4
 
 tourn_size = 3
 
@@ -72,8 +73,8 @@ user_rng_seed = 2504327168
 #0 = nothing
 #1 = fitnesses
 #2 = fitnesses & indivs
-log_level = 2
-step_range = "0:1:2"
+log_level = 0
+step_range = "0:1:1"
 #filename (path is specified in RunMod.jl)
 data_output_file = "data"
 multithreaded = true

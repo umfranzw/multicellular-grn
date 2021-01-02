@@ -73,11 +73,7 @@ function get_bind_eligible_proteins_for_site(cell::Cell, gene::Gene, site::Union
 
             #check conditions specific to neighbour and diffusion types
             if eligible
-                #note: leave these two cases separate for now in case they diverge later...
-                if protein.props.type == ProteinPropsMod.Neighbour
-                    eligible = protein.src_cell_id != cell.id
-                    
-                elseif protein.props.type == ProteinPropsMod.Diffusion
+                if protein.props.type == ProteinPropsMod.Neighbour || protein.props.type == ProteinPropsMod.Diffusion
                     eligible = protein.src_cell_id != cell.id
                 end
             end

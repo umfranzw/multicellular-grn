@@ -27,6 +27,7 @@ struct Run
     growth_prob::Float64
     max_genes::Int64
     max_initial_proteins::Int64
+    cross_prop::Float64
 
     tourn_size::Int64
 

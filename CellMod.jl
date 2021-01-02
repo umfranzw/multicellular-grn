@@ -46,7 +46,7 @@ end
 
 function insert_initial_proteins(cell::Cell, proteins::Array{Protein, 1})
     i = 1
-    while i <= min(length(proteins), cell.config.run.max_proteins_per_cell)
+    while i <= min(length(proteins), cell.config.run.max_proteins_per_cell, cell.config.run.max_initial_proteins)
         #it is possible that not all initial proteins in the array are unique. That's ok, since they'll all (including the duplicates) be subject to evolution.
         #the ProteinStore's insert() method ensures that only one (the last one) protein in each pair of duplicates gets inserted.
         #note: this means some individual's root cells may have fewer initial proteins than others...

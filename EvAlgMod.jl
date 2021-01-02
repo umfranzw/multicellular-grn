@@ -45,7 +45,7 @@ function ev_alg(run::Run)
             MutateMod.mutate(run, pop, ea_step)
 
             #do crossover
-            #CrossoverMod.crossover(run, pop, ea_step)
+            CrossoverMod.crossover(run, pop, ea_step)
 
             #TrackerMod.save_ea_state(pop, ea_step)
             foreach(IndividualMod.reset_reg_sim_info, pop)

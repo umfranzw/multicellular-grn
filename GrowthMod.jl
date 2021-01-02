@@ -12,6 +12,8 @@ import RegSimInfoMod
 import ProteinPropsMod
 import CellMod
 
+export grow, can_grow, grow_indiv
+
 @enum LinkMethod::Int8 FromInitialProtein FromProdSite
 
 function grow(run::Run, pop::Array{Individual, 1})
