@@ -11,13 +11,6 @@ import Random
 
 config = nothing
 
-function print_genes(indiv::Individual, label::String)
-    println(label)
-    for gene in indiv.genes
-        println(gene)
-    end
-end
-
 function crossover(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
     global config
     
@@ -53,27 +46,33 @@ function crossover(run::Run, pop::Array{Individual, 1}, ea_step::Int64)
         p2_to_p1_ranges = pick_ranges(p2, p1)
         c2 = nothing
         if p2_to_p1_ranges != nothing #if there's a way to link p2 to p1
-            p1_range, p2_range = p2_to_p1_ranges
+            p2_range, p1_range = p2_to_p1_ranges
             c2_offset = i * 2 #note: this is equivalent to (i - 1) * 2 + 2
             c2 = make_child(p2, p1, p2_range, p1_range, pop_seed_offset + ea_step_seed_offset + c2_offset)
         end
 
-        if i == 1 && (c1 != nothing || c2 != nothing)
-            println(p1, "p1:")
-            println(p2, "p2:")
-        end
+        # if i == 1 && (c1 != nothing || c2 != nothing)
+        #     println("p1:")
+        #     println(IndividualMod.get_gene_descs_str(p1))
+        #     println("p2:")
+        #     println(IndividualMod.get_gene_descs_str(p2))
+        # end
         
         if c1 != nothing
             pop[p1_index] = c1
-            if i == 1
-                print_genes(c1, "c1:")
-            end
+            # if i == 1
+            #     println("c1:")
+            #     println(p1_to_p2_ranges)
+            #     println(IndividualMod.get_gene_descs_str(c1))
+            # end
         end
         if c2 != nothing
             pop[p2_index] = c2
-            if i == 1
-                print_genes(c2, "c2:")
-            end
+            # if i == 1
+            #     println("c2:")
+            #     println(p2_to_p1_ranges)
+            #     println(IndividualMod.get_gene_descs_str(c2))
+            # end
         end
     end
 end
@@ -150,25 +149,6 @@ function find_link_points(p1::Individual, p2::Individual)
     links
 end
 
-#for debugging
-# function check(msg::String, child::Individual)
-#     gs_indices = map(g -> g.gene.genome_index, child.cell_tree.root.gene_states)
-#     if gs_indices != collect(1:length(gs_indices))
-#         println(msg)
-#         println("Gene States out")
-#         println(gs_indices)
-#         println()
-#     end
-
-#     g_indices = map(g -> g.genome_index, child.genes)
-#     if g_indices != collect(1:length(g_indices))
-#         println(msg)
-#         println("Genes out")
-#         println(g_indices)
-#         println()
-#     end
-# end
-
 function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int64}, p2_gene_range::UnitRange{Int64}, seed_offset::Int64)
     #note: although both children are replaced in the current population, it's possible that one of them may be rolled back to
     #its parent at the end of this ea_step (see EvAlgMod.enforce_fitness_front()). So we can't just steal the genes and config
@@ -176,10 +156,6 @@ function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int
     genes = Array{Gene, 1}()
     initial_proteins = Array{Protein, 1}()
     genome_index = 1
-    println("p1_gene_range:$(p1_gene_range)")
-    println("p1 genes: $(length(p1.genes))")
-    println("p2_gene_range:$(p2_gene_range)")
-    println("p2 genes: $(length(p2.genes))")
     for i in p1_gene_range
         gene = p1.genes[i]
         child_gene = deepcopy(gene)

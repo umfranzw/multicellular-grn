@@ -383,4 +383,17 @@ function has_proteins(cell::Cell)
     result
 end
 
+function get_gene_descs_str(indiv::Individual)
+    buf = IOBuffer()
+    for i in 1:length(indiv.genes)
+        gene_str = GeneMod.get_sites_str(indiv.genes[i])
+        write(buf, gene_str)
+        if i < length(indiv.genes)
+            write(buf, " | ")
+        end
+    end
+
+    String(take!(buf))
+end
+
 end

@@ -65,7 +65,7 @@ max_protein_arg = 127 #must be in range [max(max_children, num_symbols), 2^7 - 1
 #Random Number Generation #
 ###########################
 fix_rng_seed = false
-user_rng_seed = 2504327168
+user_rng_seed = 2504271
 
 ############
 # Tracking #
