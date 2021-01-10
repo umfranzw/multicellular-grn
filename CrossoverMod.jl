@@ -156,6 +156,7 @@ function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int
     genes = Array{Gene, 1}()
     initial_proteins = Array{Protein, 1}()
     genome_index = 1
+    total_concs = (p1_gene_range.stop - p1_gene_range.start + 1) + (p2_gene_range.stop - p2_gene_range.start + 1) # == total_genes
     for i in p1_gene_range
         gene = p1.genes[i]
         child_gene = deepcopy(gene)
@@ -165,7 +166,11 @@ function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int
 
         #add a matching initial protein, if possible
         if i <= length(p1.initial_cell_proteins) && length(initial_proteins) < p1.config.run.max_initial_proteins
-            push!(initial_proteins, deepcopy(p1.initial_cell_proteins[i]))
+            new_protein = deepcopy(p1.initial_cell_proteins[i])
+            resize!(new_protein.concs, total_concs)
+            #make sure no concs overlap with p2 genes
+            new_protein.concs[p1_gene_range.stop + 1:total_concs] .= 0 #note: it's ok if the start point is outside the array - julia doesn't care
+            push!(initial_proteins, new_protein)
         end
     end
 
@@ -178,7 +183,16 @@ function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int
 
         #add a matching initial protein, if possible
         if i <= length(p2.initial_cell_proteins) && length(initial_proteins) < p2.config.run.max_initial_proteins
-            push!(initial_proteins, deepcopy(p2.initial_cell_proteins[i]))
+            new_protein = deepcopy(p2.initial_cell_proteins[i])
+            resize!(new_protein.concs, total_concs)
+            #shift the concs over the p2 genes...
+            shifted_range = p1_gene_range.stop + 1 : (p1_gene_range.stop + 1) + (p2_gene_range.stop - p2_gene_range.start + 1) - 1
+            new_protein.concs[shifted_range] .= new_protein.concs[p2_gene_range]
+            #...and zero out the concs over the p1 genes
+            new_protein.concs[1:shifted_range.start] .= 0
+            new_protein.concs[shifted_range.stop + 1:total_concs] .= 0
+
+            push!(initial_proteins, new_protein)
         end
     end
 
