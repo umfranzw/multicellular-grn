@@ -186,11 +186,14 @@ function make_child(p1::Individual, p2::Individual, p1_gene_range::UnitRange{Int
             new_protein = deepcopy(p2.initial_cell_proteins[i])
             resize!(new_protein.concs, total_concs)
             #shift the concs over the p2 genes...
-            shifted_range = p1_gene_range.stop + 1 : (p1_gene_range.stop + 1) + (p2_gene_range.stop - p2_gene_range.start + 1) - 1
-            new_protein.concs[shifted_range] .= new_protein.concs[p2_gene_range]
-            #...and zero out the concs over the p1 genes
-            new_protein.concs[1:shifted_range.start] .= 0
-            new_protein.concs[shifted_range.stop + 1:total_concs] .= 0
+            p2_gene_range_size = p2_gene_range.stop - p2_gene_range.start + 1
+            if p2_gene_range_size > 0
+                shifted_range = p1_gene_range.stop + 1 : (p1_gene_range.stop + 1) + p2_gene_range_size - 1
+                new_protein.concs[shifted_range] .= new_protein.concs[p2_gene_range]
+                #...and zero out the concs over the p1 genes
+                new_protein.concs[1:shifted_range.start] .= 0
+                new_protein.concs[shifted_range.stop + 1:total_concs] .= 0
+            end
 
             push!(initial_proteins, new_protein)
         end
