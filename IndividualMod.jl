@@ -54,7 +54,7 @@ mutable struct Individual
 
     function Individual(config::Config, genes::Array{Gene, 1}, initial_proteins::Array{Protein, 1}, root_cell::Cell)
         cell_tree = CellTree(root_cell)
-        reg_sim_info = RegSimInfo(1)
+        reg_sim_info = RegSimInfo(length(genes))
 
         indiv = new(config, genes, cell_tree, initial_proteins, 1.0, reg_sim_info, nothing, nothing, -1)
         indiv.id = hash(indiv)
