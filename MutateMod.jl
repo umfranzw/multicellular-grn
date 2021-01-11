@@ -65,7 +65,11 @@ function point_mutate_gene(indiv::Individual, gene::Gene)
             new_arg = sign * Random.rand(indiv.config.rng, Int8(0):Int8(indiv.config.run.max_protein_arg))
             active_protein = ProteinStoreMod.get(indiv.cell_tree.root.proteins, initial_protein.props)
             initial_protein.props.arg = new_arg
+
+            #need to rehash the protein, since we're modifying it's props (and the store hashes them by props)
+            ProteinStoreMod.remove(indiv.cell_tree.root.proteins, active_protein)
             active_protein.props.arg = new_arg
+            ProteinStoreMod.insert(indiv.cell_tree.root.proteins, active_protein)
             
             mutated = true
         end
