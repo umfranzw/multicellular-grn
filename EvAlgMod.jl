@@ -75,6 +75,13 @@ function ev_alg(run::Run)
     @info "Logging final data"
     TrackerMod.save_run_best()
     TrackerMod.save_fitnesses()
+
+    write(step_output_buf, "\n--------\n")
+    write(step_output_buf, "Best Individual:")
+    write(step_output_buf, "\n--------\n")
+    write(step_output_buf, @sprintf("Fitness: %0.5f\n", TrackerMod.get_best_indiv_fitness()))
+    write(step_output_buf, TrackerMod.get_best_indiv_code())
+    
     data_file_size = TrackerMod.destroy_tracker() / 2^20 #in MiB
     total_alloc = total_bytes / 2^20 #in MiB
     num_allocs = Base.gc_alloc_count(counters)

@@ -302,4 +302,16 @@ function save_reg_state(indiv::Individual, ea_step::Int64, pop_index::Int64, reg
     end
 end
 
+function get_best_indiv_code()
+    global tracker
+
+    CellTreeMod.to_expr_str(tracker.run_best.indiv.cell_tree)
+end
+
+function get_best_indiv_fitness()
+    global tracker
+
+    tracker.run_best.indiv.fitness
+end
+
 end
